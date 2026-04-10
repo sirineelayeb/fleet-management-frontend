@@ -5,6 +5,14 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { tripHistoryService } from '../../services/tripHistoryService';
 
+// Fix missing Leaflet marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
+
 const TripDetailsModal = ({ trip, onClose }) => {
   const [tripWithRoute, setTripWithRoute] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -18,6 +26,7 @@ const TripDetailsModal = ({ trip, onClose }) => {
       setLoading(true);
       try {
         const response = await tripHistoryService.getTripRoute(trip._id);
+        console.log('Trip route response:', response);
         setTripWithRoute(response.data);
       } catch (error) {
         console.error('Failed to load trip route:', error);
@@ -30,32 +39,45 @@ const TripDetailsModal = ({ trip, onClose }) => {
 
   useEffect(() => {
     if (activeTab !== 'map') return;
-    if (!tripWithRoute?.route?.points?.length || !mapContainerRef.current) return;
-
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
+    if (!tripWithRoute?.route?.points?.length) {
+      console.log('No route points available');
+      return;
+    }
+    if (!mapContainerRef.current) {
+      console.log('Map container not ready');
+      return;
     }
 
-    // route.points is already [{lat, lng}, ...]
-    const points = tripWithRoute.route.points;
-    const leafletPoints = points.map(p => [p.lat, p.lng]);
-    const bounds = L.latLngBounds(leafletPoints);
+    // Small delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return;
 
-    mapRef.current = L.map(mapContainerRef.current).fitBounds(bounds);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(mapRef.current);
+      // Clean up previous map instance
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
 
-    L.polyline(leafletPoints, { color: '#3B82F6', weight: 4, opacity: 0.8 }).addTo(mapRef.current);
+      const points = tripWithRoute.route.points;
+      const leafletPoints = points.map(p => [p.lat, p.lng]);
+      const bounds = L.latLngBounds(leafletPoints);
 
-    // Start and end markers
-    const start = leafletPoints[0];
-    const end = leafletPoints[leafletPoints.length - 1];
-    L.marker(start, { title: 'Start' }).addTo(mapRef.current).bindPopup('📍 Start Point');
-    L.marker(end, { title: 'End' }).addTo(mapRef.current).bindPopup('🏁 End Point');
+      mapRef.current = L.map(mapContainerRef.current).fitBounds(bounds);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+      }).addTo(mapRef.current);
+
+      L.polyline(leafletPoints, { color: '#3B82F6', weight: 4, opacity: 0.8 }).addTo(mapRef.current);
+
+      // Start and end markers
+      const start = leafletPoints[0];
+      const end = leafletPoints[leafletPoints.length - 1];
+      L.marker(start).addTo(mapRef.current).bindPopup('📍 Start Point');
+      L.marker(end).addTo(mapRef.current).bindPopup('🏁 End Point');
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;

@@ -124,6 +124,12 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         ...(formData.customer.phone && { phone: formData.customer.phone.trim() }),
       },
       ...(formData.truck && { truck: formData.truck }),
+       ...(formData.originCoordinates.lat && formData.originCoordinates.lng && {
+        originCoordinates: {
+            lat: formData.originCoordinates.lat,
+            lng: formData.originCoordinates.lng,
+          },
+        }),
       ...(formData.destinationCoordinates.lat && formData.destinationCoordinates.lng && {
         destinationCoordinates: {
           lat: formData.destinationCoordinates.lat,
