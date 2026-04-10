@@ -17,9 +17,9 @@ connect() {
   }
   if (this.socket?.connected) return this;
   if (this.socket && !this.socket.disconnected) return this;
-
-  const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const socketUrl = new URL(rawUrl).origin; // "http://localhost:5000" — no /api path
+const url='https://fleet-management-backend-ptpw.onrender.com'
+  const rawUrl = import.meta.env.VITE_API_URL || url;
+  const socketUrl = new URL(rawUrl).origin; // url— no /api path
 
   console.log('Connecting socket to:', socketUrl);
 

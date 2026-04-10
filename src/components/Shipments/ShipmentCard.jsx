@@ -243,6 +243,19 @@ const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete 
           {/* Action Buttons */}
           {(canAssign || canCancel || canDelete) && (
             <div className="flex justify-end gap-3 pt-2 border-t">
+              <button
+                onClick={() => { onEdit(shipment._id); onClose(); }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+              >
+                Edit Shipment
+              </button>
+
+              <button
+                onClick={() => { if (window.confirm('Delete this shipment? This action cannot be undone.')) onDelete(shipment._id); onClose(); }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+              >
+                Delete Shipment
+              </button>
               {canAssign && (
                 <button onClick={() => { onAssign(); onClose(); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
                   Assign Shipment
@@ -322,6 +335,20 @@ const ShipmentCard = ({ shipment, onCancel, onDelete, onAssign, onEdit }) => {
           <button onClick={(e) => { e.stopPropagation(); setShowDetails(true); }} className="text-gray-400 hover:text-blue-600 p-0.5" title="Details">
             <EyeIcon className="h-4 w-4" />
           </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(shipment); }}
+            className="text-xs bg-green-600 text-white px-2 py-0.5 rounded hover:bg-green-700"
+            title="Edit shipment"
+          >
+            Edit
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(shipment._id); }}
+            className="text-xs bg-red-600 text-white px-2 py-0.5 rounded hover:bg-red-700"
+            title="Delete shipment"
+          >
+            Del
+          </button>
            {shipment.status === 'pending' && (
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(shipment); }}
@@ -331,15 +358,12 @@ const ShipmentCard = ({ shipment, onCancel, onDelete, onAssign, onEdit }) => {
               Edit
             </button>
           )}
-          {shipment.status === 'pending' && (
-            <>
-              <button onClick={(e) => { e.stopPropagation(); onAssign(); }} className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700">Assign</button>
-              <button onClick={(e) => { e.stopPropagation(); onDelete(shipment._id); }} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded hover:bg-red-700">Del</button>
-            </>
+         {shipment.status === 'assigned' && (
+            <button onClick={(e) => { e.stopPropagation(); onCancel(shipment._id); }} className="text-xs bg-amber-600 text-white px-2 py-0.5 rounded hover:bg-amber-700">
+              Cancel
+            </button>
           )}
-          {shipment.status === 'assigned' && (
-            <button onClick={(e) => { e.stopPropagation(); onCancel(shipment._id); }} className="text-xs bg-amber-600 text-white px-2 py-0.5 rounded hover:bg-amber-700">Cancel</button>
-          )}
+
           {shipment.status === 'in_progress' && <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Moving</span>}
           {shipment.status === 'completed' && <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">✓</span>}
           {shipment.status === 'cancelled' && <span className="text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded">✗</span>}
