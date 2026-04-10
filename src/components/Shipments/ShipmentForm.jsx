@@ -38,6 +38,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
   }, []);
 
   useEffect(() => {
+    console.log('🔍 initialData in ShipmentForm:', initialData);
     if (initialData) {
       setFormData({
         description: initialData.description || '',
@@ -60,7 +61,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
           phone: initialData.customer?.phone || '',
         },
         isPriority: initialData.isPriority || false,
-        plannedLoadingDurationMinutes: initialData.plannedLoadingDurationMinutes || 60,
+        plannedLoadingDurationMinutes: initialData.plannedLoadingDurationMinutes ?? 60,
         plannedDepartureDate: initialData.plannedDepartureDate ? new Date(initialData.plannedDepartureDate).toISOString().slice(0, 16) : '',
         plannedDeliveryDate: initialData.plannedDeliveryDate ? new Date(initialData.plannedDeliveryDate).toISOString().slice(0, 16) : '',
       });
