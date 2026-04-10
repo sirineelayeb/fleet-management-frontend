@@ -19,6 +19,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     isPriority: false,
     plannedDepartureDate: '',
     plannedDeliveryDate: '',
+    plannedLoadingDurationMinutes: 60,
   });
 
   useEffect(() => {
@@ -59,6 +60,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
           phone: initialData.customer?.phone || '',
         },
         isPriority: initialData.isPriority || false,
+        plannedLoadingDurationMinutes: initialData.plannedLoadingDurationMinutes || 60,
         plannedDepartureDate: initialData.plannedDepartureDate ? new Date(initialData.plannedDepartureDate).toISOString().slice(0, 16) : '',
         plannedDeliveryDate: initialData.plannedDeliveryDate ? new Date(initialData.plannedDeliveryDate).toISOString().slice(0, 16) : '',
       });
@@ -119,6 +121,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
       shipmentType: formData.shipmentType,
       status: formData.status,
       isPriority: formData.isPriority,
+      plannedLoadingDurationMinutes: formData.plannedLoadingDurationMinutes || 60,
       customer: {
         name: formData.customer.name.trim(),
         ...(formData.customer.phone && { phone: formData.customer.phone.trim() }),
@@ -201,7 +204,23 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         <input type="checkbox" name="isPriority" checked={formData.isPriority} onChange={handleChange} className="rounded" />
         <label className="text-sm">Priority Shipment</label>
       </div>
-
+      {/* Planned Loading Duration */}
+      <div>
+        <label className="block text-sm font-medium mb-1">Planned Loading Duration (minutes)</label>
+        <input
+          type="number"
+          name="plannedLoadingDurationMinutes"
+          value={formData.plannedLoadingDurationMinutes}
+          onChange={handleChange}
+          min="0"
+          step="1"
+          className={inputClass}
+          placeholder="e.g., 60"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Expected time to load the truck at the origin gate.
+        </p>
+      </div>
       {/* Planned Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
