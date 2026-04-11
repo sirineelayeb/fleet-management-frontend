@@ -113,7 +113,24 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     if (!formData.customer.name.trim()) return toast.error('Customer name required');
     if (!formData.plannedDepartureDate) return toast.error('Planned departure date required');
     if (!formData.plannedDeliveryDate) return toast.error('Planned delivery date required');
+     const newStatus = formData.status;
+    const oldStatus = initialData?.status;
+    if (oldStatus && (oldStatus === 'assigned' || oldStatus === 'in_progress') && 
+          (newStatus === 'pending' || newStatus === 'cancelled')) {
+        const confirmMessage = `⚠️ Warning: Changing status from "${oldStatus}" to "${newStatus}" will:\n` +
+          `- Free the truck and driver\n` +
+          `- Cancel the mission and trip history\n\n` +
+          `Are you sure you want to continue?`;
+        if (!window.confirm(confirmMessage)) {
+          return; // stop submission
+        }
+      }
 
+      // Also prevent changing from completed to any other status (optional)
+      if (oldStatus === 'completed' && newStatus !== 'completed') {
+        toast.error('Cannot change status of a completed shipment');
+        return;
+      }
     const cleanData = {
       description: formData.description.trim(),
       origin: formData.origin.trim(),
