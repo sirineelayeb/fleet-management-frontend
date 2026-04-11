@@ -154,44 +154,46 @@ const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete 
             </div>
           </div>
           {/* Loading Duration Section */}
-<div className="border rounded-lg p-4">
-  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-    <ClockIcon className="h-4 w-4" /> Loading Duration
-  </h3>
-  <div className="grid md:grid-cols-2 gap-4">
-    <div>
-      <p className="text-xs text-gray-500">Planned (min)</p>
-      <p className="text-lg font-bold">
-        {shipment.plannedLoadingDurationMinutes ?? '—'}
-      </p>
-    </div>
-    <div>
-      <p className="text-xs text-gray-500">Actual (min)</p>
-      <p className="text-lg font-bold">
-        {shipment.actualLoadingDurationMinutes?.toFixed(1) ?? '—'}
-      </p>
-    </div>
-    <div>
-      <p className="text-xs text-gray-500">Loading Started</p>
-      <p className="text-sm">
-        {shipment.loadingStartedAt ? new Date(shipment.loadingStartedAt).toLocaleString() : '—'}
-      </p>
-    </div>
-    <div>
-      <p className="text-xs text-gray-500">Loading Completed</p>
-      <p className="text-sm">
-        {shipment.loadingCompletedAt ? new Date(shipment.loadingCompletedAt).toLocaleString() : '—'}
-      </p>
-    </div>
-  </div>
-  {/* Overtime warning */}
-  {shipment.plannedLoadingDurationMinutes &&
-   shipment.actualLoadingDurationMinutes > shipment.plannedLoadingDurationMinutes && (
-    <div className="mt-3 p-2 bg-red-50 text-red-700 rounded text-sm flex items-center gap-2">
-      <span className="text-base">⚠️</span> Overtime: {Math.round(shipment.actualLoadingDurationMinutes - shipment.plannedLoadingDurationMinutes)} minutes
-    </div>
-  )}
-</div>
+          <div className="border rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <ClockIcon className="h-4 w-4" /> Loading Duration
+            </h3>
+            <div className="grid grid-cols-2 gap-4 mb-2">
+              <div>
+                <p className="text-xs text-gray-500">Planned (min)</p>
+                <p className="text-lg font-bold">
+                  {shipment.plannedLoadingDurationMinutes ?? '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Actual (min)</p>
+                <p className="text-lg font-bold">
+                  {shipment.actualLoadingDurationMinutes != null
+                    ? `${shipment.actualLoadingDurationMinutes.toFixed(1)}`
+                    : shipment.loadingStartedAt && !shipment.loadingCompletedAt
+                    ? 'In progress...'
+                    : '—'}
+                </p>
+              </div>
+            </div>
+            {/* Timestamps (only shown if loading started) */}
+            {shipment.loadingStartedAt && (
+              <div className="text-xs text-gray-400 border-t pt-2 mt-1">
+                <div>Started: {new Date(shipment.loadingStartedAt).toLocaleString()}</div>
+                {shipment.loadingCompletedAt && (
+                  <div>Completed: {new Date(shipment.loadingCompletedAt).toLocaleString()}</div>
+                )}
+              </div>
+            )}
+            {/* Overtime warning */}
+            {shipment.plannedLoadingDurationMinutes &&
+              shipment.actualLoadingDurationMinutes != null &&
+              shipment.actualLoadingDurationMinutes > shipment.plannedLoadingDurationMinutes && (
+                <div className="mt-3 p-2 bg-red-50 text-red-700 rounded text-sm flex items-center gap-2">
+                  <span className="text-base">⚠️</span> Overtime: {Math.round(shipment.actualLoadingDurationMinutes - shipment.plannedLoadingDurationMinutes)} minutes
+                </div>
+              )}
+          </div>
           {/* Assignment */}
           <div className="border rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -264,11 +266,6 @@ const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete 
               {canCancel && (
                 <button onClick={() => { if (window.confirm('Cancel this shipment?')) onCancel(shipment._id); onClose(); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm">
                   Cancel Shipment
-                </button>
-              )}
-              {canDelete && (
-                <button onClick={() => { if (window.confirm('Delete this shipment? This action cannot be undone.')) onDelete(shipment._id); onClose(); }} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
-                  Delete Shipment
                 </button>
               )}
             </div>

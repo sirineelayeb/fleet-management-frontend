@@ -11,23 +11,21 @@ class WebSocketService {
 
 connect() {
   const token = localStorage.getItem('token');
-  if (!token) {
-    console.warn('No token found, cannot connect to WebSocket');
-    return this;
-  }
-  if (this.socket?.connected) return this;
-  if (this.socket && !this.socket.disconnected) return this;
-const url='https://fleet-management-backend-ptpw.onrender.com'
-  const rawUrl = import.meta.env.VITE_API_URL || url;
-  const socketUrl = new URL(rawUrl).origin; // url— no /api path
+  if (!token) return;
+
+  if (this.socket?.connected) return;
+
+  const socketUrl =
+    import.meta.env.VITE_WS_URL ||
+    "https://fleet-management-backend-ptpw.onrender.com";
 
   console.log('Connecting socket to:', socketUrl);
 
   this.socket = io(socketUrl, {
     auth: { token },
-    transports: ['websocket', 'polling'], // ✅ add polling as fallback
+    transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: this.maxReconnectAttempts,
+    reconnectionAttempts: 5,
     reconnectionDelay: 1000,
   });
 
@@ -37,18 +35,16 @@ const url='https://fleet-management-backend-ptpw.onrender.com'
   this.pendingListeners = [];
 
   this.setupEventHandlers();
-  return this;
 }
   setupEventHandlers() {
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket connected');
+      console.log('WebSocket connected');
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      this.subscribeToRole();
     });
 
     this.socket.on('disconnect', () => {
-      console.log('❌ WebSocket disconnected');
+      console.log('WebSocket disconnected');
       this.isConnected = false;
     });
 
@@ -59,13 +55,6 @@ const url='https://fleet-management-backend-ptpw.onrender.com'
         console.error('Max reconnection attempts reached');
       }
     });
-  }
-
-  subscribeToRole() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.role) {
-      this.socket.emit('subscribe:role', { role: user.role });
-    }
   }
 
   subscribeToTruck(truckId) {
