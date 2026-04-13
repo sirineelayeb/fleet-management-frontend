@@ -27,6 +27,7 @@ import AllTruckHistory from './pages/AllTruckHistory';
 import ShipmentManagerDashboard from './pages/ShipmentManagerDashboard';
 import Shipments from './pages/Shipments';
 import CreateShipment from './pages/CreateShipment';
+import ShipmentDetail from './pages/ShipmentDetail';
 
 // ─── Shared Pages ─────────────────────────────────────────────────────────────
 import Notifications from './pages/Notifications';
@@ -109,6 +110,7 @@ function App() {
             <Route index element={<ShipmentManagerDashboard />} />
             <Route path="shipments" element={<Shipments />} />
             <Route path="shipments/create" element={<CreateShipment />} />
+            <Route path="shipments/:shipmentId" element={<ShipmentDetail />} />
             <Route path="tracking" element={<LiveMap />} />
             <Route path="map" element={<LiveMap />} />
             <Route path="notifications" element={<Notifications />} />

@@ -671,12 +671,20 @@ const ShipmentManagerDashboard = () => {
                         <p className="text-xs text-gray-400 mt-1">Planned: {new Date(shipment.plannedDeliveryDate).toLocaleString()}</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => setTrackingId(shipment._id)}
-                      className="ml-2 px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex-shrink-0"
-                    >
-                      Track →
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Link
+                        to={`/shipment_manager/shipments/${shipment._id}`}
+                        className="ml-2 px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        View →
+                      </Link>
+                      <button
+                        onClick={() => setTrackingId(shipment._id)}
+                        className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        Track →
+                      </button>
+                    </div>
                   </div>
                 </div>
               )) : (

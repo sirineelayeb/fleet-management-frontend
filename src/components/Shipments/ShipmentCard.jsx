@@ -14,6 +14,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { getStatusBadge, getStatusText } from '../../constants/colors';
+import { useNavigate } from 'react-router-dom';
 
 const getTypeIcon = (type) => {
   switch (type) {
@@ -30,6 +31,7 @@ const getPriorityColor = (isPriority) => {
 };
 
 const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete }) => {
+  const navigate = useNavigate(); 
   if (!shipment) return null;
 
   const statusBadgeClass = getStatusBadge(shipment.status, 'shipment', 'md');
@@ -244,13 +246,13 @@ const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete 
 
           {/* Action Buttons */}
           {(canAssign || canCancel || canDelete) && (
-            <div className="flex justify-end gap-3 pt-2 border-t">
-              <button
-                onClick={() => { onEdit(shipment._id); onClose(); }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-              >
-                Edit Shipment
-              </button>
+                  <div className="flex justify-end gap-3 pt-2 border-t">
+                    <button
+            onClick={() => { navigate(`/shipment_manager/shipments/${shipment._id}`); onClose(); }}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+          >
+            View Full Page →
+          </button>
 
               <button
                 onClick={() => { if (window.confirm('Delete this shipment? This action cannot be undone.')) onDelete(shipment._id); onClose(); }}
@@ -278,6 +280,7 @@ const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete 
 
 const ShipmentCard = ({ shipment, onCancel, onDelete, onAssign, onEdit }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const navigate = useNavigate(); 
   const statusBadgeClass = getStatusBadge(shipment.status, 'shipment', 'sm');
   const statusText = getStatusText(shipment.status);
 
@@ -329,7 +332,11 @@ const ShipmentCard = ({ shipment, onCancel, onDelete, onAssign, onEdit }) => {
         </div>
 
         <div className="px-3 py-1.5 border-t border-gray-100 flex justify-end gap-1.5">
-          <button onClick={(e) => { e.stopPropagation(); setShowDetails(true); }} className="text-gray-400 hover:text-blue-600 p-0.5" title="Details">
+          <button 
+            onClick={(e) => { e.stopPropagation(); navigate(`/shipment_manager/shipments/${shipment._id}`); }} 
+            className="text-gray-400 hover:text-blue-600 p-0.5" 
+            title="View details"
+          >
             <EyeIcon className="h-4 w-4" />
           </button>
           <button
