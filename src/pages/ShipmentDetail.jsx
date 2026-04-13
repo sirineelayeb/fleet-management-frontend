@@ -151,13 +151,18 @@ const ShipmentDetail = () => {
   const navigate = useNavigate();
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['shipment', id],
-    queryFn: async () => {
-      const res = await shipmentService.getById(id);
-      return res?.data || res?.shipment || res;
-    },
-    enabled: !!id,
-  });
+  queryKey: ['shipmentDetail', id],  // change key to avoid conflict
+  queryFn: async () => {
+    const res = await shipmentService.getById(id);
+    console.log('raw res:', res);
+    // res = { success: true, data: {...} }
+    if (res?.success && res?.data) return res.data;
+    if (res?.data) return res.data;
+    return res;
+  },
+  enabled: !!id,
+  retry: 1,
+});
 
   const s = data;
 
