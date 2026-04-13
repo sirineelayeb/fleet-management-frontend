@@ -309,12 +309,52 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
       <div>
         <label className="block text-sm font-medium mb-1">Status</label>
         <select name="status" value={formData.status} onChange={handleChange} className={inputClass}>
-          <option value="pending">Pending</option>
-          <option value="assigned">Assigned</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
+          {(() => {
+            const current = initialData?.status;
+
+            // Completed: locked, show only completed
+            if (current === 'completed') {
+              return <option value="completed">Completed</option>;
+            }
+
+            // assigned or in_progress: can only go to pending or cancelled (or stay)
+            if (current === 'assigned' || current === 'in_progress') {
+              return (
+                <>
+                  {current === 'assigned' && <option value="assigned">Assigned</option>}
+                  {current === 'in_progress' && <option value="in_progress">In Progress</option>}
+                  <option value="pending">Pending</option>
+                  <option value="cancelled">Cancelled</option>
+                </>
+              );
+            }
+
+            // pending or no status (create mode): full choice except assigned (needs truck+driver via Assign button)
+            return (
+              <>
+                <option value="pending">Pending</option>
+                <option value="cancelled">Cancelled</option>
+              </>
+            );
+          })()}
         </select>
+
+        {/* Helper text */}
+        {(initialData?.status === 'assigned' || initialData?.status === 'in_progress') && (
+          <p className="text-xs text-amber-600 mt-1">
+            ⚠️ Changing to Pending or Cancelled will free the truck & driver and cancel the mission.
+          </p>
+        )}
+        {initialData?.status === 'completed' && (
+          <p className="text-xs text-gray-400 mt-1">
+            Completed shipments cannot be changed.
+          </p>
+        )}
+        {!initialData && (
+          <p className="text-xs text-gray-400 mt-1">
+            Use the Assign button to set status to Assigned.
+          </p>
+        )}
       </div>
 
       {/* Buttons – now includes Cancel and dynamic submit text */}

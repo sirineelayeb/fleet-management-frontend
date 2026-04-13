@@ -346,15 +346,6 @@ const ShipmentCard = ({ shipment, onCancel, onDelete, onAssign, onEdit }) => {
           >
             Del
           </button>
-           {shipment.status === 'pending' && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(shipment); }}
-              className="text-xs bg-green-600 text-white px-2 py-0.5 rounded hover:bg-green-700"
-              title="Edit shipment"
-            >
-              Edit
-            </button>
-          )}
          {shipment.status === 'assigned' && (
             <button onClick={(e) => { e.stopPropagation(); onCancel(shipment._id); }} className="text-xs bg-amber-600 text-white px-2 py-0.5 rounded hover:bg-amber-700">
               Cancel
