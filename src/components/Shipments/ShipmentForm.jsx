@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customerService } from '../../services/customerService';
 import { loadingZoneService } from '../../services/loadingZoneService';
-import MapPicker from '../common/MapPicker';
-import Modal from '../common/Modal';
+import MapPicker from '../Common/MapPicker';
+import Modal from '../Common/Modal';
 import { MapPinIcon, PlusIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
