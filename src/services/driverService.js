@@ -1,12 +1,9 @@
-// frontend/src/services/driverService.js
 import api from './api';
 
 export const driverService = {
   getAll: async (params) => {
-    console.log('driverService.getAll called with params:', params);
     try {
       const response = await api.get('/drivers', { params });
-      console.log('driverService.getAll response:', response.data);
       return response.data;
     } catch (error) {
       console.error('driverService.getAll error:', error);

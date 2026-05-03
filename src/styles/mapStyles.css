@@ -1,0 +1,142 @@
+/* Map container styles */
+.leaflet-container {
+  border-radius: 0.5rem;
+  font-family: 'Inter', sans-serif;
+  height: 100%;
+  width: 100%;
+}
+
+/* Dark theme adjustments */
+.map-dark .leaflet-tile-pane {
+  filter: brightness(0.7) contrast(1.2);
+}
+
+.map-light .leaflet-tile-pane {
+  filter: brightness(1) contrast(1);
+}
+
+/* Route line styles */
+.route-line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Popup styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Zoom control styles */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Custom marker styles */
+.custom-marker-container {
+  background: transparent;
+}
+
+.custom-marker {
+  width: 30px;
+  height: 30px;
+}
+
+.custom-marker-inner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid white;
+}
+
+.marker-icon {
+  font-size: 14px;
+}
+
+/* Map Style Switcher */
+.map-style-switcher {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.map-style-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4B5563;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.map-style-btn:hover {
+  background: #F3F4F6;
+  transform: translateY(-1px);
+}
+
+.map-style-btn.active {
+  background: #3B82F6;
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.style-icon {
+  font-size: 14px;
+}
+
+.style-name {
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .map-style-switcher {
+    top: 5px;
+    right: 5px;
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .map-style-btn {
+    padding: 4px 8px;
+  }
+  
+  .style-name {
+    display: none;
+  }
+}

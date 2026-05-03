@@ -1,4 +1,3 @@
-// src/components/Users/UserRow.jsx
 import React from 'react';
 import { 
   PencilIcon, TrashIcon, EnvelopeIcon, CalendarIcon,

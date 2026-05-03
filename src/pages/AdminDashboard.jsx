@@ -1,34 +1,30 @@
-// frontend/src/pages/AdminDashboard.jsx
-import React from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import {
+  TruckIcon, CubeIcon, ExclamationTriangleIcon,
+  UserGroupIcon, DevicePhoneMobileIcon, CheckCircleIcon,
+  StarIcon, TrophyIcon
+} from '@heroicons/react/24/outline';
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  FunnelChart, Funnel, LabelList,
+  RadialBarChart, RadialBar, Legend,
+  BarChart, Bar,
+  Cell,
+} from 'recharts';
+
 import { truckService } from '../services/truckService';
 import { shipmentService } from '../services/shipmentService';
 import notificationService from '../services/notificationService';
 import { driverService } from '../services/driverService';
 import { deviceService } from '../services/deviceService';
-import { userService } from '../services/userService';
 import StatCard from '../components/Cards/StatCard';
-import DriverPerformanceCharts from '../components/Charts/DriverPerformanceCharts';
 
-import {
-  TruckIcon,
-  CubeIcon,
-  ExclamationTriangleIcon,
-  UserGroupIcon,
-  DevicePhoneMobileIcon,
-  CheckCircleIcon,
-  UserIcon,
-  ChartBarIcon,
-  ArrowPathIcon,
-} from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
-import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer
-} from 'recharts';
-
-import { chartColors } from '../constants/colors';
+// ============================================
+// UTILITIES
+// ============================================
 
 const toArray = (r) => {
   if (Array.isArray(r)) return r;
@@ -37,292 +33,587 @@ const toArray = (r) => {
   return [];
 };
 
-const AdminDashboard = () => {
-  const queryClient = useQueryClient();
+const mapSeverity = (s) => ({ critical: 'high', warning: 'medium', info: 'low' }[s] || 'low');
 
-  // Queries
-  const { data: trucks = [], isLoading: trucksLoading } = useQuery({
+const pct = (v, t) => (t > 0 ? parseFloat(((v / t) * 100).toFixed(1)) : 0);
+
+const fmt = (val, suffix = '') => (val > 0 ? `${val}${suffix}` : '—');
+
+// ============================================
+// SHARED UI
+// ============================================
+
+const EmptyChart = ({ icon: Icon, message, height = 220 }) => (
+  <div className="flex flex-col items-center justify-center text-gray-400" style={{ height }}>
+    <Icon className="h-10 w-10 mb-2 text-gray-300" />
+    <p className="text-sm font-medium text-gray-400">{message}</p>
+    <p className="text-xs text-gray-300 mt-1">Data will appear here once available</p>
+  </div>
+);
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600" />
+  </div>
+);
+
+const SectionHeader = ({ icon: Icon, iconColor, title, linkTo, linkColor }) => (
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+      <Icon className={`h-5 w-5 ${iconColor}`} />
+      {title}
+    </h2>
+    <Link to={linkTo} className={`text-sm ${linkColor} hover:opacity-75`}>View All →</Link>
+  </div>
+);
+
+const ChartCard = ({ title, children, className = '' }) => (
+  <div className={`bg-white rounded-lg shadow p-5 ${className}`}>
+    <p className="text-sm font-semibold text-gray-700 mb-4">{title}</p>
+    {children}
+  </div>
+);
+
+// ============================================
+// DATA FETCHING
+// ============================================
+
+const useDashboardData = () => {
+  const { data: trucks = [], isLoading: l1, isError: e1 } = useQuery({
     queryKey: ['trucks'],
-    queryFn: async () => toArray(await truckService.getAll())
+    queryFn: async () => toArray(await truckService.getAll()),
   });
-  const { data: shipments = [], isLoading: shipmentsLoading } = useQuery({
+  const { data: shipments = [], isLoading: l2, isError: e2 } = useQuery({
     queryKey: ['shipments'],
-    queryFn: async () => toArray(await shipmentService.getAll())
+    queryFn: async () => toArray(await shipmentService.getAll()),
   });
-   const { data: notifications = [], isLoading: notificationsLoading } = useQuery({
+  const { data: notifications = [], isLoading: l3, isError: e3 } = useQuery({
     queryKey: ['notifications', 'recent'],
     queryFn: async () => {
-      const result = await notificationService.getAll({}, 1, 1000); // increased limit
-      return result.notifications || [];
+      const r = await notificationService.getAll({}, 1, 1000);
+      return r.notifications || [];
     },
-    retry: false
   });
-  const { data: drivers = [], isLoading: driversLoading } = useQuery({
+  const { data: drivers = [], isLoading: l4, isError: e4 } = useQuery({
     queryKey: ['drivers'],
-    queryFn: async () => toArray(await driverService.getAll())
+    queryFn: async () => toArray(await driverService.getAll()),
   });
-  const { data: devices = [], isLoading: devicesLoading } = useQuery({
+  const { data: devices = [], isLoading: l5, isError: e5 } = useQuery({
     queryKey: ['devices'],
-    queryFn: async () => toArray(await deviceService.getAll())
-  });
-  const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: async () => toArray(await userService.getAll())
+    queryFn: async () => toArray(await deviceService.getAll()),
   });
 
-  // Data arrays
-  const trucksArray = toArray(trucks);
-  const shipmentsArray = toArray(shipments);
-  const notificationsArray = toArray(notifications);
-  const driversArray = toArray(drivers);
-  const devicesArray = toArray(devices);
-  const usersArray = toArray(users);
-   const mapSeverity = (severity) => {
-    switch (severity) {
-      case 'critical': return 'high';
-      case 'warning': return 'medium';
-      case 'info': return 'low';
-      default: return 'low';
-    }
+  return {
+    isLoading: l1 || l2 || l3 || l4 || l5,
+    hasError: e1 || e2 || e3 || e4 || e5,
+    trucks: toArray(trucks),
+    shipments: toArray(shipments),
+    notifications: toArray(notifications),
+    drivers: toArray(drivers),
+    devices: toArray(devices),
   };
-  // Statistics
-  const stats = {
-    totalTrucks: trucksArray.length,
-    onRoadTrucks: trucksArray.filter(t => t.status === 'in_mission').length,
-    availableTrucks: trucksArray.filter(t => t.status === 'available').length,
-    maintenanceTrucks: trucksArray.filter(t => t.status === 'maintenance').length,
+};
 
-    totalShipments: shipmentsArray.length,
-    activeShipments: shipmentsArray.filter(s => s.status === 'in_progress').length,    // ✅ 'in_progress'
-    pendingShipments: shipmentsArray.filter(s => s.status === 'pending').length,
-    deliveredShipments: shipmentsArray.filter(s => s.status === 'completed').length,   // ✅ 'completed'
-    cancelledShipments: shipmentsArray.filter(s => s.status === 'cancelled').length,
+// ============================================
+// STATS
+// ============================================
 
-    // Notifications: active = not read and not resolved
-    activeNotifications: notificationsArray.filter(n => !n.read && !n.resolved).length,
-    // Count by mapped severity
-    highSeverityNotifications: notificationsArray.filter(n => mapSeverity(n.severity) === 'high' && !n.read && !n.resolved).length,
-    mediumSeverityNotifications: notificationsArray.filter(n => mapSeverity(n.severity) === 'medium' && !n.read && !n.resolved).length,
-    lowSeverityNotifications: notificationsArray.filter(n => mapSeverity(n.severity) === 'low' && !n.read && !n.resolved).length,
-    totalDrivers: driversArray.length,
-    activeDrivers: driversArray.filter(d => d.status === 'active').length,
-    onLeaveDrivers: driversArray.filter(d => d.status === 'on_leave').length,
+const useStats = (trucks, shipments, notifications, drivers, devices) =>
+  useMemo(() => {
+    const unresolved = notifications.filter(n => !n.read && !n.resolved);
 
-    totalDevices: devicesArray.length,
-    activeDevices: devicesArray.filter(d => d.status === 'active').length,
-    offlineDevices: devicesArray.filter(d => d.status === 'inactive').length,
-    lowBatteryDevices: devicesArray.filter(d => d.batteryLevel < 20).length,
+    const tripsPerDriver = {};
+    shipments.forEach(shipment => {
+      if (shipment.driver) {
+        const driverId = shipment.driver._id || shipment.driver;
+        if (driverId) {
+          tripsPerDriver[driverId] = (tripsPerDriver[driverId] || 0) + 1;
+        }
+      }
+    });
 
-    totalUsers: usersArray.length,
-    adminUsers: usersArray.filter(u => u.role === 'admin').length,
-    logisticsUsers: usersArray.filter(u => u.role === 'logistics_officer').length,
+    return {
+      trucks: {
+        total: trucks.length,
+        available: trucks.filter(t => t.status === 'available').length,
+        inMission: trucks.filter(t => t.status === 'in_mission').length,
+        maintenance: trucks.filter(t => t.status === 'maintenance').length,
+        inactive: trucks.filter(t => t.status === 'inactive').length,
+        utilization: pct(trucks.filter(t => t.status === 'in_mission').length, trucks.length),
+      },
+      shipments: {
+        total: shipments.length,
+        inProgress: shipments.filter(s => s.status === 'in_progress').length,
+        pending: shipments.filter(s => s.status === 'pending').length,
+        completed: shipments.filter(s => s.status === 'completed').length,
+        cancelled: shipments.filter(s => s.status === 'cancelled').length,
+        successRate: pct(shipments.filter(s => s.status === 'completed').length, shipments.length),
+      },
+      notifications: {
+        total: unresolved.length,
+        high: unresolved.filter(n => mapSeverity(n.severity) === 'high').length,
+        medium: unresolved.filter(n => mapSeverity(n.severity) === 'medium').length,
+        low: unresolved.filter(n => mapSeverity(n.severity) === 'low').length,
+      },
+      drivers: {
+        total: drivers.length,
+        available: drivers.filter(d => d.status === 'available').length,
+        busy: drivers.filter(d => d.status === 'busy').length,
+        offline: drivers.filter(d => d.status === 'offline').length,
+        scoreData: drivers
+          .map(d => ({
+            name: d.name?.split(' ')[0] || 'Unknown',
+            fullName: d.name,
+            score: d.score || d.rating || 75,
+            status: d.status,
+            trips: tripsPerDriver[d._id] || 0,
+            licenseNumber: d.licenseNumber,
+            phone: d.phone,
+            _id: d._id,
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5),
+        averageScore:
+          drivers.reduce((sum, d) => sum + (d.score || d.rating || 75), 0) /
+          (drivers.length || 1),
+      },
+      devices: {
+        total: devices.length,
+        active: devices.filter(d => d.status === 'active').length,
+        inactive: devices.filter(d => d.status === 'inactive').length,
+        lowBattery: devices.filter(d => d.batteryLevel < 20).length,
+        onlineRate: pct(devices.filter(d => d.status === 'active').length, devices.length),
+      },
+    };
+  }, [trucks, shipments, notifications, drivers, devices]);
+
+// ============================================
+// CHART COMPONENTS
+// ============================================
+
+const FleetRadialChart = ({ stats }) => {
+  const data = [
+    { name: 'Available',   value: stats.trucks.available,   fill: '#22c55e' },
+    { name: 'In Mission',  value: stats.trucks.inMission,   fill: '#3b82f6' },
+    { name: 'Maintenance', value: stats.trucks.maintenance, fill: '#f97316' },
+    { name: 'Inactive',    value: stats.trucks.inactive,    fill: '#9ca3af' },
+  ];
+
+  return (
+    <ChartCard title="Fleet status breakdown">
+      {stats.trucks.total === 0 ? (
+        <EmptyChart icon={TruckIcon} message="No trucks registered yet" />
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <RadialBarChart
+            cx="50%" cy="50%"
+            innerRadius={30} outerRadius={100}
+            barSize={14}
+            data={data}
+            startAngle={180} endAngle={-180}
+          >
+            <RadialBar minAngle={5} background={{ fill: '#f3f4f6' }} clockWise dataKey="value">
+              {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+            </RadialBar>
+            <Legend
+              iconSize={10}
+              iconType="square"
+              formatter={(_, entry) => (
+                <span style={{ fontSize: 12, color: '#6b7280' }}>{entry.payload.name}</span>
+              )}
+            />
+            <Tooltip
+              formatter={(val, _, props) => {
+                const pctVal = stats.trucks.total > 0
+                  ? ((val / stats.trucks.total) * 100).toFixed(1)
+                  : 0;
+                return [`${val} trucks (${pctVal}%)`, props.payload.name];
+              }}
+            />
+          </RadialBarChart>
+        </ResponsiveContainer>
+      )}
+    </ChartCard>
+  );
+};
+
+const ShipmentFunnelChart = ({ stats }) => {
+  const data = [
+    { name: 'Total',       value: stats.shipments.total,      fill: '#a855f7' },
+    { name: 'In Progress', value: stats.shipments.inProgress, fill: '#3b82f6' },
+    { name: 'Pending',     value: stats.shipments.pending,    fill: '#eab308' },
+    { name: 'Completed',   value: stats.shipments.completed,  fill: '#22c55e' },
+  ].filter(d => d.value > 0);
+
+  return (
+    <ChartCard title="Shipment pipeline">
+      {stats.shipments.total === 0 ? (
+        <EmptyChart icon={CubeIcon} message="No shipments recorded yet" />
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <FunnelChart>
+            <Tooltip formatter={(val, name) => [val, name]} />
+            <Funnel dataKey="value" data={data} isAnimationActive>
+              <LabelList position="right" fill="#6b7280" fontSize={12} dataKey="name" />
+              {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+            </Funnel>
+          </FunnelChart>
+        </ResponsiveContainer>
+      )}
+    </ChartCard>
+  );
+};
+
+const DriverRadarChart = ({ stats }) => {
+  const data = [
+    { metric: 'Available Drivers', value: pct(stats.drivers.available, stats.drivers.total) },
+    { metric: 'Off Duty',          value: pct(stats.drivers.busy, stats.drivers.total) },
+    { metric: 'Fleet Active',      value: stats.trucks.utilization },
+    { metric: 'Devices Up',        value: stats.devices.onlineRate },
+    { metric: 'Delivery %',        value: stats.shipments.successRate },
+  ];
+
+  return (
+    <ChartCard title="Operations health radar">
+      {stats.drivers.total === 0 ? (
+        <EmptyChart icon={UserGroupIcon} message="No operational data yet" />
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <RadarChart data={data}>
+            <PolarGrid stroke="#e5e7eb" />
+            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 11, fill: '#6b7280' }} />
+            <PolarRadiusAxis
+              angle={90} domain={[0, 100]}
+              tick={{ fontSize: 10, fill: '#9ca3af' }}
+            />
+            <Radar
+              name="System"
+              dataKey="value"
+              stroke="#d4537e"
+              fill="#d4537e"
+              fillOpacity={0.25}
+              dot={{ r: 3, fill: '#d4537e' }}
+            />
+            <Tooltip formatter={(val) => [`${val}%`]} />
+          </RadarChart>
+        </ResponsiveContainer>
+      )}
+    </ChartCard>
+  );
+};
+
+// ✅ FIX: useMemo is now always called — no early return before hook
+const TrendAreaChart = ({ devices, notifications }) => {
+  const weeklyData = useMemo(() => {
+    const now = new Date();
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
+      const target = new Date(now);
+      const diff = (now.getDay() + 6 - i) % 7;
+      target.setDate(now.getDate() - diff);
+      target.setHours(0, 0, 0, 0);
+      const next = new Date(target);
+      next.setDate(target.getDate() + 1);
+
+      return {
+        day,
+        devices: devices.filter(d => {
+          const seen = d.lastSeen ? new Date(d.lastSeen) : null;
+          return seen && seen >= target && seen < next;
+        }).length,
+        alerts: notifications.filter(n => {
+          const created = n.createdAt ? new Date(n.createdAt) : null;
+          return created && created >= target && created < next && !n.resolved;
+        }).length,
+      };
+    });
+  }, [devices, notifications]);
+
+  const hasData = devices.length > 0 || notifications.length > 0;
+
+  return (
+    <ChartCard title="Weekly devices & alerts trend">
+      {!hasData ? (
+        <EmptyChart icon={DevicePhoneMobileIcon} message="No device activity this week" />
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={weeklyData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+              <defs>
+                <linearGradient id="gDevices" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gAlerts" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
+              <Tooltip />
+              <Area
+                type="monotone" dataKey="devices"
+                stroke="#6366f1" fill="url(#gDevices)"
+                strokeWidth={2} name="Devices online"
+              />
+              <Area
+                type="monotone" dataKey="alerts"
+                stroke="#ef4444" fill="url(#gAlerts)"
+                strokeWidth={2} name="Active alerts"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="flex gap-4 mt-2">
+            <span className="flex items-center gap-1 text-xs text-gray-500">
+              <span className="inline-block w-3 h-0.5 bg-indigo-500" /> Devices online
+            </span>
+            <span className="flex items-center gap-1 text-xs text-gray-500">
+              <span className="inline-block w-3 h-0.5 bg-red-500" /> Active alerts
+            </span>
+          </div>
+        </>
+      )}
+    </ChartCard>
+  );
+};
+
+const getScoreColor = (score) => {
+  if (score >= 90) return '#22c55e';
+  if (score >= 75) return '#3b82f6';
+  if (score >= 60) return '#eab308';
+  return '#ef4444';
+};
+
+const getBadgeColor = (score) => {
+  if (score >= 90) return 'bg-green-100 text-green-700';
+  if (score >= 75) return 'bg-blue-100 text-blue-700';
+  if (score >= 60) return 'bg-yellow-100 text-yellow-700';
+  return 'bg-red-100 text-red-700';
+};
+
+const DriverScoreChart = ({ stats }) => (
+  <ChartCard title="🏆 Top Driver Performance Scores">
+    {stats.drivers.scoreData.length === 0 ? (
+      <EmptyChart icon={UserGroupIcon} message="No driver scores available yet" />
+    ) : (
+      <>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart
+            data={stats.drivers.scoreData}
+            layout="vertical"
+            margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
+            <YAxis
+              type="category" dataKey="name"
+              tick={{ fontSize: 12, fill: '#374151' }} width={80}
+            />
+            <Tooltip
+              formatter={(value) => [`${value}%`, 'Score']}
+              labelFormatter={(label) => `Driver: ${label}`}
+            />
+            <Bar dataKey="score" name="Performance Score" radius={[0, 8, 8, 0]} barSize={20}>
+              {stats.drivers.scoreData.map((entry, i) => (
+                <Cell key={i} fill={getScoreColor(entry.score)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t border-gray-100">
+          {[
+            { color: 'bg-green-500',  label: 'Excellent (90-100)' },
+            { color: 'bg-blue-500',   label: 'Good (75-89)' },
+            { color: 'bg-yellow-500', label: 'Average (60-74)' },
+            { color: 'bg-red-500',    label: 'Requires Training (<60)' },
+          ].map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${color}`} />
+              <span className="text-xs text-gray-600">{label}</span>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+  </ChartCard>
+);
+
+const DriverRankingList = ({ stats }) => {
+  const getMedal = (rank) => {
+    if (rank === 0) return <TrophyIcon className="h-5 w-5 text-yellow-500" />;
+    if (rank === 1) return <TrophyIcon className="h-5 w-5 text-gray-400" />;
+    if (rank === 2) return <TrophyIcon className="h-5 w-5 text-amber-600" />;
+    return <span className="text-gray-400 font-bold">#{rank + 1}</span>;
   };
-console.log('******************Trucks array sample:', trucksArray.slice(0, 2));
-console.log('Truck statuses:', trucksArray.map(t => t.status));
-  const utilizationRate = stats.totalTrucks > 0 ? ((stats.onRoadTrucks / stats.totalTrucks) * 100).toFixed(1) : 0;
-  const deliverySuccessRate = stats.totalShipments > 0 ? ((stats.deliveredShipments / stats.totalShipments) * 100).toFixed(1) : 0;
 
-  // Chart data
-  const shipmentStatusData = [
-  { name: 'In Progress', value: stats.activeShipments, color: chartColors.shipment.inTransit },
-  { name: 'Pending', value: stats.pendingShipments, color: chartColors.shipment.pending },
-  { name: 'Completed', value: stats.deliveredShipments, color: chartColors.shipment.delivered },
-  { name: 'Cancelled', value: stats.cancelledShipments, color: chartColors.shipment.cancelled },
-];
+  return (
+    <ChartCard title="📊 Driver Performance Rankings">
+      {stats.drivers.scoreData.length === 0 ? (
+        <EmptyChart icon={TrophyIcon} message="No driver rankings available yet" />
+      ) : (
+        <div className="space-y-3">
+          {stats.drivers.scoreData.map((driver, idx) => (
+            <Link
+              key={driver._id}
+              to={`/dashboard/driver-history/${driver._id}`}
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 flex justify-center">{getMedal(idx)}</div>
+                <div>
+                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition">
+                    {driver.fullName || driver.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {driver.trips} trip{driver.trips !== 1 ? 's' : ''} completed
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`px-2 py-1 rounded-full text-xs font-bold ${getBadgeColor(driver.score)}`}>
+                  {driver.score}%
+                </div>
+                <StarIcon className={`h-4 w-4 ${driver.score >= 90 ? 'text-yellow-500' : 'text-gray-300'}`} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </ChartCard>
+  );
+};
 
-  const truckStatusData = [
-    { name: 'On Road', value: stats.onRoadTrucks, color: chartColors.truck.onRoad },
-    { name: 'Available', value: stats.availableTrucks, color: chartColors.truck.available },
-    { name: 'Maintenance', value: stats.maintenanceTrucks, color: chartColors.truck.maintenance },
-  ];
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
-  const notificationSeverityData = [
-    { name: 'High', value: stats.highSeverityNotifications, color: chartColors.notification.high },
-    { name: 'Medium', value: stats.mediumSeverityNotifications, color: chartColors.notification.medium },
-    { name: 'Low', value: stats.lowSeverityNotifications, color: chartColors.notification.low },
-  ];
+const AdminDashboard = () => {
+  const { isLoading, trucks, shipments, notifications, drivers, devices } = useDashboardData();
+  const stats = useStats(trucks, shipments, notifications, drivers, devices);
 
-  const deviceStatusData = [
-    { name: 'Online', value: stats.activeDevices, color: chartColors.device.online },
-    { name: 'Offline', value: stats.offlineDevices, color: chartColors.device.offline },
-    { name: 'Low Battery', value: stats.lowBatteryDevices, color: chartColors.device.lowBattery },
-  ];
-
-  const isLoading = trucksLoading || shipmentsLoading || notificationsLoading || driversLoading || devicesLoading || usersLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-1">Real-time system overview</p>
+      </div>
+
+      {/* KPI StatCards — show — when no data */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          title="Fleet utilization"
+          value={stats.trucks.total === 0 ? '—' : `${stats.trucks.utilization}%`}
+          icon={TruckIcon} color="pink"
+          subtitle={`${stats.trucks.inMission} / ${stats.trucks.total} in mission`}
+        />
+        <StatCard
+          title="Delivery success"
+          value={stats.shipments.total === 0 ? '—' : `${stats.shipments.successRate}%`}
+          icon={CheckCircleIcon} color="green"
+          subtitle={`${fmt(stats.shipments.completed)} completed`}
+        />
+        <StatCard
+          title="Active alerts"
+          value={stats.notifications.total}
+          icon={ExclamationTriangleIcon} color="red"
+          subtitle={`${fmt(stats.notifications.high)} high priority`}
+        />
+        <StatCard
+          title="Devices online"
+          value={stats.devices.total === 0 ? '—' : `${stats.devices.onlineRate}%`}
+          icon={DevicePhoneMobileIcon} color="purple"
+          subtitle={`${stats.devices.active} / ${stats.devices.total} active`}
+        />
+      </div>
+
+      {/* Fleet + Shipments */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">Real-time system overview and analytics</p>
+          <SectionHeader
+            icon={TruckIcon} iconColor="text-pink-600"
+            title="Vehicles" linkTo="/dashboard/trucks" linkColor="text-pink-600"
+          />
+          <FleetRadialChart stats={stats} />
         </div>
-        {/* <button
-          onClick={() => queryClient.invalidateQueries()}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        <div>
+          <SectionHeader
+            icon={CubeIcon} iconColor="text-purple-600"
+            title="Shipments" linkTo="/dashboard/shipments" linkColor="text-purple-600"
+          />
+          <ShipmentFunnelChart stats={stats} />
+        </div>
+      </div>
+
+      {/* Radar + Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div>
+          <SectionHeader
+            icon={UserGroupIcon} iconColor="text-green-600"
+            title="Operations health" linkTo="/dashboard/drivers" linkColor="text-green-600"
+          />
+          <DriverRadarChart stats={stats} />
+        </div>
+        <div>
+          <SectionHeader
+            icon={DevicePhoneMobileIcon} iconColor="text-indigo-600"
+            title="Devices & alerts" linkTo="/dashboard/devices" linkColor="text-indigo-600"
+          />
+          {/* ✅ stats prop removed — TrendAreaChart no longer needs it */}
+          <TrendAreaChart devices={devices} notifications={notifications} />
+        </div>
+      </div>
+
+      {/* Driver Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div>
+          <SectionHeader
+            icon={StarIcon} iconColor="text-yellow-600"
+            title="Driver Performance Scores" linkTo="/dashboard/drivers" linkColor="text-yellow-600"
+          />
+          <DriverScoreChart stats={stats} />
+        </div>
+        <div>
+          <SectionHeader
+            icon={TrophyIcon} iconColor="text-amber-600"
+            title="Driver Rankings" linkTo="/dashboard/drivers" linkColor="text-amber-600"
+          />
+          <DriverRankingList stats={stats} />
+        </div>
+      </div>
+
+      {/* Drivers Overview */}
+      <div className="bg-white rounded-lg shadow p-5 mb-6">
+        <SectionHeader
+          icon={UserGroupIcon} iconColor="text-green-600"
+          title="Drivers Overview" linkTo="/dashboard/drivers" linkColor="text-green-600"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard title="Total Drivers"  value={stats.drivers.total}                              icon={UserGroupIcon}   color="purple" />
+          <StatCard title="Available"      value={stats.drivers.available}                          icon={CheckCircleIcon} color="green"  />
+          <StatCard title="Off Duty"       value={stats.drivers.busy}                               icon={TruckIcon}       color="blue"   />
+          <StatCard title="Avg Score"      value={`${stats.drivers.averageScore.toFixed(0)}%`}      icon={StarIcon}        color="yellow" />
+        </div>
+      </div>
+
+      {/* High-priority alert banner */}
+      {stats.notifications.high > 0 && (
+        <Link
+          to="/dashboard/notifications"
+          className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-4 hover:bg-red-100 transition"
         >
-          <ArrowPathIcon className="h-5 w-5 text-gray-600" />
-          <span className="text-sm text-gray-600">Refresh</span>
-        </button> */}
-      </div>
-
-      {/* KPI Row 1 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Fleet Utilization" value={`${utilizationRate}%`} icon={ChartBarIcon} color="blue" subtitle={`${stats.onRoadTrucks} of ${stats.totalTrucks} trucks in mission`} />        
-        <StatCard title="Delivery Success" value={`${deliverySuccessRate}%`} icon={CheckCircleIcon} color="green" subtitle={`${stats.deliveredShipments} of ${stats.totalShipments} delivered`} />
-        <StatCard title="Active Notifications" value={stats.activeNotifications} icon={ExclamationTriangleIcon} color="red" subtitle={`${stats.highSeverityNotifications} high priority`} />
-        <StatCard title="Devices Online" value={`${stats.totalDevices > 0 ? ((stats.activeDevices / stats.totalDevices) * 100).toFixed(0) : 0}%`} icon={DevicePhoneMobileIcon} color="purple" subtitle={`${stats.activeDevices} of ${stats.totalDevices} devices`} />
-      </div>
-
-      {/* KPI Row 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <StatCard title="Total Trucks" value={stats.totalTrucks} icon={TruckIcon} color="blue" subtitle={`${stats.onRoadTrucks} on road, ${stats.availableTrucks} available`} />
-        <StatCard title="Total Drivers" value={stats.totalDrivers} icon={UserGroupIcon} color="green" subtitle={`${stats.activeDrivers} active`} />
-        <StatCard title="System Users" value={stats.totalUsers} icon={UserIcon} color="purple" subtitle={`${stats.adminUsers} Admins, ${stats.logisticsUsers} Logistics`} />
-        <StatCard title="Total Shipments" value={stats.totalShipments} icon={CubeIcon} color="indigo" subtitle={`${stats.activeShipments} active`} />
-        <StatCard title="Total Devices" value={stats.totalDevices} icon={DevicePhoneMobileIcon} color="yellow" subtitle={`${stats.activeDevices} online`} />
-      </div>
-
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Shipment Status Distribution</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={shipmentStatusData} cx="50%" cy="50%" outerRadius={100} dataKey="value" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
-                {shipmentStatusData.map((e, i) => <Cell key={i} fill={e.color} />)}
-              </Pie>
-              <Tooltip /><Legend />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-            {shipmentStatusData.map(item => (
-              <div key={item.name}>
-                <p className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</p>
-                <p className="text-xs text-gray-500">{item.name}</p>
-              </div>
-            ))}
+          <div className="flex items-center gap-2">
+            <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
+            <span className="text-sm font-medium text-red-700">
+              {stats.notifications.high} high-priority alert{stats.notifications.high > 1 ? 's' : ''} require attention
+            </span>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Fleet Status</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={truckStatusData} cx="50%" cy="50%" outerRadius={100} dataKey="value" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
-                {truckStatusData.map((e, i) => <Cell key={i} fill={e.color} />)}
-              </Pie>
-              <Tooltip /><Legend />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            {truckStatusData.map(item => (
-              <div key={item.name}>
-                <p className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</p>
-                <p className="text-xs text-gray-500">{item.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Active Notifications by Severity</h2>
-            {stats.activeNotifications > 0 && (
-              <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
-                {stats.activeNotifications} Total
-              </span>
-            )}
-          </div>
-          {stats.activeNotifications === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircleIcon className="h-12 w-12 text-green-400 mx-auto mb-2" />
-              <p className="text-gray-500">No active notifications.</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={notificationSeverityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" /><YAxis />
-                <Tooltip />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {notificationSeverityData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Health</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={deviceStatusData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" /><YAxis type="category" dataKey="name" />
-              <Tooltip />
-              <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                {deviceStatusData.map((e, i) => <Cell key={i} fill={e.color} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          {stats.lowBatteryDevices > 0 && (
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p className="text-sm text-yellow-800">
-                {stats.lowBatteryDevices} device(s) have low battery (&lt;20%)
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link to="/dashboard/trucks" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
-            <TruckIcon className="h-8 w-8 text-blue-600 mb-2" />
-            <h3 className="font-semibold">Manage Trucks</h3>
-            <p className="text-sm text-gray-500">{stats.totalTrucks} trucks in fleet</p>
-          </Link>
-          <Link to="/dashboard/drivers" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
-            <UserGroupIcon className="h-8 w-8 text-green-600 mb-2" />
-            <h3 className="font-semibold">Manage Drivers</h3>
-            <p className="text-sm text-gray-500">{stats.totalDrivers} drivers, {stats.activeDrivers} active</p>
-          </Link>
-          <Link to="/dashboard/shipments" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition">
-            <CubeIcon className="h-8 w-8 text-purple-600 mb-2" />
-            <h3 className="font-semibold">Manage Shipments</h3>
-            <p className="text-sm text-gray-500">{stats.activeShipments} active shipments</p>
-          </Link>
-          <Link to="/dashboard/notifications" className="bg-white rounded-lg shadow p-4 hover:shadow-md transition relative">
-            <ExclamationTriangleIcon className="h-8 w-8 text-red-600 mb-2" />
-            <h3 className="font-semibold">View Notifications</h3>
-            <p className="text-sm text-gray-500">{stats.activeNotifications} active notifications</p>
-            {stats.highSeverityNotifications > 0 && (
-              <span className="absolute top-2 right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {stats.highSeverityNotifications}
-              </span>
-            )}
-          </Link>
-        </div>
-      </div>
-
-      {/* Driver Performance Charts */}
-      <div className="mb-8">
-        <DriverPerformanceCharts />
-      </div>
+          <span className="text-sm text-red-600">View →</span>
+        </Link>
+      )}
     </div>
   );
 };

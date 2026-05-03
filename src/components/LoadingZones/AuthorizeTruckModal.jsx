@@ -1,4 +1,3 @@
-// frontend/src/components/Gates/AuthorizeTruckModal.jsx
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gateService } from '../../services/gateService';

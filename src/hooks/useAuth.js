@@ -1,4 +1,3 @@
-// frontend/src/hooks/useAuth.js
 import { useState, useEffect, createContext, useContext } from 'react';
 import { authService } from '../services/authService';
 

@@ -1,380 +1,325 @@
 import React, { useState } from 'react';
 import {
-  TruckIcon,
-  UserIcon,
   MapPinIcon,
   ScaleIcon,
+  TruckIcon,
+  UserIcon,
   EyeIcon,
-  XMarkIcon,
-  CalendarIcon,
-  BuildingOfficeIcon,
-  PhoneIcon,
-  CubeIcon,
+  UserGroupIcon,
   ArrowPathIcon,
-  ClockIcon
+  PencilIcon,
+  TrashIcon,
+  XCircleIcon,
+  CheckCircleIcon,
+  UserPlusIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { getStatusBadge, getStatusText } from '../../constants/colors';
-import { useNavigate } from 'react-router-dom';
+
+// ── Utilities ────────────────────────────────────────────────
+
+const formatDateTime = (date) => {
+  if (!date) return '—';
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+};
+
+const formatDuration = (hours) => {
+  if (!hours && hours !== 0) return '—';
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+};
 
 const getTypeIcon = (type) => {
+  switch (type) { case 'refrigerated': return '❄️'; case 'fragile': return '🔔'; default: return '📦'; }
+};
+
+const getTypeColor = (type) => {
   switch (type) {
-    case 'refrigerated': return '❄️';
-    case 'fragile': return '📦';
-    default: return '📦';
+    case 'refrigerated': return 'bg-cyan-100 text-cyan-700 border border-cyan-200';
+    case 'fragile': return 'bg-amber-100 text-amber-700 border border-amber-200';
+    default: return 'bg-blue-100 text-blue-700 border border-blue-200';
   }
 };
 
-const getPriorityColor = (isPriority) => {
-  return isPriority
-    ? 'bg-red-50 text-red-700 border-red-200'
-    : 'bg-gray-100 text-gray-600 border-gray-200';
+const getStatusAccent = (status) => {
+  switch (status) {
+    case 'pending':     return 'border-l-amber-400';
+    case 'assigned':    return 'border-l-blue-400';
+    case 'in_progress': return 'border-l-sky-400';
+    case 'completed':   return 'border-l-emerald-400';
+    case 'cancelled':   return 'border-l-rose-400';
+    default:            return 'border-l-gray-300';
+  }
 };
 
-const ShipmentDetailsModal = ({ shipment, onClose, onAssign, onCancel, onDelete }) => {
-  const navigate = useNavigate(); 
-  if (!shipment) return null;
 
-  const statusBadgeClass = getStatusBadge(shipment.status, 'shipment', 'md');
-  const statusText = getStatusText(shipment.status);
-  const formatDate = (date) => {
-    if (!date) return '—';
-    return new Date(date).toLocaleString();
-  };
 
-  const canAssign = shipment.status === 'pending';
-  const canCancel = shipment.status === 'assigned' || shipment.status === 'pending';
-  const canDelete = shipment.status === 'pending';
+// ── Sub-components ────────────────────────────────────────────
+
+const StatusHeader = ({ shipmentId, status, statusText, isPriority, onViewDetails }) => (
+  <div className="flex justify-between items-start gap-2">
+    <div className="flex items-center gap-2 flex-wrap min-w-0">
+      <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded-lg flex-shrink-0">
+        #{shipmentId}
+      </span>
+      <span className={getStatusBadge(status, 'shipment', 'sm')}>{statusText}</span>
+      {isPriority && (
+        <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full border border-red-200 flex-shrink-0">
+          🚨 Priority
+        </span>
+      )}
+    </div>
+    <button
+      onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
+      title="View details"
+    >
+      <EyeIcon className="h-4 w-4" />
+    </button>
+  </div>
+);
+
+const RouteInfo = ({ origin, destination }) => (
+  <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+    <div className="flex-1 min-w-0">
+      <p className="text-xs text-gray-400 mb-0.5">From</p>
+      <p className="text-xs font-semibold text-gray-700 truncate">{origin || '?'}</p>
+    </div>
+    <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+      <div className="w-1 h-1 rounded-full bg-gray-300" />
+      <div className="w-4 h-px bg-gray-300" />
+      <TruckIcon className="h-3 w-3 text-gray-400" />
+      <div className="w-4 h-px bg-gray-300" />
+      <div className="w-1 h-1 rounded-full bg-gray-400" />
+    </div>
+    <div className="flex-1 min-w-0 text-right">
+      <p className="text-xs text-gray-400 mb-0.5">To</p>
+      <p className="text-xs font-semibold text-gray-700 truncate">{destination || '?'}</p>
+    </div>
+  </div>
+);
+
+const AssignmentBadge = ({ truck, driver }) => (
+  <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+    <TruckIcon className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+    <span className="text-xs font-semibold text-blue-700">{truck?.licensePlate || 'Unknown'}</span>
+    {driver && (
+      <>
+        <span className="text-blue-300">·</span>
+        <UserIcon className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+        <span className="text-xs text-blue-600">{driver.name?.split(' ')[0]}</span>
+      </>
+    )}
+  </div>
+);
+
+const DurationBadge = ({ estimatedDuration, isUrgent, daysUntilDelivery, isOverdue }) => (
+  <div className="flex items-center justify-between text-xs">
+    <div className="flex items-center gap-1.5 text-gray-500">
+      <ClockIcon className="h-3.5 w-3.5 text-blue-400" />
+      <span>Est. duration:</span>
+      <span className="font-semibold text-gray-700">{estimatedDuration}</span>
+    </div>
+    {isUrgent && (
+      <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+        ⚡ {daysUntilDelivery}d left
+      </span>
+    )}
+    {isOverdue && (
+      <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+        🔴 {Math.abs(daysUntilDelivery)}d overdue
+      </span>
+    )}
+  </div>
+);
+
+const Tags = ({ shipmentType, weightKg, customer, assignedTo }) => (
+  <div className="flex items-center gap-1.5 flex-wrap">
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getTypeColor(shipmentType)}`}>
+      {getTypeIcon(shipmentType)} {shipmentType || 'standard'}
+    </span>
+    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border border-gray-200 flex items-center gap-1">
+      <ScaleIcon className="h-3 w-3" />
+      {weightKg || 0}kg
+    </span>
+    {customer && (
+      <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
+        👤 {customer.name}
+      </span>
+    )}
+    {assignedTo && typeof assignedTo === 'object' && (
+      <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+        <UserGroupIcon className="h-3 w-3" />
+        {assignedTo.name?.split(' ')[0]}
+      </span>
+    )}
+  </div>
+);
+
+const ActionButtons = ({ onEdit, onDelete, onAssign, onCancel, onAssignManager, status, isAdmin, shipmentId, shipment }) => {
+  const btn = (title, onClick, colorClass, icon) => (
+    <button
+      title={title}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`p-1.5 rounded-lg transition-all hover:scale-105 ${colorClass}`}
+    >
+      {icon}
+    </button>
+  );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Shipment Details</h2>
-            <p className="text-sm text-gray-500 font-mono mt-0.5">
-              {shipment.shipmentId || shipment._id}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={statusBadgeClass}>{statusText}</span>
-            <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
-              <XMarkIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+    <div className="flex items-center gap-0.5">
+      {onEdit &&
+        btn('Edit shipment',   () => onEdit(shipment),    'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50', <PencilIcon className="h-4 w-4" />)}
 
-        <div className="p-6 space-y-6">
-          {/* Priority + Type + Dates */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <div className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(shipment.isPriority)}`}>
-                {shipment.isPriority ? 'Priority' : 'Normal'}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-base">{getTypeIcon(shipment.shipmentType)}</span>
-              <span className="text-sm text-gray-700 capitalize">{shipment.shipmentType || 'Normal'}</span>
-            </div>
-            <div className="col-span-2 flex items-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                <CalendarIcon className="h-4 w-4" />
-                <span>Created: {formatDate(shipment.createdAt)}</span>
-              </div>
-              {shipment.updatedAt && shipment.updatedAt !== shipment.createdAt && (
-                <div className="flex items-center gap-1">
-                  <ArrowPathIcon className="h-4 w-4" />
-                  <span>Updated: {formatDate(shipment.updatedAt)}</span>
-                </div>
-              )}
-            </div>
-          </div>
+      {onDelete && status === 'pending' &&
+        btn('Delete shipment', () => onDelete(shipmentId), 'text-gray-400 hover:text-red-600 hover:bg-red-50',       <TrashIcon className="h-4 w-4" />)}
 
-          {/* Description */}
-          {shipment.description && (
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-sm text-gray-700">{shipment.description}</p>
-            </div>
-          )}
+      {/* ✅ Single button handles both assign and reassign — modal detects mode from shipment.status */}
+      {['pending', 'assigned', 'in_progress'].includes(status) && onAssign &&
+        btn(
+          status === 'pending' ? 'Assign driver' : 'Reassign',
+          () => onAssign(shipment),
+          status === 'pending'
+            ? 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+            : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50',
+          status === 'pending'
+            ? <UserPlusIcon className="h-4 w-4" />
+            : <ArrowPathIcon className="h-4 w-4" />
+        )}
 
-          {/* Route */}
-          <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <MapPinIcon className="h-4 w-4" /> Route
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-500">Origin</p>
-                <p className="text-gray-800 font-medium">{shipment.origin?.address || shipment.origin || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Destination</p>
-                <p className="text-gray-800 font-medium">{shipment.destination?.address || shipment.destination || '—'}</p>
-              </div>
-            </div>
-          </div>
-          {/* Schedule */}
-          <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4" /> Schedule
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-500">Planned Departure</p>
-                <p className="text-gray-800">{formatDate(shipment.plannedDepartureDate)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Planned Delivery</p>
-                <p className="text-gray-800">{formatDate(shipment.plannedDeliveryDate)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Actual Departure</p>
-                <p className="text-gray-800">{formatDate(shipment.actualDepartureDate)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Actual Delivery</p>
-                <p className="text-gray-800">{formatDate(shipment.actualDeliveryDate)}</p>
-              </div>
-            </div>
-            {shipment.actualDeliveryDate && shipment.plannedDeliveryDate && 
-              new Date(shipment.actualDeliveryDate) > new Date(shipment.plannedDeliveryDate) && (
-              <div className="mt-3 p-2 bg-red-50 text-red-700 rounded text-sm flex items-center gap-2">
-                <span>⚠️</span> Delivery delayed by {Math.round((new Date(shipment.actualDeliveryDate) - new Date(shipment.plannedDeliveryDate)) / (1000 * 60))} minutes
-              </div>
-            )}
-          </div>
+      {!['completed', 'cancelled', 'in_progress'].includes(status) && onCancel &&
+        btn('Cancel shipment', () => onCancel(shipmentId), 'text-gray-400 hover:text-amber-600 hover:bg-amber-50',  <XCircleIcon className="h-4 w-4" />)}
 
-          {/* Cargo */}
-          <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <CubeIcon className="h-4 w-4" /> Cargo
-            </h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="text-xs text-gray-500">Weight</label>
-                <p className="text-gray-800">{shipment.weightKg} kg</p>
-              </div>
-            </div>
-          </div>
-          {/* Loading Duration Section */}
-          <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <ClockIcon className="h-4 w-4" /> Loading Duration
-            </h3>
-            <div className="grid grid-cols-2 gap-4 mb-2">
-              <div>
-                <p className="text-xs text-gray-500">Planned (min)</p>
-                <p className="text-lg font-bold">
-                  {shipment.plannedLoadingDurationMinutes ?? '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Actual (min)</p>
-                <p className="text-lg font-bold">
-                  {shipment.actualLoadingDurationMinutes != null
-                    ? `${shipment.actualLoadingDurationMinutes.toFixed(1)}`
-                    : shipment.loadingStartedAt && !shipment.loadingCompletedAt
-                    ? 'In progress...'
-                    : '—'}
-                </p>
-              </div>
-            </div>
-            {/* Timestamps (only shown if loading started) */}
-            {shipment.loadingStartedAt && (
-              <div className="text-xs text-gray-400 border-t pt-2 mt-1">
-                <div>Started: {new Date(shipment.loadingStartedAt).toLocaleString()}</div>
-                {shipment.loadingCompletedAt && (
-                  <div>Completed: {new Date(shipment.loadingCompletedAt).toLocaleString()}</div>
-                )}
-              </div>
-            )}
-            {/* Overtime warning */}
-            {shipment.plannedLoadingDurationMinutes &&
-              shipment.actualLoadingDurationMinutes != null &&
-              shipment.actualLoadingDurationMinutes > shipment.plannedLoadingDurationMinutes && (
-                <div className="mt-3 p-2 bg-red-50 text-red-700 rounded text-sm flex items-center gap-2">
-                  <span className="text-base">⚠️</span> Overtime: {Math.round(shipment.actualLoadingDurationMinutes - shipment.plannedLoadingDurationMinutes)} minutes
-                </div>
-              )}
-          </div>
-          {/* Assignment */}
-          <div className="border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <TruckIcon className="h-4 w-4" /> Assignment
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-500">Truck</p>
-                {shipment.truck ? (
-                  <div>
-                    <p className="font-medium">{shipment.truck.licensePlate}</p>
-                    <p className="text-sm text-gray-500">{shipment.truck.brand} {shipment.truck.model}</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 italic">Not assigned</p>
-                )}
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Driver</p>
-                {shipment.driver ? (
-                  <div>
-                    <p className="font-medium">{shipment.driver.name}</p>
-                    <p className="text-sm text-gray-500">{shipment.driver.phone}</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 italic">Not assigned</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Customer */}
-          {(shipment.customer?.name || shipment.customer?.phone) && (
-            <div className="border rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <BuildingOfficeIcon className="h-4 w-4" /> Customer
-              </h3>
-              <div className="space-y-1">
-                {shipment.customer.name && <p className="text-gray-800">{shipment.customer.name}</p>}
-                {shipment.customer.phone && (
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <PhoneIcon className="h-3 w-3" /> {shipment.customer.phone}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          {(canAssign || canCancel || canDelete) && (
-                  <div className="flex justify-end gap-3 pt-2 border-t">
-                    <button
-            onClick={() => { navigate(`/shipment_manager/shipments/${shipment._id}`); onClose(); }}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-          >
-            View Full Page →
-          </button>
-
-              <button
-                onClick={() => { if (window.confirm('Delete this shipment? This action cannot be undone.')) onDelete(shipment._id); onClose(); }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-              >
-                Delete Shipment
-              </button>
-              {canAssign && (
-                <button onClick={() => { onAssign(); onClose(); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                  Assign Shipment
-                </button>
-              )}
-              {canCancel && (
-                <button onClick={() => { if (window.confirm('Cancel this shipment?')) onCancel(shipment._id); onClose(); }} className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm">
-                  Cancel Shipment
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      {isAdmin && onAssignManager &&
+        btn('Assign manager',  () => onAssignManager(shipment), 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50', <UserGroupIcon className="h-4 w-4" />)}
     </div>
   );
 };
 
-const ShipmentCard = ({ shipment, onCancel, onDelete, onAssign, onEdit }) => {
-  const [showDetails, setShowDetails] = useState(false);
-  const navigate = useNavigate(); 
-  const statusBadgeClass = getStatusBadge(shipment.status, 'shipment', 'sm');
-  const statusText = getStatusText(shipment.status);
+const StatusBadgeInline = ({ status }) => {
+  const config = {
+    in_progress: { text: 'In Transit',  Icon: TruckIcon,        color: 'bg-sky-50 text-sky-700 border-sky-200' },
+    completed:   { text: 'Completed',   Icon: CheckCircleIcon,  color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    cancelled:   { text: 'Cancelled',   Icon: XCircleIcon,      color: 'bg-rose-50 text-rose-700 border-rose-200' },
+  };
+  const item = config[status];
+  if (!item) return null;
+  const { Icon, text, color } = item;
+  return (
+    <span className={`text-xs px-2 py-1 rounded-lg border flex items-center gap-1 font-medium ${color}`}>
+      <Icon className="h-3 w-3" /> {text}
+    </span>
+  );
+};
 
-  const getStatusAccent = () => {
-    switch (shipment.status) {
-      case 'pending': return 'border-l-amber-300';
-      case 'assigned': return 'border-l-blue-300';
-      case 'in_progress': return 'border-l-sky-300';
-      case 'completed': return 'border-l-emerald-300';
-      case 'cancelled': return 'border-l-rose-300';
-      default: return 'border-l-gray-300';
-    }
+// ── Main Card ─────────────────────────────────────────────────
+
+const ShipmentCard = ({
+  shipment, onCancel, onDelete, onAssign,
+  onAssignManager, onEdit, onViewDetails, isAdmin,
+}) => {
+  if (!shipment) return null;
+
+  const [isHovered, setIsHovered] = useState(false);
+  const statusText = getStatusText(shipment.status);
+  const isAssigned = shipment.truck != null;
+
+  const getDaysUntilDelivery = () => {
+    if (!shipment.plannedDeliveryDate) return null;
+    return Math.ceil((new Date(shipment.plannedDeliveryDate) - new Date()) / 86400000);
   };
 
+  const daysUntilDelivery = getDaysUntilDelivery();
+  const isUrgent  = daysUntilDelivery !== null && daysUntilDelivery <= 2 && daysUntilDelivery >= 0;
+  const isOverdue = daysUntilDelivery !== null && daysUntilDelivery < 0;
+
+  const getEstimatedDuration = () => {
+    if (!shipment.plannedDepartureDate || !shipment.plannedDeliveryDate) return null;
+    const hours = (new Date(shipment.plannedDeliveryDate) - new Date(shipment.plannedDepartureDate)) / 3600000;
+    return formatDuration(hours);
+  };
+
+  const handleViewDetails = () => onViewDetails?.(shipment);
+
   return (
-    <>
-      <div
-        className={`bg-white rounded-lg border border-gray-200 hover:shadow-sm transition cursor-pointer overflow-hidden ${getStatusAccent()} border-l-4`}
-        onClick={() => setShowDetails(true)}
-      >
-        <div className="px-3 pt-2 pb-1 flex justify-between items-start gap-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-              {shipment.shipmentId || shipment._id.slice(-6)}
-            </span>
-            <span className={statusBadgeClass}>{statusText}</span>
-            <span className={`${getPriorityColor(shipment.isPriority)} text-xs px-1.5 py-0.5 rounded-full border`}>
-              {shipment.isPriority ? 'P' : 'N'}
-            </span>
-          </div>
-        </div>
+    <div
+      className={`bg-white rounded-2xl border border-gray-200 border-l-4 ${getStatusAccent(shipment.status)} overflow-hidden cursor-pointer transition-all duration-200 ${
+        isHovered ? 'shadow-lg -translate-y-0.5' : 'shadow-sm hover:shadow-md'
+      }`}
+      onClick={handleViewDetails}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Card body */}
+      <div className="p-4 space-y-3">
+        {/* Header row */}
+        <StatusHeader
+          shipmentId={shipment.shipmentId || shipment._id?.slice(-6)}
+          status={shipment.status}
+          statusText={statusText}
+          isPriority={shipment.isPriority}
+          onViewDetails={handleViewDetails}
+        />
 
-        <div className="px-3 pb-1">
-          <p className="text-sm font-medium text-gray-800 truncate">{shipment.description || 'No description'}</p>
-        </div>
-
-        <div className="px-3 pb-1 flex items-center gap-1 text-xs text-gray-500">
-          <MapPinIcon className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">{shipment.origin?.address || shipment.origin || '?'}</span>
-          <span>→</span>
-          <span className="truncate">{shipment.destination?.address || shipment.destination || '?'}</span>
-        </div>
-
-        <div className="px-3 pb-2 flex items-center gap-2 text-xs text-gray-500 border-t border-gray-100 mt-1 pt-1">
-          <span title="Type">{getTypeIcon(shipment.shipmentType)}</span>
-          <span title="Weight" className="flex items-center gap-0.5"><ScaleIcon className="h-3 w-3" />{shipment.weightKg}</span>
-          {shipment.truck && <span title="Truck" className="flex items-center gap-0.5"><TruckIcon className="h-3 w-3" />{shipment.truck.licensePlate}</span>}
-          {shipment.driver && <span title="Driver" className="flex items-center gap-0.5"><UserIcon className="h-3 w-3" />{shipment.driver.name.split(' ')[0]}</span>}
-        </div>
-
-        <div className="px-3 py-1.5 border-t border-gray-100 flex justify-end gap-1.5">
-          <button 
-            onClick={(e) => { e.stopPropagation(); navigate(`/shipment_manager/shipments/${shipment._id}`); }} 
-            className="text-gray-400 hover:text-blue-600 p-0.5" 
-            title="View details"
-          >
-            <EyeIcon className="h-4 w-4" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(shipment); }}
-            className="text-xs bg-green-600 text-white px-2 py-0.5 rounded hover:bg-green-700"
-            title="Edit shipment"
-          >
-            Edit
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(shipment._id); }}
-            className="text-xs bg-red-600 text-white px-2 py-0.5 rounded hover:bg-red-700"
-            title="Delete shipment"
-          >
-            Del
-          </button>
-         {shipment.status === 'assigned' && (
-            <button onClick={(e) => { e.stopPropagation(); onCancel(shipment._id); }} className="text-xs bg-amber-600 text-white px-2 py-0.5 rounded hover:bg-amber-700">
-              Cancel
-            </button>
+        {/* Description */}
+        <div>
+          <p className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug">
+            {shipment.description || 'No description'}
+          </p>
+          {shipment.goods && (
+            <p className="text-xs text-gray-400 mt-0.5">📦 {shipment.goods}</p>
           )}
-
-          {shipment.status === 'in_progress' && <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Moving</span>}
-          {shipment.status === 'completed' && <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">✓</span>}
-          {shipment.status === 'cancelled' && <span className="text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded">✗</span>}
         </div>
+
+        {/* Route */}
+        <RouteInfo origin={shipment.origin} destination={shipment.destination} />
+
+        {/* Assignment badge */}
+        {isAssigned && shipment.status === 'assigned' && (
+          <AssignmentBadge truck={shipment.truck} driver={shipment.driver} />
+        )}
+
+        {/* Duration */}
+        {getEstimatedDuration() && (
+          <DurationBadge
+            estimatedDuration={getEstimatedDuration()}
+            isUrgent={isUrgent}
+            daysUntilDelivery={daysUntilDelivery}
+            isOverdue={isOverdue}
+          />
+        )}
+
+        {/* Tags */}
+        <Tags
+          shipmentType={shipment.shipmentType}
+          weightKg={shipment.weightKg}
+          customer={shipment.customer}
+          assignedTo={shipment.assignedTo}
+        />
       </div>
 
-      {showDetails && (
-        <ShipmentDetailsModal
-          shipment={shipment}
-          onClose={() => setShowDetails(false)}
+      {/* Footer */}
+      <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between">
+        <StatusBadgeInline status={shipment.status} />
+        <ActionButtons
+          onEdit={onEdit}
+          onDelete={onDelete}
           onAssign={onAssign}
           onCancel={onCancel}
-          onDelete={onDelete}
+          onAssignManager={onAssignManager}
+          status={shipment.status}
+          isAdmin={isAdmin}
+          shipmentId={shipment._id}
+          shipment={shipment}
         />
-      )}
-    </>
+      </div>
+    </div>
   );
 };
 

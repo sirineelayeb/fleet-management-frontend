@@ -126,8 +126,14 @@ const Profile = () => {
     shipment_manager: 'Shipment Manager',
   };
   const roleLabel = roleLabels[user?.role] || user?.role;
-  const joinDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
-
+  const joinDate =
+    user?.createdAt && !isNaN(new Date(user.createdAt))
+      ? new Date(user.createdAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'N/A';
   // Header gradient using semantic colors
   const headerGradient = `linear-gradient(135deg, ${semantic.info.primary}, ${primary.cobalt})`;
 

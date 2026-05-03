@@ -1,4 +1,3 @@
-// frontend/src/services/performanceService.js
 import api from './api';
 
 export const performanceService = {

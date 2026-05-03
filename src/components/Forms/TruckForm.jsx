@@ -1,6 +1,4 @@
-// frontend/src/components/Forms/TruckForm.jsx
 import React, { useState, useEffect } from 'react';
-
 
 const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -10,13 +8,9 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
     year: new Date().getFullYear(),
     capacity: '',
     type: 'normal',
-    status: 'available',
-    // driver field removed
-    device: '',
     vin: '',
-    insuranceExpiry: '',
-    nextMaintenanceDate: '',
-    currentSpeed: '',
+    speedLimit: 90,
+    devices: [],
   });
 
   useEffect(() => {
@@ -28,19 +22,32 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
         year: initialData.year || new Date().getFullYear(),
         capacity: initialData.capacity || '',
         type: initialData.type || 'normal',
-        status: initialData.status || 'available',
-        // driver not copied
-        devices: initialData.devices?.map(d => d._id || d) || [],
         vin: initialData.vin || '',
-        insuranceExpiry: initialData.insuranceExpiry ? new Date(initialData.insuranceExpiry).toISOString().slice(0, 10) : '',
-        nextMaintenanceDate: initialData.nextMaintenanceDate ? new Date(initialData.nextMaintenanceDate).toISOString().slice(0, 10) : '',
-        currentSpeed: initialData.currentSpeed || '',
+        speedLimit: initialData.speedLimit || 90,
+        devices: initialData.devices?.map(d => d._id || d) || [],
       });
     }
   }, [initialData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleDeviceToggle = (deviceId) => {
+    setFormData(prev => ({
+      ...prev,
+      devices: prev.devices.includes(deviceId)
+        ? prev.devices.filter(id => id !== deviceId)
+        : [...prev.devices, deviceId]
+    }));
+  };
+
+  const handleSelectAllDevices = () => {
+    if (formData.devices.length === devicesList.length) {
+      setFormData({ ...formData, devices: [] });
+    } else {
+      setFormData({ ...formData, devices: devicesList.map(d => d._id) });
+    }
   };
 
   const handleSubmit = (e) => {
@@ -53,18 +60,10 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
       year: formData.year ? parseInt(formData.year) : undefined,
       capacity: formData.capacity ? parseFloat(formData.capacity) : undefined,
       type: formData.type,
-      status: formData.status,
       vin: formData.vin || undefined,
-      insuranceExpiry: formData.insuranceExpiry ? new Date(formData.insuranceExpiry) : undefined,
-      nextMaintenanceDate: formData.nextMaintenanceDate ? new Date(formData.nextMaintenanceDate) : undefined,
-      currentSpeed: formData.currentSpeed ? parseFloat(formData.currentSpeed) : 0,
+      speedLimit: formData.speedLimit ? parseFloat(formData.speedLimit) : 90,
       devices: formData.devices || [],
     };
-
-    // Single device assignment (optional, keep if needed)
-    if (formData.device && formData.device.trim() !== '') {
-      cleanData.device = formData.device;
-    }
 
     onSubmit(cleanData);
   };
@@ -171,87 +170,94 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
         </p>
       </div>
 
-      {/* Speed Field */}
+      {/* Speed Limit Field */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Current Speed (km/h)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Speed Limit (km/h)
+        </label>
         <input
           type="number"
-          name="currentSpeed"
-          value={formData.currentSpeed}
+          name="speedLimit"
+          value={formData.speedLimit}
           onChange={handleChange}
-          placeholder="0"
-          step="1"
+          placeholder="90"
+          step="5"
           min="0"
+          max="150"
           className={inputClass}
         />
         <p className="text-xs text-gray-500 mt-1">
-          Default: 0 km/h - Will be updated automatically when truck is moving
+          Set maximum allowed speed for this truck (default: 90 km/h)
         </p>
       </div>
 
-      {/* Status */}
+      {/* Devices - Checkbox List */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-          className={inputClass}
-        >
-          <option value="available">Available</option>
-          <option value="in_mission">In Mission</option>
-          <option value="maintenance">Maintenance</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      {/* Important Dates */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry</label>
-          <input
-            type="date"
-            name="insuranceExpiry"
-            value={formData.insuranceExpiry}
-            onChange={handleChange}
-            className={inputClass}
-          />
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Devices (Optional – you can assign multiple)
+          </label>
+          {devicesList.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSelectAllDevices}
+              className="text-xs text-blue-600 hover:text-blue-800"
+            >
+              {formData.devices.length === devicesList.length ? 'Deselect All' : 'Select All'}
+            </button>
+          )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Next Maintenance</label>
-          <input
-            type="date"
-            name="nextMaintenanceDate"
-            value={formData.nextMaintenanceDate}
-            onChange={handleChange}
-            className={inputClass}
-          />
+        
+        <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+          {devicesList.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <p>No devices available</p>
+              <p className="text-xs mt-1">All devices are already assigned to trucks</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {devicesList.map(device => (
+                <label
+                  key={device._id}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.devices.includes(device._id)}
+                    onChange={() => handleDeviceToggle(device._id)}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{device.deviceId}</p>
+                    <div className="flex gap-2 text-xs text-gray-500">
+                      <span>Status: {device.status || 'active'}</span>
+                      {device.batteryLevel !== undefined && (
+                        <>
+                          <span>•</span>
+                          <span>Battery: {device.batteryLevel}%</span>
+                        </>
+                      )}
+                      {device.firmwareVersion && (
+                        <>
+                          <span>•</span>
+                          <span>v{device.firmwareVersion}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {device.lastSeen && (
+                    <p className="text-xs text-gray-400">
+                      Last seen: {new Date(device.lastSeen).toLocaleDateString()}
+                    </p>
+                  )}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Devices (Optional – multiple) */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Devices (Optional – you can assign multiple)
-        </label>
-        <select
-          name="devices"
-          multiple
-          value={formData.devices}
-          onChange={(e) => {
-            const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-            setFormData({ ...formData, devices: selectedOptions });
-          }}
-          className={`${inputClass} h-32`}
-        >
-          {devicesList.map(device => (
-            <option key={device._id} value={device._id}>
-              {device.deviceId} – {device.type || 'Device'} ({device.status})
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-gray-500 mt-1">
-          Hold Ctrl (Cmd) to select multiple devices.
+        
+        <p className="text-xs text-gray-500 mt-2">
+          {formData.devices.length} device(s) selected
         </p>
       </div>
 

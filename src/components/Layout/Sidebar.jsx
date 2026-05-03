@@ -20,6 +20,8 @@ import {
   ChevronLeftIcon,
   ChartBarIcon,
   MagnifyingGlassIcon,
+  BuildingStorefrontIcon,
+  CameraIcon,
 } from '@heroicons/react/24/outline';
 
 import {
@@ -32,67 +34,105 @@ import {
   MapIcon as MapSolidIcon,
   Cog6ToothIcon as CogSolidIcon,
   ChartBarIcon as ChartBarSolidIcon,
+  BuildingStorefrontIcon as BuildingStorefrontSolidIcon,
+  CameraIcon as CameraSolidIcon,
 } from '@heroicons/react/24/solid';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
-// ─── Menu Definitions ────────────────────────────────────────────────────────
+const SubMenu = ({ item, isOpenSidebar, location }) => {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (item.children?.some(child => location.pathname.startsWith(child.path))) {
+      setOpen(true);
+    }
+  }, [location.pathname]);
+
+  return (
+    <div className="mb-1">
+      {/* Parent */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-all"
+      >
+        <div className="flex items-center">
+          <item.icon className="h-5 w-5 mr-3 text-gray-400" />
+          {isOpenSidebar && <span className="text-sm">{item.label}</span>}
+        </div>
+
+        {isOpenSidebar && (
+          <ChevronDownIcon
+            className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+          />
+        )}
+      </button>
+
+      {/* Children */}
+      {open && isOpenSidebar && (
+        <div className="ml-6 mt-1 space-y-1">
+          {item.children.map(child => {
+            const ChildIcon = child.icon;
+
+            return (
+              <NavLink
+                key={child.path}
+                to={child.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
+                    isActive
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`
+                }
+              >
+                <ChildIcon className="h-4 w-4" />
+                <span>{child.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+// ─── Scrollbar style injected once ───────────────────────────────────────────
+
+const SCROLLBAR_STYLE = `
+  .sidebar-nav {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+// ─── SIMPLIFIED MENU DEFINITIONS (Reduced from 4 sections to 3) ──────────────
 
 const ADMIN_MENU = [
-  {
-    section: 'Overview',
-    items: [
-      {
-        path: '/dashboard',
-        icon: HomeIcon,
-        solidIcon: HomeSolidIcon,
-        label: 'Dashboard',
-        description: 'Overview & analytics',
-      },
-    ],
-  },
   {
     section: 'Fleet',
     items: [
       {
-        path: '/dashboard/trucks',
+        label: 'Fleet Management',
         icon: TruckIcon,
-        solidIcon: TruckSolidIcon,
-        label: 'Trucks',
-        description: 'Manage fleet vehicles',
-      },
-      //   {
-      //   path: '/dashboard/truck-history',
-      //   icon: ClipboardDocumentListIcon,
-      //   solidIcon: ClipboardDocumentListIcon,
-      //   label: 'Truck History',
-      //   description: 'View trip history per truck',
-      // },
-      {
-        path: '/dashboard/drivers',
-        icon: UserIcon,
-        solidIcon: UserSolidIcon,
-        label: 'Drivers',
-        description: 'Driver management',
-      },
-      // {
-      //   path: '/dashboard/driver-history',
-      //   icon: ChartBarIcon,
-      //   solidIcon: ChartBarSolidIcon,
-      //   label: 'Driver History',
-      //   description: 'View driver performance & trip logs',
-      // },
-      {
-        path: '/dashboard/devices',
-        icon: WrenchScrewdriverIcon,
-        solidIcon: WrenchScrewdriverIcon,
-        label: 'Devices',
-        description: 'Manage IoT devices',
-      },
-      {
-        path: '/dashboard/driver-scores',
-        icon: ChartBarIcon,
-        solidIcon: ChartBarSolidIcon,
-        label: 'Driver Scores',
-        description: 'Configure scoring rules & view history',
+        children: [
+          {
+            path: '/dashboard/trucks',
+            label: 'Trucks',
+            icon: TruckIcon,
+          },
+          {
+            path: '/dashboard/drivers',
+            label: 'Drivers',
+            icon: UserIcon,
+          },
+          {
+            path: '/dashboard/devices',
+            label: 'Devices',
+            icon: WrenchScrewdriverIcon,
+          },
+        ],
       },
     ],
   },
@@ -100,49 +140,60 @@ const ADMIN_MENU = [
     section: 'Operations',
     items: [
       {
-        path: '/dashboard/tracking',
-        icon: MapPinIcon,
-        solidIcon: MapPinSolidIcon,
-        label: 'Live Map',
-        description: 'Real-time tracking',
-      },
-      {
-        path: '/dashboard/trips',
-        icon: ClipboardDocumentListIcon,
-        solidIcon: ClipboardDocumentListIcon,
-        label: 'Trip History',
-        description: 'View all trip logs',
-      },
-      {
-        path: '/dashboard/gate-management',
-        icon: ArrowUpTrayIcon,
-        solidIcon: ArrowUpTrayIcon,
-        label: 'Gate Management',
-        description: 'Entry / exit control',
-      },
-      {
-        path: '/dashboard/shipments',
+        label: 'Operations',
         icon: CubeIcon,
-        solidIcon: CubeSolidIcon,
-        label: 'Shipments',
-        description: 'Manage all shipments (create, edit, assign)',
+        children: [
+          {
+            path: '/dashboard/shipments',
+            label: 'Shipments',
+            icon: CubeIcon,
+          },
+          {
+            path: '/dashboard/trips',
+            label: 'Trips',
+            icon: ClipboardDocumentListIcon,
+          },
+          {
+            path: '/dashboard/lpr-events',
+            label: 'LPR Events',
+            icon: CameraIcon,
+          },
+        ],
       },
     ],
   },
   {
-    section: 'Admin',
+    section: 'System',
     items: [
       {
-        path: '/dashboard/users',
-        icon: UserGroupIcon,
-        solidIcon: UserGroupSolidIcon,
-        label: 'Users',
-        description: 'Roles & permissions',
+        label: 'Administration',
+        icon: Cog6ToothIcon,
+        children: [
+          {
+            path: '/dashboard/users',
+            label: 'Users',
+            icon: UserGroupIcon,
+          },
+          {
+            path: '/dashboard/customers',
+            label: 'Customers',
+            icon: BuildingStorefrontIcon,
+          },
+          {
+            path: '/dashboard/loading-zones',
+            label: 'Loading Zones',
+            icon: ArrowUpTrayIcon,
+          },
+          {
+            path: '/dashboard/driver-scores',
+            label: 'Driver Scores',
+            icon: ChartBarIcon,
+          },
+        ],
       },
     ],
   },
 ];
-
 const SHIPMENT_MANAGER_MENU = [
   {
     section: 'Overview',
@@ -153,6 +204,13 @@ const SHIPMENT_MANAGER_MENU = [
         solidIcon: HomeSolidIcon,
         label: 'Dashboard',
         description: 'Daily operations',
+      },
+      {
+        path: '/shipment_manager/tracking',
+        icon: MapIcon,
+        solidIcon: MapSolidIcon,
+        label: 'Live Map',
+        description: 'Fleet tracking',
       },
     ],
   },
@@ -174,24 +232,36 @@ const SHIPMENT_MANAGER_MENU = [
         description: 'Add new delivery',
       },
       {
-        path: '/shipment_manager/tracking',
-        icon: MapIcon,
-        solidIcon: MapSolidIcon,
-        label: 'Live Map',
-        description: 'Fleet tracking',
-      },
-      {
         path: '/shipment_manager/trips',
         icon: ClipboardDocumentListIcon,
         solidIcon: ClipboardDocumentListIcon,
         label: 'Trip History',
         description: 'View all trip logs',
       },
+      {
+        path: '/shipment_manager/lpr-events',
+        icon: CameraIcon,
+        solidIcon: CameraSolidIcon,
+        label: 'LPR Events',
+        description: 'Gate entry & exit logs',
+      },
+    ],
+  },
+  {
+    section: 'Business',
+    items: [
+      {
+        path: '/shipment_manager/customers',
+        icon: BuildingStorefrontIcon,
+        solidIcon: BuildingStorefrontSolidIcon,
+        label: 'Customers',
+        description: 'View customers',
+      },
     ],
   },
 ];
 
-// ─── NavItem Component ────────────────────────────────────────────────────────
+// ─── NavItem Component (SAME AS YOUR ORIGINAL) ───────────────────────────────
 
 const NavItem = ({ item, isOpen, searchQuery }) => {
   const highlight = (text) => {
@@ -212,7 +282,11 @@ const NavItem = ({ item, isOpen, searchQuery }) => {
   return (
     <NavLink
       to={item.path}
-      end={item.path === '/dashboard' || item.path === '/shipment_manager' || item.path === '/dashboard/profile'}
+      end={
+        item.path === '/dashboard' ||
+        item.path === '/shipment_manager' ||
+        item.path === '/dashboard/profile'
+      }
       className={({ isActive }) =>
         [
           'group relative flex items-center px-3 py-2.5 my-0.5 rounded-xl transition-all duration-200',
@@ -239,7 +313,9 @@ const NavItem = ({ item, isOpen, searchQuery }) => {
             />
             {isOpen && (
               <div className="flex-1 min-w-0">
-                <span className="block text-sm font-medium leading-tight">{highlight(item.label)}</span>
+                <span className="block text-sm font-medium leading-tight">
+                  {highlight(item.label)}
+                </span>
                 <span className="block text-xs text-gray-500 leading-tight mt-0.5 truncate">
                   {highlight(item.description)}
                 </span>
@@ -252,7 +328,7 @@ const NavItem = ({ item, isOpen, searchQuery }) => {
   );
 };
 
-// ─── SectionLabel Component ───────────────────────────────────────────────────
+// ─── SectionLabel Component (SAME AS YOUR ORIGINAL) ──────────────────────────
 
 const SectionLabel = ({ label, isOpen }) => {
   if (!isOpen) {
@@ -265,7 +341,7 @@ const SectionLabel = ({ label, isOpen }) => {
   );
 };
 
-// ─── SearchInput Component ────────────────────────────────────────────────────
+// ─── SearchInput Component (SAME AS YOUR ORIGINAL) ───────────────────────────
 
 const SearchInput = ({ value, onChange, onClear, inputRef }) => (
   <div className="mx-3 mb-3 relative">
@@ -290,7 +366,7 @@ const SearchInput = ({ value, onChange, onClear, inputRef }) => (
   </div>
 );
 
-// ─── Sidebar Component ────────────────────────────────────────────────────────
+// ─── Sidebar Component (SAME AS YOUR ORIGINAL except menu structure) ─────────
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -300,6 +376,18 @@ const Sidebar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
 
+  // Inject scrollbar-hiding styles once
+  useEffect(() => {
+    const id = 'sidebar-scrollbar-style';
+    if (!document.getElementById(id)) {
+      const style = document.createElement('style');
+      style.id = id;
+      style.textContent = SCROLLBAR_STYLE;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  // Handle responsive sidebar
   useEffect(() => {
     const handleResize = () => {
       setIsOpen(window.innerWidth >= 1024);
@@ -309,11 +397,13 @@ const Sidebar = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close mobile sidebar on route change
   useEffect(() => {
     setIsMobileOpen(false);
     setSearchQuery('');
   }, [location]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e) => {
       if (
@@ -333,6 +423,7 @@ const Sidebar = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen]);
 
+  // Clear search when sidebar collapses
   useEffect(() => {
     if (!isOpen) setSearchQuery('');
   }, [isOpen]);
@@ -347,6 +438,7 @@ const Sidebar = () => {
   const roleLabel = isAdmin ? 'Administrator' : 'Shipment Manager';
   const userInitial = user?.name?.charAt(0).toUpperCase() || 'U';
 
+  // Filter menu items based on search
   const filteredGroups = searchQuery.trim()
     ? menuGroups
         .map((group) => ({
@@ -393,6 +485,7 @@ const Sidebar = () => {
           isOpen ? 'w-72' : 'lg:w-20',
         ].join(' ')}
       >
+        {/* Top gradient bar */}
         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-500 to-purple-500" />
 
         {/* Header */}
@@ -484,7 +577,7 @@ const Sidebar = () => {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+        <nav className="sidebar-nav flex-1 overflow-y-auto">
           <div className={['px-3 pb-4', !isOpen && 'lg:px-2'].join(' ')}>
             {isSearching && totalResults === 0 && (
               <div className="text-center py-8 px-3">
@@ -501,14 +594,27 @@ const Sidebar = () => {
             {filteredGroups.map((group) => (
               <div key={group.section}>
                 <SectionLabel label={group.section} isOpen={isOpen} />
-                {group.items.map((item) => (
-                  <NavItem
-                    key={item.path}
-                    item={item}
-                    isOpen={isOpen}
-                    searchQuery={searchQuery}
-                  />
-                ))}
+                  {group.items.map((item, index) => {
+                    if (item.children) {
+                      return (
+                        <SubMenu
+                          key={index}
+                          item={item}
+                          isOpenSidebar={isOpen}
+                          location={location}
+                        />
+                      );
+                    }
+
+                    return (
+                      <NavItem
+                        key={item.path}
+                        item={item}
+                        isOpen={isOpen}
+                        searchQuery={searchQuery}
+                      />
+                    );
+                  })}
               </div>
             ))}
           </div>
@@ -516,10 +622,14 @@ const Sidebar = () => {
             <div className="px-3 pb-2">
               <p className="text-[10px] text-gray-700 text-center">
                 Press{' '}
-                <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-gray-600">/</kbd>
-                {' '}or{' '}
-                <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-gray-600">Ctrl K</kbd>
-                {' '}to search
+                <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-gray-600">
+                  /
+                </kbd>{' '}
+                or{' '}
+                <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 rounded text-gray-600">
+                  Ctrl K
+                </kbd>{' '}
+                to search
               </p>
             </div>
           )}
@@ -553,7 +663,9 @@ const Sidebar = () => {
               <p className="text-[10px] text-gray-600">Fleet Manager v2.0.0</p>
             ) : (
               <div className="flex justify-center">
-                <span className="text-[10px] text-gray-600 bg-white/5 rounded-md px-1.5 py-0.5">v2</span>
+                <span className="text-[10px] text-gray-600 bg-white/5 rounded-md px-1.5 py-0.5">
+                  v2
+                </span>
               </div>
             )}
           </div>

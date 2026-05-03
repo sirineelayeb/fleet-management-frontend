@@ -1,4 +1,3 @@
-// frontend/src/services/deviceService.js
 import api from './api';
 
 export const deviceService = {
@@ -33,9 +32,7 @@ export const deviceService = {
   },
   
   assignToTruck: async (deviceId, truckId) => {
-    console.log('Assigning device:', deviceId, 'to truck:', truckId);
     const response = await api.post(`/devices/${deviceId}/assign-truck`, { truckId });
-    console.log('Assignment response:', response.data);
     return response.data;
   },
   unassignFromTruck: async (deviceId) => {

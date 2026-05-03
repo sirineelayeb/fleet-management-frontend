@@ -3,29 +3,34 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../services/userService';
 import toast from 'react-hot-toast';
-import { PlusIcon, ShieldCheckIcon, UserIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ShieldCheckIcon, UserIcon, UsersIcon } from '@heroicons/react/24/outline';
 import UserStatsCards from '../components/Users/UserStatsCards';
 import UserRow from '../components/Users/UserRow';
 import UserFormModal from '../components/Users/UserFormModal';
+import Pagination from '../components/Common/Pagination';
+import { usePagination } from '../hooks/usePagination';
 
 const Users = () => {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'admins', 'shipment_managers'
+  const { page, limit, goToPage, handleLimitChange } = usePagination(1, 10);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'shipment_manager'   // ✅ backend expects 'shipment_manager'
+    role: 'shipment_manager' 
   });
 
-  // Queries
+  // Queries with pagination
   const { data: usersData, isLoading, error } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => userService.getAll(),
+    queryKey: ['users', page, limit],
+    queryFn: () => userService.getAll({ page, limit }),
   });
-  const { data: statsData } = useQuery({
+  
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['userStats'],
     queryFn: () => userService.getStats(),
   });
@@ -120,17 +125,69 @@ const Users = () => {
     if (window.confirm(`Delete ${user.name}?`)) deleteMutation.mutate(user._id);
   };
 
-  // Data extraction – backend returns { users: [...] } directly
+  // Extract data from API response
   const users = usersData?.users || [];
-  const stats = statsData?.stats || { total: 0, admins: 0, shipmentManagers: 0, active: 0 };
-  const adminUsers = users.filter(u => u.role === 'admin');
-  const shipmentManagers = users.filter(u => u.role === 'shipment_manager');
+  const pagination = usersData?.pagination || { total: 0, page: 1, limit: 10, pages: 1 };
+  
+  // Stats are returned directly from the API
+  const statsData = stats || { total: 0, admins: 0, shipmentManagers: 0, active: 0, inactive: 0 };
+  
+  // Filter users by role based on active tab
+  const getFilteredUsers = () => {
+    switch (activeTab) {
+      case 'admins':
+        return users.filter(u => u.role === 'admin');
+      case 'shipment_managers':
+        return users.filter(u => u.role === 'shipment_manager');
+      default:
+        return users;
+    }
+  };
+  
+  const filteredUsers = getFilteredUsers();
+  const filteredCount = filteredUsers.length;
+  
+  // Get counts for tabs
+  const adminCount = statsData.admins || 0;
+  const shipmentManagerCount = statsData.shipmentManagers || 0;
+  const totalCount = statsData.total || 0;
 
-  if (isLoading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" /></div>;
-  if (error) return <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p className="text-red-600">Error: {error.message}</p><button onClick={() => window.location.reload()} className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg">Retry</button></div>;
+  // Tab configuration
+  const tabs = [
+    { id: 'all', label: 'All Users', icon: UsersIcon, count: totalCount, color: 'blue' },
+    { id: 'admins', label: 'Administrators', icon: ShieldCheckIcon, count: adminCount, color: 'red' },
+    { id: 'shipment_managers', label: 'Shipment Managers', icon: UserIcon, count: shipmentManagerCount, color: 'green' },
+  ];
+
+  if (isLoading || statsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+              <UserIcon className="h-8 w-8 text-white" />
+            </div>
+            <p className="text-gray-500 text-sm font-medium animate-pulse">
+              Loading Users...
+            </p>
+          </div>
+          );
+        } 
+  
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+        <p className="text-red-600">Error: {error.message}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -139,7 +196,7 @@ const Users = () => {
         </div>
         <button
           onClick={() => { setEditingUser(null); resetForm(); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
         >
           <PlusIcon className="h-5 w-5" />
           Add New User
@@ -147,67 +204,110 @@ const Users = () => {
       </div>
 
       {/* Stats Cards */}
-      <UserStatsCards stats={stats} />
+      <UserStatsCards stats={statsData} />
 
-      {/* Admins Table */}
-      {adminUsers.length > 0 && (
-        <div className="bg-white rounded-lg shadow mb-8 overflow-hidden">
-          <div className="px-6 py-4 bg-red-50 border-b border-red-200">
-            <div className="flex items-center gap-2">
-              <ShieldCheckIcon className="h-5 w-5 text-red-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Administrators</h2>
-              <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">{adminUsers.length}</span>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">Full system access</p>
-          </div>
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="flex gap-4" aria-label="Tabs">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const colorClasses = {
+              blue: isActive ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              red: isActive ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+              green: isActive ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+            };
+            
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  goToPage(1); // Reset to first page when changing tabs
+                }}
+                className={`
+                  flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors
+                  ${colorClasses[tab.color]}
+                `}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{tab.label}</span>
+                <span className={`
+                  ml-1 px-2 py-0.5 text-xs rounded-full
+                  ${isActive ? 'bg-gray-100 text-gray-900' : 'bg-gray-100 text-gray-600'}
+                `}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Users Table */}
+      {filteredUsers.length > 0 ? (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {adminUsers.map(user => <UserRow key={user._id} user={user} onEdit={handleEdit} onDelete={handleDelete} />)}
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map(user => (
+                  <UserRow 
+                    key={user._id} 
+                    user={user} 
+                    onEdit={handleEdit} 
+                    onDelete={handleDelete} 
+                  />
+                ))}
               </tbody>
             </table>
           </div>
         </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          <UsersIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Users Found</h3>
+          <p className="text-gray-500 mb-4">
+            {activeTab === 'admins' 
+              ? 'No administrators found.' 
+              : activeTab === 'shipment_managers'
+              ? 'No shipment managers found.'
+              : 'No users found.'}
+          </p>
+          <button
+            onClick={() => { setEditingUser(null); resetForm(); setIsModalOpen(true); }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto hover:bg-blue-700"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Add New User
+          </button>
+        </div>
       )}
 
-      {/* Shipment Managers Table */}
-      {shipmentManagers.length > 0 && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 bg-green-50 border-b border-green-200">
-            <div className="flex items-center gap-2">
-              <UserIcon className="h-5 w-5 text-green-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Shipment Managers</h2>
-              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{shipmentManagers.length}</span>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">Shipment management and tracking</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shipmentManagers.map(user => <UserRow key={user._id} user={user} onEdit={handleEdit} onDelete={handleDelete} />)}
-              </tbody>
-            </table>
-          </div>
+      {/* Pagination */}
+      {pagination.total > 0 && filteredUsers.length > 0 && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.pages}
+            onPageChange={goToPage}
+            onPageSizeChange={handleLimitChange}
+            pageSize={limit}
+            pageSizeOptions={[5, 10, 25, 50]}
+            showFirstLast={true}
+            siblingCount={1}
+            showPageSizeSelector={true}
+            totalItems={pagination.total}
+          />
         </div>
       )}
 

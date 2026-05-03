@@ -5,6 +5,9 @@ import { driverService } from '../services/driverService';
 import { deviceService } from '../services/deviceService';
 import toast from 'react-hot-toast';
 import TruckForm from '../components/Forms/TruckForm';
+import PaginationComponent from '../components/Common/Pagination'; 
+import { usePagination } from '../hooks/usePagination';
+
 import { 
   PlusIcon, 
   PencilIcon, 
@@ -13,64 +16,133 @@ import {
   CheckCircleIcon, 
   XCircleIcon, 
   ClockIcon,
-  XMarkIcon,
   CpuChipIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  DocumentTextIcon 
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  BoltIcon,
+  TruckIcon as TruckIconOutline
 } from '@heroicons/react/24/outline';
 import Modal from '../components/Common/Modal';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import StatCard from '../components/Cards/StatCard';
 import { Link } from 'react-router-dom';
 
-const PAGE_SIZE = 10;
+// Simple inline select for status
+const StatusSelect = ({ status, onStatusChange, truckId, isUpdating }) => {
+  const handleChange = (e) => {
+    const newStatus = e.target.value;
+    if (newStatus !== status) {
+      onStatusChange(truckId, newStatus);
+    }
+  };
+
+  const getStatusStyle = (value) => {
+    switch (value) {
+      case 'available': return 'bg-green-100 text-green-700';
+      case 'in_mission': return 'bg-blue-100 text-blue-700';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-700';
+      case 'inactive': return 'bg-gray-100 text-gray-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        value={status}
+        onChange={handleChange}
+        disabled={isUpdating}
+        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 ${getStatusStyle(status)}`}
+      >
+        <option value="available">Available</option>
+        <option value="in_mission">In Mission</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      {isUpdating && (
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+      )}
+    </div>
+  );
+};
 
 const Trucks = () => {
-  const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTruck, setEditingTruck] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showAssignDeviceModal, setShowAssignDeviceModal] = useState(false);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [selectedDriverId, setSelectedDriverId] = useState('');
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState([]);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
+  const [filters, setFilters] = useState({ status: '', search: '' });
+  const [searchInput, setSearchInput] = useState('');
   
   const queryClient = useQueryClient();
 
-  // ── Queries with pagination ────────────────────────────────────────────────
-const { data: trucksData, isLoading: trucksLoading } = useQuery({
-  queryKey: ['trucks', page],
-  queryFn: () => truckService.getAll({ page, limit: PAGE_SIZE }),
-});
+  // Queries with pagination
+  const { data: trucksData, isLoading: trucksLoading, isFetching } = useQuery({
+    queryKey: ['trucks', page, limit, filters],
+    queryFn: () => truckService.getAll({ 
+      page, 
+      limit: limit,
+      status: filters.status || undefined,
+      search: filters.search || undefined
+    }),
+    keepPreviousData: true,
+    staleTime: 5000,
+    refetchOnWindowFocus: false,
+  });
 
-console.log('trucksData from useQuery:', trucksData);
-
-  const { data: driversData, isLoading: driversLoading } = useQuery({
+  const { data: driversData } = useQuery({
     queryKey: ['drivers'],
     queryFn: () => driverService.getAll(),
   });
 
-  const { data: devicesData, isLoading: devicesLoading } = useQuery({
+  const { data: devicesData } = useQuery({
     queryKey: ['devices'],
     queryFn: () => deviceService.getAll(),
   });
 
-  // ── Safe array extraction ────────────────────────────────────────────────────
-  const trucks = Array.isArray(trucksData?.data) ? trucksData.data
-    : Array.isArray(trucksData) ? trucksData
-    : [];
-    
+  // Safe array extraction
+  const trucks = trucksData?.data || [];
   const pagination = trucksData?.pagination || { total: 0, page: 1, pages: 1 };
+  const drivers = driversData?.data || [];
+  const devices = devicesData?.data || [];
 
-  const drivers = Array.isArray(driversData?.data) ? driversData.data
-    : Array.isArray(driversData) ? driversData
-    : [];
+  // Calculate stats
+  const stats = {
+    total: pagination.total || 0,
+    available: trucks.filter(t => t.status === 'available').length,
+    inMission: trucks.filter(t => t.status === 'in_mission').length,
+    maintenance: trucks.filter(t => t.status === 'maintenance').length,
+    inactive: trucks.filter(t => t.status === 'inactive').length,
+    withDevices: trucks.filter(t => t.devices?.length > 0).length,
+  };
 
-  const devices = Array.isArray(devicesData?.data) ? devicesData.data
-    : Array.isArray(devicesData) ? devicesData
-    : [];
+  // Handle search
+  const handleSearch = () => {
+    setFilters({ ...filters, search: searchInput });
+    setPage(1);
+  };
 
-  // ── Filter available drivers (status = 'available' and unassigned) ───────────
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  const handleStatusFilter = (status) => {
+    setFilters({ ...filters, status });
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters({ status: '', search: '' });
+    setSearchInput('');
+    setPage(1);
+  };
+
+  // Filter available drivers
   const availableDrivers = drivers.filter(d => {
     if (d.status !== 'available') return false;
     if (!d.assignedTruck) return true;
@@ -78,14 +150,10 @@ console.log('trucksData from useQuery:', trucksData);
     return editingTruck && assignedId?.toString() === editingTruck._id?.toString();
   });
 
-  // ── Filter available devices (unassigned to any truck) ───────────────────────
-  const availableDevices = devices.filter(d => {
-    if (!d.truck) return true;
-    const assignedId = d.truck?._id ?? d.truck;
-    return editingTruck && assignedId?.toString() === editingTruck._id?.toString();
-  });
+  // Filter available devices
+  const availableDevices = devices.filter(d => !d.truck);
 
-  // ── Mutations ────────────────────────────────────────────────────────────────
+  // Mutations
   const createMutation = useMutation({
     mutationFn: (data) => truckService.create(data),
     onSuccess: () => {
@@ -128,12 +196,26 @@ console.log('trucksData from useQuery:', trucksData);
     },
   });
 
+  // Status update mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => truckService.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trucks'] });
+      toast.success('Status updated');
+      setUpdatingStatusId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update status');
+      setUpdatingStatusId(null);
+    },
+  });
+
   const assignDriverMutation = useMutation({
     mutationFn: ({ truckId, driverId }) => truckService.assignDriver(truckId, driverId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trucks'] });
       queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      toast.success('Driver assigned successfully');
+      toast.success('Driver assigned');
       setShowAssignModal(false);
       setSelectedTruck(null);
       setSelectedDriverId('');
@@ -148,43 +230,48 @@ console.log('trucksData from useQuery:', trucksData);
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trucks'] });
       queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      toast.success('Driver unassigned successfully');
+      toast.success('Driver unassigned');
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to unassign driver');
     },
   });
 
-  const assignDeviceMutation = useMutation({
-    mutationFn: ({ truckId, deviceId }) => truckService.assignDevice(truckId, deviceId),
+  const assignDevicesMutation = useMutation({
+    mutationFn: async ({ truckId, deviceIds }) => {
+      for (const deviceId of deviceIds) {
+        await truckService.assignDevice(truckId, deviceId);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trucks'] });
       queryClient.invalidateQueries({ queryKey: ['devices'] });
-      toast.success('Device assigned successfully');
+      toast.success(`${selectedDeviceIds.length} device(s) assigned`);
       setShowAssignDeviceModal(false);
       setSelectedTruck(null);
-      setSelectedDeviceId('');
+      setSelectedDeviceIds([]);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to assign device');
+      toast.error(error.response?.data?.message || 'Failed to assign devices');
     },
   });
 
   const unassignDeviceMutation = useMutation({
-    mutationFn: (truckId) => truckService.unassignDevice(truckId),
+    mutationFn: ({ truckId, deviceId }) => truckService.unassignDevice(truckId, deviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trucks'] });
       queryClient.invalidateQueries({ queryKey: ['devices'] });
-      toast.success('Device unassigned successfully');
+      toast.success('Device unassigned');
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to unassign device');
     },
   });
 
-  // ── Submit handler ───────────────────────────────────────────────────────────
+  // Handlers
   const handleSubmit = async (data) => {
-    const { deviceId, ...truckData } = data; 
+    const { devices: newDevices, ...truckData } = data;
+    
     try {
       let truckId;
 
@@ -192,515 +279,363 @@ console.log('trucksData from useQuery:', trucksData);
         await updateMutation.mutateAsync({ id: editingTruck._id, data: truckData });
         truckId = editingTruck._id;
 
-        // Handle device assignment (if device changed)
-        const currentDeviceId = editingTruck.device?._id?.toString() ?? editingTruck.device?.toString();
-        const newDeviceId = deviceId?.toString();
-        if (newDeviceId && newDeviceId !== currentDeviceId) {
-          await assignDeviceMutation.mutateAsync({ truckId, deviceId: newDeviceId });
-        } else if (!newDeviceId && currentDeviceId) {
-          await unassignDeviceMutation.mutateAsync(truckId);
+        const currentDeviceIds = editingTruck.devices?.map(d => d._id?.toString() || d.toString()) || [];
+        const newDeviceIds = newDevices || [];
+        
+        const toAdd = newDeviceIds.filter(id => !currentDeviceIds.includes(id));
+        const toRemove = currentDeviceIds.filter(id => !newDeviceIds.includes(id));
+        
+        for (const deviceId of toAdd) {
+          await truckService.assignDevice(truckId, deviceId);
+        }
+        for (const deviceId of toRemove) {
+          await truckService.unassignDevice(truckId, deviceId);
         }
       } else {
         const res = await createMutation.mutateAsync(truckData);
         truckId = res?.data?._id ?? res?._id;
-        if (deviceId && truckId) {
-          await assignDeviceMutation.mutateAsync({ truckId, deviceId });
+        
+        if (newDevices && newDevices.length > 0 && truckId) {
+          for (const deviceId of newDevices) {
+            await truckService.assignDevice(truckId, deviceId);
+          }
         }
       }
     } catch (err) {
-
-      // Errors already handled in mutation onError
+      console.error('Submit error:', err);
     }
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this truck?')) {
+    if (window.confirm('Delete this truck?')) {
       deleteMutation.mutate(id);
     }
   };
 
+  const handleStatusUpdate = (truckId, newStatus) => {
+    setUpdatingStatusId(truckId);
+    updateStatusMutation.mutate({ id: truckId, status: newStatus });
+  };
+
   const openAssignDriverModal = (truck) => {
-  setSelectedTruck(truck);
-  setSelectedDriverId('');
-  setShowAssignModal(true);
-};
+    setSelectedTruck(truck);
+    setSelectedDriverId('');
+    setShowAssignModal(true);
+  };
 
-// ✅ ADD THIS MISSING FUNCTION
-const handleAssignDriver = async () => {
-  if (!selectedDriverId) {
-    toast.error('Please select a driver');
-    return;
-  }
-  
-  if (!selectedTruck || !selectedTruck._id) {
-    toast.error('Invalid truck selected');
-    return;
-  }
-
-  try {
+  const handleAssignDriver = async () => {
+    if (!selectedDriverId) {
+      toast.error('Select a driver');
+      return;
+    }
     await assignDriverMutation.mutateAsync({
       truckId: selectedTruck._id,
       driverId: selectedDriverId
     });
-    // Success is handled in mutation onSuccess
-  } catch (error) {
-    // Error already handled in mutation onError
-  }
-};
+  };
 
-const handleUnassignDriver = async (truck) => {
-  if (!truck.driver) {
-    toast.warning('This truck has no driver assigned');
-    return;
-  }
-
-  if (window.confirm(`Remove ${truck.driver.name} from this truck?`)) {
-    try {
+  const handleUnassignDriver = async (truck) => {
+    if (!truck.driver) return;
+    if (window.confirm(`Remove ${truck.driver.name}?`)) {
       await unassignDriverMutation.mutateAsync(truck._id);
-    } catch (error) {
-      // Error already handled in mutation
-    }
-  }
-};
-
-  
-
-const openAssignDeviceModal = (truck) => {
-  setSelectedTruck(truck);  // truck is the full object
-  setSelectedDeviceId('');
-  setShowAssignDeviceModal(true);
-};
-
-const handleAssignDevice = async () => {
-  if (!selectedDeviceId) {
-    toast.error('Please select a device');
-    return;
-  }
-  
-  if (!selectedTruck || !selectedTruck._id) {
-    toast.error('Invalid truck selected');
-    return;
-  }
-
-  try {
-    await truckService.assignDevice(selectedTruck._id, selectedDeviceId);
-    toast.success('Device assigned successfully');
-    setShowAssignDeviceModal(false);
-    setSelectedTruck(null);
-    setSelectedDeviceId('');
-    queryClient.invalidateQueries(['trucks']);
-    queryClient.invalidateQueries(['devices']);
-  } catch (error) {
-    console.error('Assignment error:', error);
-    toast.error(error.response?.data?.message || 'Failed to assign device');
-  }
-};
-
-  const handleUnassignDevice = async (truckId, deviceId) => {
-    if (window.confirm('Remove this device from the truck?')) {
-      try {
-        await truckService.unassignDevice(truckId, deviceId); // backend expects deviceId
-        queryClient.invalidateQueries(['trucks']);
-        queryClient.invalidateQueries(['devices']);
-        toast.success('Device unassigned');
-      } catch (error) {
-        toast.error(error.response?.data?.message || 'Failed to unassign device');
-      }
     }
   };
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  const getStatusBadge = (status) => {
-    const colors = {
-      available: 'bg-green-100 text-green-800',
-      in_mission: 'bg-blue-100 text-blue-800',
-      maintenance: 'bg-yellow-100 text-yellow-800',
-      inactive: 'bg-gray-100 text-gray-800',
-    };
-    return `px-2 py-1 text-xs rounded-full font-medium ${colors[status] ?? colors.inactive}`;
+  const openAssignDeviceModal = (truck) => {
+    setSelectedTruck(truck);
+    setSelectedDeviceIds([]);
+    setShowAssignDeviceModal(true);
   };
 
-  const getStatusText = (status) => ({
-    available: 'Available',
-    in_mission: 'In Mission',
-    maintenance: 'Maintenance',
-    inactive: 'Inactive',
-  }[status] ?? status);
-
-  // Pagination component
-  const Pagination = () => {
-    if (pagination.pages <= 1) return null;
-    
-    return (
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-        </button>
-        <span className="px-4 py-2 text-sm">
-          Page {pagination.page} of {pagination.pages}
-        </span>
-        <button
-          onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
-          disabled={page === pagination.pages}
-          className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-        >
-          <ChevronRightIcon className="h-4 w-4" />
-        </button>
-      </div>
+  const handleToggleDevice = (deviceId) => {
+    setSelectedDeviceIds(prev => 
+      prev.includes(deviceId) 
+        ? prev.filter(id => id !== deviceId)
+        : [...prev, deviceId]
     );
   };
 
-  if (trucksLoading || driversLoading || devicesLoading) return <LoadingSpinner />;
+  const handleAssignDevices = async () => {
+    if (selectedDeviceIds.length === 0) {
+      toast.error('Select at least one device');
+      return;
+    }
+    await assignDevicesMutation.mutateAsync({
+      truckId: selectedTruck._id,
+      deviceIds: selectedDeviceIds
+    });
+  };
+
+  const handleUnassignDevice = async (truckId, deviceId) => {
+    if (window.confirm('Remove this device?')) {
+      await unassignDeviceMutation.mutateAsync({ truckId, deviceId });
+    }
+  };
+
+  if (trucksLoading && !trucksData) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
+      <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+        <TruckIconOutline className="h-8 w-8 text-white" />
+      </div>
+      <p className="text-gray-500 text-sm font-medium animate-pulse">
+        Loading Trucks...
+      </p>
+    </div>
+    );
+  }
+  
 
   return (
-    <div>
+    <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Trucks Management</h1>
-          <p className="text-gray-500 mt-1">{pagination.total} trucks in fleet</p>
+          <p className="text-gray-500 mt-1">Manage your fleet of trucks</p>
         </div>
         <button
           onClick={() => { setEditingTruck(null); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
         >
           <PlusIcon className="h-5 w-5" />
           Add Truck
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Trucks</p>
-              <p className="text-2xl font-bold text-gray-900">{pagination.total}</p>
-            </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-xl">🚛</span>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+        <StatCard
+          title="Total Trucks"
+          value={stats.total}
+          icon={TruckIconOutline}
+          color="purple"
+          subtitle="Total fleet size"
+        />
+        <StatCard
+          title="Available"
+          value={stats.available}
+          icon={CheckCircleIcon}
+          color="green"
+          subtitle="Ready for missions"
+        />
+        <StatCard
+          title="In Mission"
+          value={stats.inMission}
+          icon={ClockIcon}
+          color="blue"
+          subtitle="On the road"
+        />
+        <StatCard
+          title="Maintenance"
+          value={stats.maintenance}
+          icon={XCircleIcon}
+          color="yellow"
+          subtitle="In workshop"
+        />
+        <StatCard
+          title="Inactive"
+          value={stats.inactive}
+          icon={XCircleIcon}
+          color="red"
+          subtitle="Out of service"
+        />
+        <StatCard
+          title="With Devices"
+          value={stats.withDevices}
+          icon={CpuChipIcon}
+          color="indigo"
+          subtitle="IoT equipped"
+        />
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6 bg-white p-4 rounded-lg shadow">
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search by plate, brand, or model..."
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
           </div>
+          <select
+            className="px-4 py-2 border rounded-lg"
+            value={filters.status}
+            onChange={(e) => handleStatusFilter(e.target.value)}
+          >
+            <option value="">All Status</option>
+            <option value="available">Available</option>
+            <option value="in_mission">In Mission</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <MagnifyingGlassIcon className="h-5 w-5" />
+          </button>
+          {(filters.status || filters.search) && (
+            <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+              Clear
+            </button>
+          )}
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Available</p>
-              <p className="text-2xl font-bold text-green-600">
-                {trucks.filter(t => t.status === 'available').length}
-              </p>
-            </div>
-            <CheckCircleIcon className="h-12 w-12 text-green-500" />
+        
+        {isFetching && (
+          <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            Loading...
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">In Mission</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {trucks.filter(t => t.status === 'in_mission').length}
-              </p>
-            </div>
-            <ClockIcon className="h-12 w-12 text-blue-500" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Maintenance</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {trucks.filter(t => t.status === 'maintenance').length}
-              </p>
-            </div>
-            <span className="text-2xl">🔧</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Devices Assigned</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {trucks.filter(t => t.device).length}
-              </p>
-            </div>
-            <CpuChipIcon className="h-12 w-12 text-purple-500" />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {['License Plate', 'Brand / Model', 'Year', 'Capacity', 'Driver', 'Device', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {trucks.length > 0 ? trucks.map((truck) => (
-                <tr key={truck._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {truck.displayPlate || truck.licensePlate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {truck.brand} {truck.model}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {truck.year || '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {truck.capacity ? `${truck.capacity} t` : '—'}
-                  </td>
-                  {/* Driver Column */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {truck.driver ? (
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {truck.driver.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {truck.driver.licenseNumber}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleUnassignDriver(truck)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Unassign driver"
-                        >
-                          <XCircleIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => openAssignDriverModal(truck)}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <UserIcon className="h-4 w-4" />
-                        Assign Driver
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {['Plate', 'Model', 'Year', 'Capacity', 'Speed Limit', 'Driver', 'Devices', 'Status', 'Actions'].map(h => (
+                <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {trucks.map((truck) => (
+              <tr key={truck._id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  {truck.displayPlate || truck.licensePlate}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {truck.brand} {truck.model}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">{truck.year || '—'}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{truck.capacity ? `${truck.capacity}t` : '—'}</td>
+                <td className="px-6 py-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <BoltIcon className="h-4 w-4 text-blue-500" />
+                    <span>{truck.speedLimit || 90} km/h</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  {truck.driver ? (
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-gray-400" />
+                      <span>{truck.driver.name}</span>
+                      <button onClick={() => handleUnassignDriver(truck)} className="text-red-500 hover:text-red-700">
+                        <XCircleIcon className="h-4 w-4" />
                       </button>
-                    )}
-                  </td>
-                  {/* Device Column */}
-                 <td className="px-6 py-4 text-sm">
-                  {truck.devices && truck.devices.length > 0 ? (
-                    <div className="space-y-2">
+                    </div>
+                  ) : (
+                    <button onClick={() => openAssignDriverModal(truck)} className="text-blue-600 hover:text-blue-800 text-sm">
+                      Assign Driver
+                    </button>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  {truck.devices?.length > 0 ? (
+                    <div className="space-y-1">
                       {truck.devices.map(device => (
                         <div key={device._id} className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded">
-                          <div className="flex items-center gap-2">
-                            <CpuChipIcon className="h-4 w-4 text-gray-400" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{device.deviceId}</p>
-                              <p className="text-xs text-gray-500">{device.type || 'Device'}</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleUnassignDevice(truck._id, device._id)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Unassign this device"
-                          >
-                            <XCircleIcon className="h-4 w-4" />
+                          <span className="text-xs">{device.deviceId}</span>
+                          <button onClick={() => handleUnassignDevice(truck._id, device._id)} className="text-red-500">
+                            <XCircleIcon className="h-3 w-3" />
                           </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <button
-                      onClick={() => openAssignDeviceModal(truck)}
-                      className="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1"
-                    >
-                      <CpuChipIcon className="h-4 w-4" />
-                      Assign Device
+                    <button onClick={() => openAssignDeviceModal(truck)} className="text-purple-600 hover:text-purple-800 text-sm">
+                      Assign Devices
                     </button>
                   )}
                 </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={getStatusBadge(truck.status)}>
-                      {getStatusText(truck.status)}
-                    </span>
-                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm flex items-center gap-3">
-                    <button
-                      onClick={() => { setEditingTruck(truck); setIsModalOpen(true); }}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="Edit"
-                    >
+                <td className="px-6 py-4">
+                  <StatusSelect 
+                    status={truck.status}
+                    truckId={truck._id}
+                    onStatusChange={handleStatusUpdate}
+                    isUpdating={updatingStatusId === truck._id}
+                  />
+                </td>
+                <td className="px-6 py-4 text-sm">
+                  <div className="flex gap-3">
+                    <button onClick={() => { setEditingTruck(truck); setIsModalOpen(true); }} className="text-blue-600">
                       <PencilIcon className="h-5 w-5" />
                     </button>
-                     <Link
-                        to={`/dashboard/truck-history/${truck._id}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        title="View trip history"
-                      >
-                        <DocumentTextIcon className="h-5 w-5" />
-                      </Link>
-                    <button
-                      onClick={() => handleDelete(truck._id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
+                    <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
+                      <DocumentTextIcon className="h-5 w-5" />
+                    </Link>
+                    <button onClick={() => handleDelete(truck._id)} className="text-red-600">
                       <TrashIcon className="h-5 w-5" />
                     </button>
-                   </td>
-                 </tr>
-              )) : (
-                <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-400">
-                    No trucks found. Click "Add Truck" to create one.
-                   </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {trucks.length === 0 && (
+              <tr>
+                <td colSpan="9" className="px-6 py-12 text-center text-gray-400">
+                  No trucks found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}
-      <Pagination />
-
-      {/* Truck Form Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingTruck(null); }}
-        title={editingTruck ? 'Edit Truck' : 'Add New Truck'}
-        size="lg"
-      >
-        <TruckForm
-          onSubmit={handleSubmit}
-          initialData={editingTruck}
-          drivers={availableDrivers}
-          devices={availableDevices}
-          onCancel={() => { setIsModalOpen(false); setEditingTruck(null); }}
+      <div className="mt-6">
+        <PaginationComponent
+          currentPage={pagination.page || 1}
+          totalPages={pagination.pages || 1}
+          onPageChange={setPage}
+          onPageSizeChange={handleLimitChange}
+          pageSize={limit}
+          totalItems={pagination.total || 0}
+          showFirstLast={true}
+          siblingCount={1}
+          showPageSizeSelector={true}
+          pageSizeOptions={[5, 10, 25, 50, 100]}
         />
+      </div>
+
+      {/* Modals */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingTruck ? 'Edit Truck' : 'Add Truck'} size="lg">
+        <TruckForm onSubmit={handleSubmit} initialData={editingTruck} devices={availableDevices} onCancel={() => setIsModalOpen(false)} />
       </Modal>
 
-      {/* Assign Driver Modal */}
-      <Modal
-        isOpen={showAssignModal}
-        onClose={() => {
-          setShowAssignModal(false);
-          setSelectedTruck(null);
-          setSelectedDriverId('');
-        }}
-        title={`Assign Driver to ${selectedTruck?.licensePlate || 'Truck'}`}
-      >
+      <Modal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Driver">
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Driver
-            </label>
-            <select
-              value={selectedDriverId}
-              onChange={(e) => setSelectedDriverId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Choose a driver...</option>
-              {drivers
-                .filter(d => d.status === 'available' && !d.assignedTruck)
-                .map(driver => (
-                  <option key={driver._id} value={driver._id}>
-                    {driver.name} - {driver.licenseNumber}
-                  </option>
-                ))
-              }
-            </select>
-            {drivers.filter(d => d.status === 'available' && !d.assignedTruck).length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                No available drivers. All available drivers are already assigned to trucks.
-              </p>
-            )}
-          </div>
-          
+          <select value={selectedDriverId} onChange={(e) => setSelectedDriverId(e.target.value)} className="w-full p-2 border rounded">
+            <option value="">Select driver...</option>
+            {availableDrivers.map(d => <option key={d._id} value={d._id}>{d.name} - {d.licenseNumber}</option>)}
+          </select>
           <div className="flex justify-end gap-3">
-            <button
-              onClick={() => {
-                setShowAssignModal(false);
-                setSelectedTruck(null);
-                setSelectedDriverId('');
-              }}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAssignDriver}
-              disabled={!selectedDriverId || assignDriverMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {assignDriverMutation.isPending ? 'Assigning...' : 'Assign Driver'}
-            </button>
+            <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+            <button onClick={handleAssignDriver} disabled={!selectedDriverId} className="px-4 py-2 bg-blue-600 text-white rounded">Assign</button>
           </div>
         </div>
       </Modal>
 
-      {/* Assign Device Modal */}
-      <Modal
-        isOpen={showAssignDeviceModal}
-        onClose={() => {
-          setShowAssignDeviceModal(false);
-          setSelectedTruck(null);
-          setSelectedDeviceId('');
-        }}
-        title={`Assign Device to ${selectedTruck?.licensePlate || 'Truck'}`}
-      >
+      <Modal isOpen={showAssignDeviceModal} onClose={() => setShowAssignDeviceModal(false)} title="Assign Devices" size="md">
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Device
-            </label>
-            <select
-              value={selectedDeviceId}
-              onChange={(e) => setSelectedDeviceId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="">Choose a device...</option>
-              {devices
-                .filter(d => !d.truck)
-                .map(device => (
-                  <option key={device._id} value={device._id}>
-                    {device.deviceId} - {device.type || 'Device'} 
-                    {device.status === 'active' ? ' ✓ Active' : ` (${device.status})`}
-                  </option>
-                ))
-              }
-            </select>
-            {devices.filter(d => !d.truck).length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                No available devices. All devices are already assigned to trucks.
-              </p>
-            )}
+          <div className="max-h-64 overflow-y-auto border rounded">
+            {availableDevices.map(device => (
+              <label key={device._id} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b">
+                <input type="checkbox" checked={selectedDeviceIds.includes(device._id)} onChange={() => handleToggleDevice(device._id)} className="h-4 w-4" />
+                <CpuChipIcon className="h-5 w-5 text-gray-400" />
+                <div className="flex-1">
+                  <p className="font-medium">{device.deviceId}</p>
+                  <p className="text-xs text-gray-500">Battery: {device.batteryLevel || 0}%</p>
+                </div>
+              </label>
+            ))}
           </div>
-          
+          <p className="text-sm">{selectedDeviceIds.length} selected</p>
           <div className="flex justify-end gap-3">
-            <button
-              onClick={() => {
-                setShowAssignDeviceModal(false);
-                setSelectedTruck(null);
-                setSelectedDeviceId('');
-              }}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAssignDevice}
-              disabled={!selectedDeviceId || assignDeviceMutation.isPending}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {assignDeviceMutation.isPending ? 'Assigning...' : 'Assign Device'}
-            </button>
+            <button onClick={() => setShowAssignDeviceModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+            <button onClick={handleAssignDevices} disabled={selectedDeviceIds.length === 0} className="px-4 py-2 bg-purple-600 text-white rounded">Assign</button>
           </div>
         </div>
       </Modal>
@@ -708,4 +643,4 @@ const handleAssignDevice = async () => {
   );
 };
 
-export default Trucks;  
+export default Trucks;

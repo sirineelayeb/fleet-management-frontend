@@ -25,17 +25,235 @@
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
   }
 }
-.custom-marker {
-  background: transparent;
-  border: none;
+
+/* ============================================
+   LEAFLET MAP STYLES
+   ============================================ */
+
+/* Map container styles */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
+/* Force map container height */
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  background: #e5e7eb;
+}
+
+/* Fix Leaflet marker positioning */
+.leaflet-marker-icon {
+  transition: none !important;
+}
+
+/* Leaflet popup styles */
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
   padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .leaflet-popup-content {
   margin: 0;
   min-width: 150px;
+}
+
+/* Dark theme adjustments */
+.map-dark .leaflet-tile-pane {
+  filter: brightness(0.7) contrast(1.2);
+}
+
+.map-satellite .leaflet-tile-pane {
+  filter: brightness(1) saturate(1.1);
+}
+
+/* Zoom control styles */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* ============================================
+   CUSTOM MARKER STYLES
+   ============================================ */
+
+/* Custom truck marker */
+.custom-truck-marker {
+  background: transparent;
+  border: none;
+}
+
+.custom-truck-marker div {
+  transition: transform 0.2s ease;
+}
+
+.custom-truck-marker div:hover {
+  transform: scale(1.1);
+}
+
+/* Custom simple marker (origin/destination) */
+.custom-simple-marker {
+  background: transparent;
+  border: none;
+}
+
+/* Map Style Switcher */
+.map-style-switcher {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.map-style-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4B5563;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.map-style-btn:hover {
+  background: #F3F4F6;
+  transform: translateY(-1px);
+}
+
+.map-style-btn.active {
+  background: #3B82F6;
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.style-icon {
+  font-size: 14px;
+}
+
+.style-name {
+  font-size: 12px;
+}
+
+/* Responsive styles for map switcher */
+@media (max-width: 768px) {
+  .map-style-switcher {
+    top: 5px;
+    right: 5px;
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .map-style-btn {
+    padding: 4px 8px;
+  }
+  
+  .style-name {
+    display: none;
+  }
+}
+
+/* ============================================
+   VEHICLE MARKER ANIMATIONS
+   ============================================ */
+
+@keyframes vehiclePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   SCROLLBAR HIDING
+   ============================================ */
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Sidebar scroll hiding */
+.sidebar-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+.custom-simple-marker {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.leaflet-marker-icon {
+  transition: none !important;
 }

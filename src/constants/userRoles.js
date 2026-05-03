@@ -1,4 +1,3 @@
-// src/constants/userRoles.js
 export const ROLES = {
   ADMIN: 'admin',
   SHIPMENT_MANAGER: 'shipment_manager'   

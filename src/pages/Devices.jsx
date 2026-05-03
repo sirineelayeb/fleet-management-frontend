@@ -1,3 +1,4 @@
+// frontend/src/pages/Devices.jsx
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deviceService } from '../services/deviceService';
@@ -5,7 +6,10 @@ import { truckService } from '../services/truckService';
 import toast from 'react-hot-toast';
 import DeviceForm from '../components/Forms/DeviceForm';
 import Modal from '../components/Common/Modal';
+import PaginationComponent from '../components/Common/Pagination';
+import { usePagination } from '../hooks/usePagination';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import StatCard from '../components/Cards/StatCard';
 import {
   PlusIcon,
   PencilIcon,
@@ -15,13 +19,51 @@ import {
   SignalIcon,
   CpuChipIcon,
   ClockIcon,
-  WifiIcon,
-  MapPinIcon,
   TruckIcon,
-  XCircleIcon
+  XCircleIcon,
+  MagnifyingGlassIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
-// ── Assign Truck Modal content ────────────────────────────────────────────────
+// Simple inline select for status
+const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
+  const handleChange = (e) => {
+    const newStatus = e.target.value;
+    if (newStatus !== status) {
+      onStatusChange(deviceId, newStatus);
+    }
+  };
+
+  const getStatusStyle = (value) => {
+    switch (value) {
+      case 'active': return 'bg-green-100 text-green-700';
+      case 'inactive': return 'bg-gray-100 text-gray-700';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        value={status}
+        onChange={handleChange}
+        disabled={isUpdating}
+        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 ${getStatusStyle(status)}`}
+      >
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+      {isUpdating && (
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+      )}
+    </div>
+  );
+};
+
+// Assign Truck Modal content
 const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
   const [selectedTruckId, setSelectedTruckId] = useState('');
 
@@ -51,14 +93,14 @@ const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
       <div className="flex justify-end gap-3 pt-2">
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={!selectedTruckId}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
           Assign
         </button>
@@ -67,31 +109,84 @@ const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
   );
 };
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// Main Page
 const Devices = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
   const [assigningDevice, setAssigningDevice] = useState(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
+  const [filters, setFilters] = useState({ status: '', search: '' });
+  const [searchInput, setSearchInput] = useState('');
+  
   const queryClient = useQueryClient();
 
-  // Fetch all devices
-  const { data: devicesData, isLoading, error } = useQuery({
-    queryKey: ['devices'],
-    queryFn: () => deviceService.getAll(),
-    retry: 1
+  // Queries with pagination
+  const { 
+    data: devicesData, 
+    isLoading, 
+    isFetching,
+    error 
+  } = useQuery({
+    queryKey: ['devices', page, limit, filters],
+    queryFn: () => deviceService.getAll({ 
+      page, 
+      limit: limit,
+      status: filters.status || undefined,
+      search: filters.search || undefined
+    }),
+    keepPreviousData: true,
+    staleTime: 5000,
   });
 
-  // ✅ Fetch ALL trucks (not just unassigned) to allow multiple devices per truck
+  // Fetch all trucks for assignment
   const { data: allTrucksData } = useQuery({
     queryKey: ['trucks-all'],
     queryFn: () => truckService.getAll({ limit: 1000 }),
-    retry: 1
   });
 
+  // Safe extraction
+  const devices = devicesData?.data || [];
+  const pagination = devicesData?.pagination || { total: 0, page: 1, pages: 1 };
+  const allTrucks = allTrucksData?.data || [];
+
+  // Search handlers
+  const handleSearch = () => {
+    setFilters({ ...filters, search: searchInput });
+    setPage(1);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleStatusChange = (status) => {
+    setFilters({ ...filters, status });
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters({ status: '', search: '' });
+    setSearchInput('');
+    setPage(1);
+  };
+
+  // Statistics calculations - Only important ones
+  const totalDevices = pagination.total || 0;
+  const activeDevices = devices.filter(d => d.status === 'active').length;
+  const assignedDevices = devices.filter(d => d.truck).length;
+  const avgBattery = devices.length > 0
+    ? Math.round(devices.reduce((sum, d) => sum + (d.batteryLevel || 0), 0) / devices.length)
+    : 0;
+  const lowBatteryDevices = devices.filter(d => (d.batteryLevel || 0) < 30).length;
+
+  // Mutations
   const registerMutation = useMutation({
     mutationFn: (data) => deviceService.register(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['devices']);
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
       toast.success('Device registered successfully');
       setIsModalOpen(false);
     },
@@ -103,7 +198,7 @@ const Devices = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => deviceService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['devices']);
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
       toast.success('Device updated successfully');
       setIsModalOpen(false);
       setEditingDevice(null);
@@ -116,7 +211,7 @@ const Devices = () => {
   const deleteMutation = useMutation({
     mutationFn: (id) => deviceService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['devices']);
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
       toast.success('Device deleted successfully');
     },
     onError: (error) => {
@@ -125,12 +220,10 @@ const Devices = () => {
   });
 
   const assignMutation = useMutation({
-    mutationFn: ({ deviceId, truckId }) =>
-      deviceService.assignToTruck(deviceId, truckId),
+    mutationFn: ({ deviceId, truckId }) => deviceService.assignToTruck(deviceId, truckId),
     onSuccess: () => {
-      // Invalidate both devices and trucks (because truck.devices changed)
-      queryClient.invalidateQueries(['devices']);
-      queryClient.invalidateQueries(['trucks-all']);
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['trucks-all'] });
       toast.success('Truck assigned successfully');
       setAssigningDevice(null);
     },
@@ -142,8 +235,8 @@ const Devices = () => {
   const unassignMutation = useMutation({
     mutationFn: (deviceId) => deviceService.unassignFromTruck(deviceId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['devices']);
-      queryClient.invalidateQueries(['trucks-all']);
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['trucks-all'] });
       toast.success('Device unassigned successfully');
     },
     onError: (error) => {
@@ -151,6 +244,21 @@ const Devices = () => {
     }
   });
 
+  // Status update mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => deviceService.update(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      toast.success('Status updated');
+      setUpdatingStatusId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update status');
+      setUpdatingStatusId(null);
+    }
+  });
+
+  // Handlers
   const handleAssignTruck = (deviceId, truckId) => {
     assignMutation.mutate({ deviceId, truckId });
   };
@@ -159,6 +267,11 @@ const Devices = () => {
     if (window.confirm(`Unassign truck from device "${device.deviceId}"?`)) {
       unassignMutation.mutate(device._id);
     }
+  };
+
+  const handleStatusUpdate = (deviceId, newStatus) => {
+    setUpdatingStatusId(deviceId);
+    updateStatusMutation.mutate({ id: deviceId, status: newStatus });
   };
 
   const handleSubmit = (data) => {
@@ -175,40 +288,26 @@ const Devices = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const colors = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      maintenance: 'bg-yellow-100 text-yellow-800'
-    };
-    return `px-2 py-1 text-xs rounded-full font-medium ${colors[status] || colors.inactive}`;
-  };
-
+  // Helpers
   const getBatteryColor = (level) => {
     if (level >= 70) return 'text-green-600';
     if (level >= 30) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'esp32': return <WifiIcon className="h-5 w-5 text-blue-500" />;
-      case 'gps':   return <MapPinIcon className="h-5 w-5 text-green-500" />;
-      case 'sim808': return <DevicePhoneMobileIcon className="h-5 w-5 text-purple-500" />;
-      default:      return <CpuChipIcon className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const getTypeLabel = (type) => {
-    switch (type) {
-      case 'esp32':  return 'ESP32';
-      case 'gps':    return 'GPS Tracker';
-      case 'sim808': return 'SIM808';
-      default:       return type;
-    }
-  };
-
-  if (isLoading) return <LoadingSpinner />;
+  // Loading / error states
+  if (isLoading && !devicesData) {
+   return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+              <DevicePhoneMobileIcon className="h-8 w-8 text-white" />
+            </div>
+            <p className="text-gray-500 text-sm font-medium animate-pulse">
+              Loading Devices...
+            </p>
+          </div>
+          );
+        } 
 
   if (error) {
     return (
@@ -224,53 +323,104 @@ const Devices = () => {
     );
   }
 
-  const devices = devicesData?.data || [];
-  const allTrucks = allTrucksData?.data || [];
-
-  const totalDevices       = devices.length;
-  const activeDevices      = devices.filter(d => d.status === 'active').length;
-  const inactiveDevices    = devices.filter(d => d.status === 'inactive').length;
-  const maintenanceDevices = devices.filter(d => d.status === 'maintenance').length;
-  const avgBattery = devices.length > 0
-    ? Math.round(devices.reduce((sum, d) => sum + (d.batteryLevel || 0), 0) / devices.length)
-    : 0;
-
   return (
-    <div>
+    <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Device Management</h1>
-          <p className="text-gray-600 mt-1">Manage IoT devices and GPS trackers</p>
+          <p className="text-gray-600 mt-1">Manage IoT devices and telemetry units</p>
         </div>
         <button
           onClick={() => { setEditingDevice(null); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
         >
           <PlusIcon className="h-5 w-5" />
           Register Device
         </button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        {[
-          { label: 'Total Devices', value: totalDevices,       icon: <DevicePhoneMobileIcon className="h-8 w-8 text-blue-500"   />, color: 'text-gray-900'   },
-          { label: 'Active',        value: activeDevices,      icon: <SignalIcon             className="h-8 w-8 text-green-500"  />, color: 'text-green-600'  },
-          { label: 'Inactive',      value: inactiveDevices,    icon: <CpuChipIcon            className="h-8 w-8 text-gray-500"   />, color: 'text-gray-600'   },
-          { label: 'Maintenance',   value: maintenanceDevices, icon: <WifiIcon               className="h-8 w-8 text-yellow-500" />, color: 'text-yellow-600' },
-          { label: 'Avg Battery',   value: `${avgBattery}%`,   icon: <BoltIcon               className="h-8 w-8 text-yellow-500" />, color: 'text-yellow-600' },
-        ].map(({ label, value, icon, color }) => (
-          <div key={label} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{label}</p>
-                <p className={`text-2xl font-bold ${color}`}>{value}</p>
-              </div>
-              {icon}
-            </div>
+      {/* Statistics Cards - Only important ones */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <StatCard
+          title="Total Devices"
+          value={totalDevices}
+          icon={DevicePhoneMobileIcon}
+          color="purple"
+          subtitle="Registered devices"
+        />
+        <StatCard
+          title="Active"
+          value={activeDevices}
+          icon={CheckCircleIcon}
+          color="green"
+          subtitle="Online & working"
+        />
+        <StatCard
+          title="Assigned to Trucks"
+          value={assignedDevices}
+          icon={TruckIcon}
+          color="blue"
+          subtitle="Connected to vehicles"
+        />
+        <StatCard
+          title="Avg Battery"
+          value={`${avgBattery}%`}
+          icon={BoltIcon}
+          color="yellow"
+          subtitle="Average charge"
+        />
+        <StatCard
+          title="Low Battery"
+          value={lowBatteryDevices}
+          icon={ExclamationTriangleIcon}
+          color="red"
+          subtitle="Below 30%"
+        />
+      </div>
+
+      {/* Search and Filter Bar */}
+      <div className="mb-6 bg-white p-4 rounded-lg shadow">
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search by Device ID..."
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
           </div>
-        ))}
+          
+          <select
+            className="px-4 py-2 border rounded-lg"
+            value={filters.status}
+            onChange={(e) => handleStatusChange(e.target.value)}
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+          
+          <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <MagnifyingGlassIcon className="h-5 w-5" />
+          </button>
+          
+          {(filters.status || filters.search) && (
+            <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+              Clear
+            </button>
+          )}
+        </div>
+        
+        {isFetching && (
+          <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            Loading...
+          </div>
+        )}
       </div>
 
       {/* Devices Table */}
@@ -280,7 +430,6 @@ const Devices = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Battery</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmware</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned Truck</th>
@@ -295,25 +444,22 @@ const Devices = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center">
-                        {getTypeIcon(device.type)}
+                        <DevicePhoneMobileIcon className="h-5 w-5 text-blue-500" />
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{device.deviceId}</div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getTypeLabel(device.type)}
-                  </td>
+                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <BoltIcon className={`h-5 w-5 ${getBatteryColor(device.batteryLevel || 0)}`} />
                       <span className="text-sm text-gray-900">{device.batteryLevel || 0}%</span>
                     </div>
-                  </td>
+                    </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     v{device.firmwareVersion || '1.0.0'}
-                  </td>
+                    </td>
 
                   {/* Assigned Truck Column */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -347,7 +493,7 @@ const Devices = () => {
                         Assign Truck
                       </button>
                     )}
-                  </td>
+                    </td>
 
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-1">
@@ -356,10 +502,15 @@ const Devices = () => {
                         {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}
                       </span>
                     </div>
-                  </td>
+                    </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={getStatusBadge(device.status)}>{device.status}</span>
-                  </td>
+                    <StatusSelect 
+                      status={device.status}
+                      deviceId={device._id}
+                      onStatusChange={handleStatusUpdate}
+                      isUpdating={updatingStatusId === device._id}
+                    />
+                    </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => { setEditingDevice(device); setIsModalOpen(true); }}
@@ -375,12 +526,12 @@ const Devices = () => {
                     >
                       <TrashIcon className="h-5 w-5" />
                     </button>
-                  </td>
+                    </td>
                 </tr>
               ))}
               {devices.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                     No devices found. Click "Register Device" to add one.
                   </td>
                 </tr>
@@ -388,6 +539,22 @@ const Devices = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-6">
+        <PaginationComponent
+          currentPage={pagination.page || 1}
+          totalPages={pagination.pages || 1}
+          onPageChange={setPage}
+          onPageSizeChange={handleLimitChange}
+          pageSize={limit}
+          totalItems={pagination.total || 0}
+          showFirstLast={true}
+          siblingCount={1}
+          showPageSizeSelector={true}
+          pageSizeOptions={[5, 10, 25, 50, 100]}
+        />
       </div>
 
       {/* Register / Edit Device Modal */}
@@ -414,7 +581,7 @@ const Devices = () => {
         {assigningDevice && (
           <AssignTruckModal
             device={assigningDevice}
-            trucks={allTrucks}          // ← All trucks (support multiple devices per truck)
+            trucks={allTrucks}
             onAssign={handleAssignTruck}
             onClose={() => setAssigningDevice(null)}
           />

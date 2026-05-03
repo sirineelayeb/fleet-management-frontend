@@ -1,8 +1,3 @@
-// constants/colors.js
-// Professional Fleet Management Dashboard Color System
-// Designed for optimal readability, accessibility (WCAG 2.1 AA compliant), 
-// and visual hierarchy for both admin and logistics officer interfaces
-
 // ============================================
 // 1. PRIMARY COLOR SYSTEM
 // ============================================

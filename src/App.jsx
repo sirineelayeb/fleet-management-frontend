@@ -1,7 +1,7 @@
-// frontend/src/App.jsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext'; 
 import ProtectedRoute from './components/Common/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 
@@ -17,17 +17,21 @@ import Drivers from './pages/Drivers';
 import Devices from './pages/Devices';
 import LiveMap from './pages/LiveMap';
 import TripHistory from './pages/TripHistory';
-import GateManagement from './pages/GateManagement';
+import LoadingZoneManagement from './pages/LoadingZoneManagement';
 import Users from './pages/Users';
 import DriverScoreConfig from './pages/DriverScoreConfig';
 import DriverHistory from './pages/DriverHistory';       
 import TruckHistory from './pages/TruckHistory';     
 import AllTruckHistory from './pages/AllTruckHistory';
+import DriverProfile from './pages/DriverProfile';
+import Customers from './pages/Customers';
+import LprEvents from './pages/LprEvents';  // ← NEW
+
 // ─── Shipment Manager Pages ───────────────────────────────────────────────────
 import ShipmentManagerDashboard from './pages/ShipmentManagerDashboard';
 import Shipments from './pages/Shipments';
 import CreateShipment from './pages/CreateShipment';
-import ShipmentDetail from './pages/ShipmentDetail';
+import ShipmentHistory from './pages/ShipmentHistory';
 
 // ─── Shared Pages ─────────────────────────────────────────────────────────────
 import Notifications from './pages/Notifications';
@@ -55,73 +59,79 @@ function App() {
       }}
     >
       <AuthProvider>
-        <Routes>
+        <SocketProvider>
+          <Routes>
+            {/* ── Public ──────────────────────────────────────────────────── */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-          {/* ── Public ──────────────────────────────────────────────────── */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
+            {/* ── Admin Routes ───────────────────────────────────────────── */}
+            <Route
+              path="/dashboard"
+              element={
+                <AdminRoute>
+                  <Layout />
+                </AdminRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
 
-          {/* ── Admin ───────────────────────────────────────────────────── */}
-          <Route
-            path="/dashboard"
-            element={
-              <AdminRoute>
-                <Layout />
-              </AdminRoute>
-            }
-          >
-            {/* Overview */}
-            <Route index element={<AdminDashboard />} />
+              {/* Fleet */}
+              <Route path="trucks" element={<Trucks />} />
+              <Route path="truck-history" element={<AllTruckHistory />} />
+              <Route path="truck-history/:truckId" element={<TruckHistory />} />
+              <Route path="drivers" element={<Drivers />} />
+              <Route path="driver-history" element={<DriverHistory />} />       
+              <Route path="driver-history/:driverId" element={<DriverHistory />} />
+              <Route path="devices" element={<Devices />} />
+              <Route path="driver-scores" element={<DriverScoreConfig />} />
 
-            {/* Fleet */}
-            <Route path="trucks" element={<Trucks />} />
-<Route path="truck-history" element={<AllTruckHistory />} />           // list of all trucks
-<Route path="truck-history/:truckId" element={<TruckHistory />} />    // detail for one truck            <Route path="drivers" element={<Drivers />} />
-            <Route path="driver-history" element={<DriverHistory />} />       
-            <Route path="driver-history/:driverId" element={<DriverHistory />} />
+              {/* Operations */}
+              <Route path="tracking" element={<LiveMap />} />
+              <Route path="trips" element={<TripHistory />} />
+              <Route path="loading-zones" element={<LoadingZoneManagement />} />
+              <Route path="shipments" element={<Shipments />} />
+              <Route path="shipments/create" element={<CreateShipment />} />
+              <Route path="shipments/:shipmentId" element={<ShipmentHistory />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="lpr-events" element={<LprEvents />} />  {/* ← NEW */}
 
-            <Route path="devices" element={<Devices />} />
-            <Route path="driver-scores" element={<DriverScoreConfig />} />
+              {/* Admin */}
+              <Route path="users" element={<Users />} />
 
-            {/* Operations */}
-            <Route path="tracking" element={<LiveMap />} />
-            <Route path="trips" element={<TripHistory />} />
-            <Route path="gate-management" element={<GateManagement />} />
-            <Route path="shipments" element={<Shipments />} />
-            <Route path="shipments/create" element={<CreateShipment />} />
+              {/* Shared */}
+              <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="drivers/:driverId" element={<DriverProfile />} />   
+            </Route>
 
-            {/* Admin */}
-            <Route path="users" element={<Users />} />
+            {/* ── Shipment Manager Routes ─────────────────────────────────── */}
+            <Route
+              path="/shipment_manager"
+              element={
+                <ShipmentManagerRoute>
+                  <Layout />
+                </ShipmentManagerRoute>
+              }
+            >
+              <Route index element={<ShipmentManagerDashboard />} />
+              <Route path="shipments" element={<Shipments />} />
+              <Route path="shipments/create" element={<CreateShipment />} />
+              <Route path="shipments/:shipmentId" element={<ShipmentHistory />} />
+              <Route path="tracking" element={<LiveMap />} />
+              <Route path="map" element={<LiveMap />} />
+              <Route path="trips" element={<TripHistory />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="lpr-events" element={<LprEvents />} />  {/* ← NEW */}
+            </Route>
 
-            {/* Shared */}
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="profile" element={<Profile />} />                   
-          </Route>
-
-          {/* ── Shipment Manager ────────────────────────────────────────── */}
-          <Route
-            path="/shipment_manager"
-            element={
-              <ShipmentManagerRoute>
-                <Layout />
-              </ShipmentManagerRoute>
-            }
-          >
-            <Route index element={<ShipmentManagerDashboard />} />
-            <Route path="shipments" element={<Shipments />} />
-            <Route path="shipments/create" element={<CreateShipment />} />
-            <Route path="shipments/:shipmentId" element={<ShipmentDetail />} />
-            <Route path="tracking" element={<LiveMap />} />
-            <Route path="map" element={<LiveMap />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="trips" element={<TripHistory />} />
-
-          </Route>
-
-          {/* ── Fallback ─────────────────────────────────────────────────── */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            {/* ── Fallback ─────────────────────────────────────────────────── */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   );

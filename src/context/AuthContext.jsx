@@ -1,4 +1,4 @@
-// frontend/src/context/AuthContext.js
+// frontend/src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
@@ -24,41 +24,54 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-const loadUser = async () => {
-  try {
-    const userData = await authService.getMe();
-    console.log('User data from backend:', userData); // Debug log
+  const loadUser = async () => {
+    try {
+      const userData = await authService.getMe();
 
-    const normalizedUser = {
-      ...userData,
-      _id: userData._id || userData.id,
-    };
+      const normalizedUser = {
+        _id: userData._id || userData.id,
+        id: userData._id || userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+      };
 
-    if (!normalizedUser._id) {
-      console.error('User ID missing from:', userData);
-      throw new Error('Invalid user data: missing ID');
+      if (!normalizedUser._id) {
+        throw new Error('Invalid user data: missing ID');
+      }
+      
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
+    } catch (error) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } finally {
+      setLoading(false);
     }
-
-    setUser(normalizedUser);
-  } catch (error) {
-    console.error('Load user error:', error);
-    localStorage.removeItem('token');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const login = async (email, password) => {
     const result = await authService.login(email, password);
     if (result.success) {
       localStorage.setItem('token', result.token);
-      setUser(result.user);
+      
+      const normalizedUser = {
+        _id: result.user._id || result.user.id,
+        id: result.user._id || result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+      };
+      
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
     }
     return result;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

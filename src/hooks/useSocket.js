@@ -34,20 +34,24 @@ export const useRealtimeData = (eventName) => {
 
 /**
  * Hook for real-time notifications
+ * ✅ Updated to listen for 'new_notification' event
  */
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
 
-  useSocketEvent('notification', (notification) => {
+  // ✅ Listen for 'new_notification' (not 'notification')
+  useSocketEvent('new_notification', (notification) => {
+    console.log('🔔 New notification received:', notification);
+    
     setNotifications(prev => [notification, ...prev].slice(0, 50));
     
-    // Show toast for important notifications
-    if (notification.type === 'alert' || notification.severity === 'high') {
-      toast.error(notification.message);
-    } else if (notification.type === 'success') {
-      toast.success(notification.message);
+    // Show toast based on severity
+    if (notification.severity === 'critical') {
+      toast.error(notification.message, { duration: 8000 });
+    } else if (notification.severity === 'warning') {
+      toast(notification.message, { icon: '⚠️', duration: 6000 });
     } else {
-      toast.info(notification.message);
+      toast.success(notification.message, { duration: 5000 });
     }
   }, []);
 

@@ -1,4 +1,3 @@
-// frontend/src/services/tripHistoryService.js
 import api from './api';
 
 export const tripHistoryService = {
