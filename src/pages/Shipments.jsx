@@ -9,7 +9,7 @@ import AssignShipmentModal from '../components/Shipments/AssignShipmentModal';
 import AssignManagerModal from '../components/Shipments/AssignManagerModal';
 import ShipmentForm from '../components/Shipments/ShipmentForm';
 import ShipmentDetailsModal from '../components/Shipments/ShipmentDetailsModal';
-import Modal from '../components/common/Modal';
+import Modal from '../components/Common/Modal';
 import {
   PlusIcon,
   ArrowPathIcon,
