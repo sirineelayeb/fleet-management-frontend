@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService } from '../../services/customerService';
 import { MapPinIcon } from '@heroicons/react/24/outline';
-import MapPicker from '../common/MapPicker';
+import MapPicker from '../Common/MapPicker';
 import Modal from '../Common/Modal';
 import toast from 'react-hot-toast';
 import PhoneInputField from '../Common/PhoneInputField';
