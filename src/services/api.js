@@ -5,11 +5,11 @@ import axios from 'axios';
 // ============================================================
 // API BASE URL CONFIGURATION
 // ============================================================
-// Production URL (commented out for now)
-// const API_BASE_URL = "https://fleet-management-backend-ptpw.onrender.com/api";
+// Production URL 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// Development URL (local) - USE THIS FOR NOW
-const API_BASE_URL = "http://localhost:5000/api";
+// Development URL (local)
+// const API_BASE_URL = "http://localhost:5000/api";
 
 // ============================================================
 // AXIOS INSTANCE
@@ -89,7 +89,7 @@ api.interceptors.response.use(
     
     // Handle network errors
     if (error.message === 'Network Error') {
-      console.error('🌐 Network Error - Make sure backend is running on http://localhost:5000');
+    console.error('🌐 Network Error - Backend unreachable:', API_BASE_URL);
     }
     
     return Promise.reject(error);
