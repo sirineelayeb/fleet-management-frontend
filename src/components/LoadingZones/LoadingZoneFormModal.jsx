@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadingZoneService } from '../../services/loadingZoneService';
 import { MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
-import MapPicker from '../common/MapPicker';
-import Modal from '../common/Modal'; 
+import MapPicker from '../Common/MapPicker';
+import Modal from '../Common/Modal'; 
 
 const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
   const isEditing = !!zone;

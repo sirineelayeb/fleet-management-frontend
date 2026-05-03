@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPinIcon, CalendarIcon, ArrowsPointingOutIcon, HomeIcon } from '@heroicons/react/24/outline';
-import Modal from '../common/Modal';
+import Modal from '../Common/Modal';
 
 const LoadingZoneDetailsModal = ({ zone, onClose }) => {
   const formatDate = (date) => new Date(date).toLocaleString();
