@@ -144,7 +144,7 @@ const ADMIN_MENU = [
         icon: CubeIcon,
         children: [
           {
-            path: '/dashboard/live-map',
+            path: '/dashboard/tracking',
             icon: MapIcon,
             solidIcon: MapSolidIcon,
             label: 'Live Map',
