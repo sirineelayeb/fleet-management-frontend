@@ -329,21 +329,154 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         {/* Route Information */}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Route Information</h3>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Origin *</label>
-              <input type="text" name="origin" value={formData.origin} onChange={handleChange} className={inputClass} required placeholder="e.g., Tunis, Tunisia" />
-              {formData.originPlaceName && (
-                <p className="text-xs text-green-600 mt-1">✓ {formData.originPlaceName}</p>
-              )}
+          <div className="grid grid-cols-2 gap-6">
+            
+            {/* Origin Column */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Origin *</label>
+                <input
+                  type="text"
+                  name="origin"
+                  value={formData.origin}
+                  onChange={handleChange}
+                  className={inputClass}
+                  required
+                  placeholder="e.g., Tunis, Tunisia"
+                />
+                {formData.originPlaceName && (
+                  <p className="text-xs text-green-600 mt-1">✓ {formData.originPlaceName}</p>
+                )}
+              </div>
+
+              {/* Origin Coordinates */}
+              <div className="border rounded-lg p-3 bg-gray-50">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-medium text-gray-600">Coordinates (Optional)</label>
+                  <div className="flex gap-1">
+                    {formData.originCoordinates.lat && formData.originCoordinates.lng && (
+                      <button
+                        type="button"
+                        onClick={clearOriginCoordinates}
+                        className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 flex items-center gap-1"
+                      >
+                        <XMarkIcon className="h-3 w-3" /> Clear
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowOriginMap(true)}
+                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
+                    >
+                      <MapPinIcon className="h-3 w-3" /> Map
+                    </button>
+                  </div>
+                </div>
+                {formData.originPlaceName && (
+                  <p className="text-xs text-green-700 mb-2">📍 {formData.originPlaceName}</p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Latitude</label>
+                    <input
+                      type="number"
+                      name="lat"
+                      value={formData.originCoordinates.lat}
+                      onChange={handleOriginCoordChange}
+                      placeholder="36.8065"
+                      className={inputClass}
+                      step="any"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Longitude</label>
+                    <input
+                      type="number"
+                      name="lng"
+                      value={formData.originCoordinates.lng}
+                      onChange={handleOriginCoordChange}
+                      placeholder="10.1815"
+                      className={inputClass}
+                      step="any"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Destination *</label>
-              <input type="text" name="destination" value={formData.destination} onChange={handleChange} className={inputClass} required placeholder="e.g., Sfax, Tunisia" />
-              {formData.destinationPlaceName && (
-                <p className="text-xs text-green-600 mt-1">✓ {formData.destinationPlaceName}</p>
-              )}
+
+            {/* Destination Column */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Destination *</label>
+                <input
+                  type="text"
+                  name="destination"
+                  value={formData.destination}
+                  onChange={handleChange}
+                  className={inputClass}
+                  required
+                  placeholder="e.g., Sfax, Tunisia"
+                />
+                {formData.destinationPlaceName && (
+                  <p className="text-xs text-green-600 mt-1">✓ {formData.destinationPlaceName}</p>
+                )}
+              </div>
+
+              {/* Destination Coordinates */}
+              <div className="border rounded-lg p-3 bg-gray-50">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-medium text-gray-600">Coordinates (Optional)</label>
+                  <div className="flex gap-1">
+                    {formData.destinationCoordinates.lat && formData.destinationCoordinates.lng && (
+                      <button
+                        type="button"
+                        onClick={clearDestinationCoordinates}
+                        className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 flex items-center gap-1"
+                      >
+                        <XMarkIcon className="h-3 w-3" /> Clear
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowDestMap(true)}
+                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
+                    >
+                      <MapPinIcon className="h-3 w-3" /> Map
+                    </button>
+                  </div>
+                </div>
+                {formData.destinationPlaceName && (
+                  <p className="text-xs text-green-700 mb-2">📍 {formData.destinationPlaceName}</p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Latitude</label>
+                    <input
+                      type="number"
+                      name="lat"
+                      value={formData.destinationCoordinates.lat}
+                      onChange={handleDestCoordChange}
+                      placeholder="34.7406"
+                      className={inputClass}
+                      step="any"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Longitude</label>
+                    <input
+                      type="number"
+                      name="lng"
+                      value={formData.destinationCoordinates.lng}
+                      onChange={handleDestCoordChange}
+                      placeholder="10.7603"
+                      className={inputClass}
+                      step="any"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
 
@@ -422,131 +555,6 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
             Select a loading zone - origin will auto-fill with its address and coordinates
           </p>
         </div>
-
-        {/* Origin Coordinates Block */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <div className="flex justify-between items-start mb-3">
-            <label className="block text-sm font-medium">Origin Coordinates (Optional)</label>
-            <div className="flex gap-2">
-              {formData.originCoordinates.lat && formData.originCoordinates.lng && (
-                <button 
-                  type="button" 
-                  onClick={clearOriginCoordinates}
-                  className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 flex items-center gap-1"
-                >
-                  <XMarkIcon className="h-3 w-3" />
-                  Clear
-                </button>
-              )}
-              <button 
-                type="button" 
-                onClick={() => setShowOriginMap(true)} 
-                className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center gap-1"
-              >
-                <MapPinIcon className="h-4 w-4" /> 
-                Choose on Map
-              </button>
-            </div>
-          </div>
-          
-          {formData.originPlaceName && (
-            <div className="mb-3 p-2 bg-green-100 rounded-lg flex justify-between items-center">
-              <div>
-                <p className="text-xs text-green-800 font-medium">Selected Place:</p>
-                <p className="text-sm text-green-900">📍 {formData.originPlaceName}</p>
-              </div>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Latitude</label>
-              <input 
-                type="number" 
-                name="lat" 
-                value={formData.originCoordinates.lat} 
-                onChange={handleOriginCoordChange} 
-                placeholder="e.g., 36.8065" 
-                className={inputClass} 
-                step="any" 
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Longitude</label>
-              <input 
-                type="number" 
-                name="lng" 
-                value={formData.originCoordinates.lng} 
-                onChange={handleOriginCoordChange} 
-                placeholder="e.g., 10.1815" 
-                className={inputClass} 
-                step="any" 
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Destination Coordinates Block */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <div className="flex justify-between items-start mb-3">
-            <label className="block text-sm font-medium">Destination Coordinates (Optional)</label>
-            <div className="flex gap-2">
-              {formData.destinationCoordinates.lat && formData.destinationCoordinates.lng && (
-                <button 
-                  type="button" 
-                  onClick={clearDestinationCoordinates}
-                  className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 flex items-center gap-1"
-                >
-                  <XMarkIcon className="h-3 w-3" />
-                  Clear
-                </button>
-              )}
-              <button 
-                type="button" 
-                onClick={() => setShowDestMap(true)} 
-                className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center gap-1"
-              >
-                <MapPinIcon className="h-4 w-4" /> 
-                Choose on Map
-              </button>
-            </div>
-          </div>
-          
-          {formData.destinationPlaceName && (
-            <div className="mb-3 p-2 bg-green-100 rounded-lg">
-              <p className="text-xs text-green-800 font-medium">Selected Place:</p>
-              <p className="text-sm text-green-900">📍 {formData.destinationPlaceName}</p>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Latitude</label>
-              <input 
-                type="number" 
-                name="lat" 
-                value={formData.destinationCoordinates.lat} 
-                onChange={handleDestCoordChange} 
-                placeholder="e.g., 34.7406" 
-                className={inputClass} 
-                step="any" 
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Longitude</label>
-              <input 
-                type="number" 
-                name="lng" 
-                value={formData.destinationCoordinates.lng} 
-                onChange={handleDestCoordChange} 
-                placeholder="e.g., 10.7603" 
-                className={inputClass} 
-                step="any" 
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Cargo Details */}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Cargo Details</h3>
