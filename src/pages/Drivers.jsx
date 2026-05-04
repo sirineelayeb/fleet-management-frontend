@@ -34,13 +34,14 @@ const EMPTY_FORM = {
 // Helper to resolve photo URL - uses relative path
 const resolvePhotoUrl = (url) => {
   if (!url) return null;
+  // Cloudinary URLs are already absolute — return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Fallback for any legacy local paths
   const normalized = url.replace(/\\/g, '/');
-  if (normalized.startsWith('http://') || normalized.startsWith('https://')) return normalized;
   const uploadsIndex = normalized.indexOf('uploads/');
-  if (uploadsIndex !== -1) return `/${normalized.slice(uploadsIndex)}`;
-  return `/${normalized.replace(/^\//, '')}`;
+  if (uploadsIndex !== -1) return `${import.meta.env.VITE_API_URL}/${normalized.slice(uploadsIndex)}`;
+  return url;
 };
-
 // Simple inline select for status
 const StatusSelect = ({ status, onStatusChange, driverId, isUpdating }) => {
   const handleChange = (e) => {
