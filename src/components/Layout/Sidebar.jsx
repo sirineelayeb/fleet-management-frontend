@@ -144,6 +144,13 @@ const ADMIN_MENU = [
         icon: CubeIcon,
         children: [
           {
+            path: '/dashboard/live-map',
+            icon: MapIcon,
+            solidIcon: MapSolidIcon,
+            label: 'Live Map',
+            description: 'Real‑time fleet tracking',
+          },
+          {
             path: '/dashboard/shipments',
             label: 'Shipments',
             icon: CubeIcon,
