@@ -325,19 +325,19 @@ const Devices = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Device Management</h1>
-          <p className="text-gray-600 mt-1">Manage IoT devices and telemetry units</p>
-        </div>
-        <button
-          onClick={() => { setEditingDevice(null); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
-        >
-          <PlusIcon className="h-5 w-5" />
-          Register Device
-        </button>
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Device Management</h1>
+        <p className="text-gray-600 mt-1 text-sm">Manage IoT devices and telemetry units</p>
       </div>
+      <button
+        onClick={() => { setEditingDevice(null); setIsModalOpen(true); }}
+        className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700"
+      >
+        <PlusIcon className="h-5 w-5" />
+        <span>Register Device</span>
+      </button>
+    </div>
 
       {/* Statistics Cards - Only important ones */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">

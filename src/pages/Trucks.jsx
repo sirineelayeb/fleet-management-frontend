@@ -450,7 +450,7 @@ const Trucks = () => {
 
       {/* Search Bar */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
-        <div className="flex gap-4 flex-wrap">
+        <div className="flex gap-4 flex-wrap min-w-0">
           <div className="flex-1">
             <input
               type="text"
@@ -492,6 +492,7 @@ const Trucks = () => {
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -582,6 +583,7 @@ const Trucks = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}

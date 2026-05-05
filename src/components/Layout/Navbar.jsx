@@ -163,64 +163,69 @@ const Navbar = () => {
     toast.success('Logged out successfully');
     navigate('/login');
   };
+return (
+  <nav className="bg-white shadow-sm">
+    <div className="px-4 lg:px-6 py-3 flex justify-between items-center">
+      
+      {/* Leave space for hamburger on mobile */}
+      <h2 className="text-base lg:text-xl font-semibold text-gray-800 pl-12 lg:pl-0 truncate">
+        Fleet Management System
+      </h2>
 
-  return (
-    <nav className="bg-white shadow-sm">
-      <div className="px-6 py-3 flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800">Fleet Management System</h2>
-
-        <div className="flex items-center space-x-4">
-          {/* Notification Bell */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="relative p-1 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <BellIcon className="h-6 w-6 text-gray-600" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-
-            <NotificationDropdown
-              isOpen={isDropdownOpen}
-              notifications={notifications}
-              unreadCount={unreadCount}
-              onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
-              onMarkAllAsRead={() => markAllAsReadMutation.mutate()}
-              onClose={() => setIsDropdownOpen(false)}
-              onViewAll={() => {
-                setIsDropdownOpen(false);
-                navigate(getNotificationsPath());
-              }}
-            />
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <UserCircleIcon
-              className="h-8 w-8 text-gray-600 cursor-pointer"
-              onClick={() => navigate(getProfilePath())}
-            />
-            <div>
-              <p className="text-sm font-medium text-gray-700">{user?.name || 'User'}</p>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(user?.role)}`}>
-                {getRoleLabel(user?.role)}
+      <div className="flex items-center space-x-2 lg:space-x-4">
+        {/* Notification Bell — unchanged */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="relative p-1 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <BellIcon className="h-6 w-6 text-gray-600" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
               </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-red-600 hover:text-red-800 ml-2 flex items-center gap-1"
-            >
-              <ArrowRightOnRectangleIcon className="h-4 w-4" />
-              Logout
-            </button>
+            )}
+          </button>
+          <NotificationDropdown
+            isOpen={isDropdownOpen}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
+            onMarkAllAsRead={() => markAllAsReadMutation.mutate()}
+            onClose={() => setIsDropdownOpen(false)}
+            onViewAll={() => {
+              setIsDropdownOpen(false);
+              navigate(getNotificationsPath());
+            }}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <UserCircleIcon
+            className="h-8 w-8 text-gray-600 cursor-pointer flex-shrink-0"
+            onClick={() => navigate(getProfilePath())}
+          />
+          {/* Hide name/role on small screens */}
+          <div className="hidden sm:block">
+            <p className="text-sm font-medium text-gray-700">{user?.name || 'User'}</p>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeColor(user?.role)}`}>
+              {getRoleLabel(user?.role)}
+            </span>
           </div>
+          {/* Icon-only logout on mobile, text on desktop */}
+          <button
+            onClick={handleLogout}
+            className="text-red-600 hover:text-red-800 ml-1 flex items-center gap-1"
+            title="Logout"
+          >
+            <ArrowRightOnRectangleIcon className="h-5 w-5" />
+            <span className="hidden sm:inline text-sm">Logout</span>
+          </button>
         </div>
       </div>
-    </nav>
-  );
+    </div>
+  </nav>
+);
 };
 
 export default Navbar;
