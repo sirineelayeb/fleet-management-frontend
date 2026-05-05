@@ -12,7 +12,7 @@ import {
   CheckCircleIcon, XCircleIcon, CameraIcon, ClockIcon,
   ShieldCheckIcon, FunnelIcon, TrashIcon, ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 // ── Badges ────────────────────────────────────────────────────
 
 const DirectionBadge = ({ direction }) => (
