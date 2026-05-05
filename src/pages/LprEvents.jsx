@@ -150,6 +150,7 @@ const TABLE_HEADERS = [
 ];
 
 const LprEvents = () => {
+  const { isAdmin } = useAuth();
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 5);
   const [filters, setFilters]       = useState({ plate: '', direction: '', from: '', to: '' });
   const [searchInput, setSearchInput] = useState('');
@@ -345,10 +346,13 @@ const LprEvents = () => {
                       className="text-xs text-blue-600 hover:text-blue-800 underline">
                       View
                     </button>
-                    <button onClick={() => setEventToDelete(event)}
-                      className="text-red-500 hover:text-red-700">
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                    {/* Only admins see the delete button */}
+                    {isAdmin && (
+                      <button onClick={() => setEventToDelete(event)}
+                        className="text-red-500 hover:text-red-700">
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
