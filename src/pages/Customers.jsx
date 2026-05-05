@@ -6,9 +6,11 @@ import CustomerFormModal from '../components/Customers/CustomerFormModal';
 import CustomerDetailsModal from '../components/Customers/CustomerDetailsModal';
 import Pagination from '../components/Common/Pagination';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const Customers = () => {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
@@ -243,23 +245,23 @@ const Customers = () => {
                   <tr key={customer._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                     </td>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {customer.phone || '—'}
-                     </td>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {customer.email || '—'}
-                     </td>
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       <div className="max-w-xs truncate">{customer.address || '—'}</div>
-                     </td>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         customer.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {customer.isActive ? 'Active' : 'Archived'}
                       </span>
-                     </td>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       <button
                         onClick={() => setSelectedCustomer(customer)}
@@ -292,14 +294,16 @@ const Customers = () => {
                           <ArrowPathIcon className="h-5 w-5" />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(customer._id, customer.name)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                        title="Delete"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                     </td>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(customer._id, customer.name)}
+                          className="text-red-600 hover:text-red-800 transition-colors"
+                          title="Delete"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
