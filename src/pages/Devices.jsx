@@ -182,7 +182,6 @@ const Devices = () => {
     : 0;
   const lowBatteryDevices = devices.filter(d => (d.batteryLevel || 0) < 30).length;
 
-  // Mutations
   const registerMutation = useMutation({
     mutationFn: (data) => deviceService.register(data),
     onSuccess: () => {
