@@ -107,9 +107,21 @@ const SCROLLBAR_STYLE = `
   }
 `;
 
-// ─── SIMPLIFIED MENU DEFINITIONS (Reduced from 4 sections to 3) ──────────────
+// ─── MENU DEFINITIONS ──────────────
 
 const ADMIN_MENU = [
+  {
+    section: 'Main',
+    items: [
+      {
+        path: '/dashboard',
+        icon: HomeIcon,
+        solidIcon: HomeSolidIcon,
+        label: 'Dashboard',
+        description: 'Overview & analytics',
+      },
+    ],
+  },
   {
     section: 'Fleet',
     items: [
