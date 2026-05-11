@@ -8,7 +8,7 @@ import { usePagination } from '../hooks/usePagination';
 import {
   PlusIcon, PencilIcon, TrashIcon, EyeIcon,
   FunnelIcon, ArrowPathIcon, MapPinIcon,
-  CheckCircleIcon, XCircleIcon, BuildingOfficeIcon
+  CheckCircleIcon, XCircleIcon, BuildingOfficeIcon, MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import LoadingZoneFormModal from '../components/LoadingZones/LoadingZoneFormModal';
 import LoadingZoneDetailsModal from '../components/LoadingZones/LoadingZoneDetailsModal';
@@ -18,12 +18,6 @@ import LoadingZoneDetailsModal from '../components/LoadingZones/LoadingZoneDetai
 // changes without re-geocoding same coordinates
 // ============================================
 const geocodeCache = new Map();
-
-// ============================================
-// ✅ Defined OUTSIDE the parent component so
-//    React sees a stable component identity
-//    and hooks work correctly across renders
-// ============================================
 const LocationName = ({ lat, lng }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -75,7 +69,16 @@ const LoadingZoneManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingZone, setEditingZone] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
-
+  const [searchInput, setSearchInput] = useState('');
+    const handleSearch = () => {
+      setFilters({ ...filters, search: searchInput });
+      setPage(1);
+  };
+  const resetFilters = () => {
+    setFilters({ status: '', search: '' });
+    setSearchInput('');
+    setPage(1);
+  };
   const { data: zonesData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['loadingZones', filters, page, limit],
     queryFn: () => loadingZoneService.getAll({ ...filters, page, limit }),
@@ -104,11 +107,6 @@ const LoadingZoneManagement = () => {
     if (window.confirm(`Delete loading zone "${name}"? This action cannot be undone.`)) {
       deleteMutation.mutate(id);
     }
-  };
-
-  const resetFilters = () => {
-    setFilters({ status: '', search: '' });
-    setPage(1);
   };
 
   const getStatusBadge = (status) =>
@@ -158,50 +156,64 @@ const LoadingZoneManagement = () => {
         <StatCard title="Active Zones"   value={stats.active}   icon={CheckCircleIcon}    color="green"  subtitle="Currently operational"      />
         <StatCard title="Inactive Zones" value={stats.inactive} icon={XCircleIcon}        color="gray"   subtitle="Temporarily closed"         />
       </div>
-
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex flex-1 gap-2">
             <input
               type="text"
-              value={filters.search}
-              onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setPage(1); }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
               placeholder="Search by name or description..."
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <MagnifyingGlassIcon className="h-5 w-5" />
+              Search
+            </button>
           </div>
-          <div className="flex items-end gap-2">
-            <button onClick={resetFilters} className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50 transition-colors">
-              <FunnelIcon className="h-4 w-4" /> Reset Filters
+
+          <select
+            value={filters.status}
+            onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          {(filters.status || filters.search) && (
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+            >
+              Clear
             </button>
-            <button onClick={() => refetch()} className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50 transition-colors">
-              <ArrowPathIcon className="h-4 w-4" /> Refresh
-            </button>
+          )}
+
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-1"
+          >
+            <ArrowPathIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      {/* Table */}
+       {isFetching ? (
+        <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
           </div>
         </div>
-        {isFetching && (
-          <div className="mt-3 text-sm text-blue-600 flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-            Loading...
-          </div>
-        )}
-      </div>
-
-      {/* Table */}
+      ) : (
+        <>
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -278,7 +290,8 @@ const LoadingZoneManagement = () => {
           </div>
         )}
       </div>
-
+        </>
+      )}
       {/* Modals */}
       {showForm && (
         <LoadingZoneFormModal

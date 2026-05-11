@@ -344,15 +344,19 @@ const TripHistory = () => {
           )}
         </div>
         
-        {isFetching && (
-          <div className="mt-3 text-sm text-blue-600 flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            Loading trips...
-          </div>
-        )}
+       
       </div>
 
       {/* Trip List Table - Only Important Fields */}
+       {isFetching ? (
+        <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
         {trips.length === 0 ? (
           <div className="text-center py-12">
@@ -409,6 +413,8 @@ const TripHistory = () => {
           showPageSizeSelector={true}
           totalItems={pagination.total || 0}
         />
+      )}
+       </>
       )}
 
       {/* Trip Details Modal */}

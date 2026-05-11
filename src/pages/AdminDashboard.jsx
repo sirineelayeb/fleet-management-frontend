@@ -9,9 +9,9 @@ import {
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  FunnelChart, Funnel, LabelList,
   RadialBarChart, RadialBar, Legend,
   BarChart, Bar,
+  PieChart, Pie,
   Cell,
 } from 'recharts';
 
@@ -34,10 +34,8 @@ const toArray = (r) => {
 };
 
 const mapSeverity = (s) => ({ critical: 'high', warning: 'medium', info: 'low' }[s] || 'low');
-
 const pct = (v, t) => (t > 0 ? parseFloat(((v / t) * 100).toFixed(1)) : 0);
-
-const fmt = (val, suffix = '') => (val > 0 ? `${val}${suffix}` : '—');
+const fmt = (val) => (val > 0 ? `${val}` : '—');
 
 // ============================================
 // SHARED UI
@@ -57,20 +55,33 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const SectionHeader = ({ icon: Icon, iconColor, title, linkTo, linkColor }) => (
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-      <Icon className={`h-5 w-5 ${iconColor}`} />
-      {title}
-    </h2>
-    <Link to={linkTo} className={`text-sm ${linkColor} hover:opacity-75`}>View All →</Link>
+/** Card with a clean title header separated by a border */
+const ChartCard = ({ title, icon: Icon, iconColor, linkTo, linkColor, children, className = '' }) => (
+  <div className={`bg-white rounded-lg shadow flex flex-col h-full ${className}`}>
+    {/* Card header */}
+    <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className={`h-4 w-4 ${iconColor || 'text-gray-400'}`} />}
+        <p className="text-sm font-semibold text-gray-800">{title}</p>
+      </div>
+      {linkTo && (
+        <Link to={linkTo} className={`text-xs ${linkColor || 'text-gray-400'} hover:opacity-75`}>
+          View All →
+        </Link>
+      )}
+    </div>
+    {/* Card body */}
+    <div className="flex-1 px-5 py-4 flex flex-col justify-center min-h-[220px]">
+      {children}
+    </div>
   </div>
 );
 
-const ChartCard = ({ title, children, className = '' }) => (
-  <div className={`bg-white rounded-lg shadow p-5 ${className}`}>
-    <p className="text-sm font-semibold text-gray-700 mb-4">{title}</p>
-    {children}
+/** Grouped section title (above a group of cards, not inside) */
+const SectionTitle = ({ icon: Icon, iconColor, title }) => (
+  <div className="flex items-center gap-2 mb-4">
+    <Icon className={`h-5 w-5 ${iconColor}`} />
+    <h2 className="text-base font-semibold text-gray-900">{title}</h2>
   </div>
 );
 
@@ -126,9 +137,7 @@ const useStats = (trucks, shipments, notifications, drivers, devices) =>
     shipments.forEach(shipment => {
       if (shipment.driver) {
         const driverId = shipment.driver._id || shipment.driver;
-        if (driverId) {
-          tripsPerDriver[driverId] = (tripsPerDriver[driverId] || 0) + 1;
-        }
+        if (driverId) tripsPerDriver[driverId] = (tripsPerDriver[driverId] || 0) + 1;
       }
     });
 
@@ -174,8 +183,7 @@ const useStats = (trucks, shipments, notifications, drivers, devices) =>
           .sort((a, b) => b.score - a.score)
           .slice(0, 5),
         averageScore:
-          drivers.reduce((sum, d) => sum + (d.score || d.rating || 75), 0) /
-          (drivers.length || 1),
+          drivers.reduce((sum, d) => sum + (d.score || d.rating || 75), 0) / (drivers.length || 1),
       },
       devices: {
         total: devices.length,
@@ -200,7 +208,11 @@ const FleetRadialChart = ({ stats }) => {
   ];
 
   return (
-    <ChartCard title="Fleet status breakdown">
+    <ChartCard
+      title="Fleet status breakdown"
+      icon={TruckIcon} iconColor="text-pink-500"
+      linkTo="/dashboard/trucks" linkColor="text-pink-600"
+    >
       {stats.trucks.total === 0 ? (
         <EmptyChart icon={TruckIcon} message="No trucks registered yet" />
       ) : (
@@ -208,16 +220,14 @@ const FleetRadialChart = ({ stats }) => {
           <RadialBarChart
             cx="50%" cy="50%"
             innerRadius={30} outerRadius={100}
-            barSize={14}
-            data={data}
+            barSize={14} data={data}
             startAngle={180} endAngle={-180}
           >
             <RadialBar minAngle={5} background={{ fill: '#f3f4f6' }} clockWise dataKey="value">
               {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
             </RadialBar>
             <Legend
-              iconSize={10}
-              iconType="square"
+              iconSize={10} iconType="square"
               formatter={(_, entry) => (
                 <span style={{ fontSize: 12, color: '#6b7280' }}>{entry.payload.name}</span>
               )}
@@ -225,8 +235,7 @@ const FleetRadialChart = ({ stats }) => {
             <Tooltip
               formatter={(val, _, props) => {
                 const pctVal = stats.trucks.total > 0
-                  ? ((val / stats.trucks.total) * 100).toFixed(1)
-                  : 0;
+                  ? ((val / stats.trucks.total) * 100).toFixed(1) : 0;
                 return [`${val} trucks (${pctVal}%)`, props.payload.name];
               }}
             />
@@ -237,28 +246,76 @@ const FleetRadialChart = ({ stats }) => {
   );
 };
 
-const ShipmentFunnelChart = ({ stats }) => {
-  const data = [
-    { name: 'Total',       value: stats.shipments.total,      fill: '#a855f7' },
-    { name: 'In Progress', value: stats.shipments.inProgress, fill: '#3b82f6' },
-    { name: 'Pending',     value: stats.shipments.pending,    fill: '#eab308' },
-    { name: 'Completed',   value: stats.shipments.completed,  fill: '#22c55e' },
+const DONUT_COLORS = {
+  'Completed':   '#22c55e',
+  'In Progress': '#3b82f6',
+  'Pending':     '#f97316',
+  'Cancelled':   '#9ca3af',
+};
+
+const ShipmentDonutChart = ({ stats }) => {
+  const donutData = [
+    { name: 'Completed',   value: stats.shipments.completed  },
+    { name: 'In Progress', value: stats.shipments.inProgress },
+    { name: 'Pending',     value: stats.shipments.pending    },
+    { name: 'Cancelled',   value: stats.shipments.cancelled  },
   ].filter(d => d.value > 0);
 
   return (
-    <ChartCard title="Shipment pipeline">
+    <ChartCard
+      title="Shipment status distribution"
+      icon={CubeIcon} iconColor="text-purple-500"
+      linkTo="/dashboard/shipments" linkColor="text-purple-600"
+    >
       {stats.shipments.total === 0 ? (
         <EmptyChart icon={CubeIcon} message="No shipments recorded yet" />
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
-          <FunnelChart>
-            <Tooltip formatter={(val, name) => [val, name]} />
-            <Funnel dataKey="value" data={data} isAnimationActive>
-              <LabelList position="right" fill="#6b7280" fontSize={12} dataKey="name" />
-              {data.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-            </Funnel>
-          </FunnelChart>
-        </ResponsiveContainer>
+        <div className="flex flex-col lg:flex-row items-center gap-6">
+          {/* Donut */}
+          <div className="w-full lg:w-1/2">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%" cy="50%"
+                  innerRadius={55} outerRadius={85}
+                  dataKey="value"
+                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                >
+                  {donutData.map((entry) => (
+                    <Cell key={entry.name} fill={DONUT_COLORS[entry.name] || '#6b7280'} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(val, name) => [val, name]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Legend list */}
+          <div className="w-full lg:w-1/2 space-y-2">
+            {donutData.map((item) => (
+              <div key={item.name} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: DONUT_COLORS[item.name] }} />
+                  <span className="text-sm text-gray-700">{item.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">
+                    {((item.value / stats.shipments.total) * 100).toFixed(0)}%
+                  </span>
+                  <span className="font-semibold text-gray-900 text-sm min-w-[1.5rem] text-right">
+                    {item.value}
+                  </span>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-between items-center px-2 pt-2 border-t border-gray-100">
+              <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total</span>
+              <span className="font-bold text-gray-900">{stats.shipments.total}</span>
+            </div>
+          </div>
+        </div>
       )}
     </ChartCard>
   );
@@ -274,7 +331,11 @@ const DriverRadarChart = ({ stats }) => {
   ];
 
   return (
-    <ChartCard title="Operations health radar">
+    <ChartCard
+      title="Operations health radar"
+      icon={UserGroupIcon} iconColor="text-green-500"
+      linkTo="/dashboard/drivers" linkColor="text-green-600"
+    >
       {stats.drivers.total === 0 ? (
         <EmptyChart icon={UserGroupIcon} message="No operational data yet" />
       ) : (
@@ -282,16 +343,10 @@ const DriverRadarChart = ({ stats }) => {
           <RadarChart data={data}>
             <PolarGrid stroke="#e5e7eb" />
             <PolarAngleAxis dataKey="metric" tick={{ fontSize: 11, fill: '#6b7280' }} />
-            <PolarRadiusAxis
-              angle={90} domain={[0, 100]}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
-            />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
             <Radar
-              name="System"
-              dataKey="value"
-              stroke="#d4537e"
-              fill="#d4537e"
-              fillOpacity={0.25}
+              name="System" dataKey="value"
+              stroke="#d4537e" fill="#d4537e" fillOpacity={0.25}
               dot={{ r: 3, fill: '#d4537e' }}
             />
             <Tooltip formatter={(val) => [`${val}%`]} />
@@ -302,7 +357,6 @@ const DriverRadarChart = ({ stats }) => {
   );
 };
 
-// ✅ FIX: useMemo is now always called — no early return before hook
 const TrendAreaChart = ({ devices, notifications }) => {
   const weeklyData = useMemo(() => {
     const now = new Date();
@@ -313,7 +367,6 @@ const TrendAreaChart = ({ devices, notifications }) => {
       target.setHours(0, 0, 0, 0);
       const next = new Date(target);
       next.setDate(target.getDate() + 1);
-
       return {
         day,
         devices: devices.filter(d => {
@@ -331,7 +384,11 @@ const TrendAreaChart = ({ devices, notifications }) => {
   const hasData = devices.length > 0 || notifications.length > 0;
 
   return (
-    <ChartCard title="Weekly devices & alerts trend">
+    <ChartCard
+      title="Weekly devices & alerts trend"
+      icon={DevicePhoneMobileIcon} iconColor="text-indigo-500"
+      linkTo="/dashboard/devices" linkColor="text-indigo-600"
+    >
       {!hasData ? (
         <EmptyChart icon={DevicePhoneMobileIcon} message="No device activity this week" />
       ) : (
@@ -352,19 +409,11 @@ const TrendAreaChart = ({ devices, notifications }) => {
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9ca3af' }} />
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
               <Tooltip />
-              <Area
-                type="monotone" dataKey="devices"
-                stroke="#6366f1" fill="url(#gDevices)"
-                strokeWidth={2} name="Devices online"
-              />
-              <Area
-                type="monotone" dataKey="alerts"
-                stroke="#ef4444" fill="url(#gAlerts)"
-                strokeWidth={2} name="Active alerts"
-              />
+              <Area type="monotone" dataKey="devices" stroke="#6366f1" fill="url(#gDevices)" strokeWidth={2} name="Devices online" />
+              <Area type="monotone" dataKey="alerts"  stroke="#ef4444" fill="url(#gAlerts)"  strokeWidth={2} name="Active alerts" />
             </AreaChart>
           </ResponsiveContainer>
-          <div className="flex gap-4 mt-2">
+          <div className="flex gap-4 mt-3">
             <span className="flex items-center gap-1 text-xs text-gray-500">
               <span className="inline-block w-3 h-0.5 bg-indigo-500" /> Devices online
             </span>
@@ -393,7 +442,11 @@ const getBadgeColor = (score) => {
 };
 
 const DriverScoreChart = ({ stats }) => (
-  <ChartCard title="🏆 Top Driver Performance Scores">
+  <ChartCard
+    title="Top driver performance scores"
+    icon={StarIcon} iconColor="text-yellow-500"
+    linkTo="/dashboard/drivers" linkColor="text-yellow-600"
+  >
     {stats.drivers.scoreData.length === 0 ? (
       <EmptyChart icon={UserGroupIcon} message="No driver scores available yet" />
     ) : (
@@ -406,10 +459,7 @@ const DriverScoreChart = ({ stats }) => (
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
-            <YAxis
-              type="category" dataKey="name"
-              tick={{ fontSize: 12, fill: '#374151' }} width={80}
-            />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#374151' }} width={80} />
             <Tooltip
               formatter={(value) => [`${value}%`, 'Score']}
               labelFormatter={(label) => `Driver: ${label}`}
@@ -421,12 +471,12 @@ const DriverScoreChart = ({ stats }) => (
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex flex-wrap gap-4 mt-4 pt-3 border-t border-gray-100">
+        <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-100">
           {[
-            { color: 'bg-green-500',  label: 'Excellent (90-100)' },
-            { color: 'bg-blue-500',   label: 'Good (75-89)' },
-            { color: 'bg-yellow-500', label: 'Average (60-74)' },
-            { color: 'bg-red-500',    label: 'Requires Training (<60)' },
+            { color: 'bg-green-500',  label: 'Excellent (90–100)' },
+            { color: 'bg-blue-500',   label: 'Good (75–89)' },
+            { color: 'bg-yellow-500', label: 'Average (60–74)' },
+            { color: 'bg-red-500',    label: 'Needs training (<60)' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${color}`} />
@@ -444,11 +494,15 @@ const DriverRankingList = ({ stats }) => {
     if (rank === 0) return <TrophyIcon className="h-5 w-5 text-yellow-500" />;
     if (rank === 1) return <TrophyIcon className="h-5 w-5 text-gray-400" />;
     if (rank === 2) return <TrophyIcon className="h-5 w-5 text-amber-600" />;
-    return <span className="text-gray-400 font-bold">#{rank + 1}</span>;
+    return <span className="text-gray-400 font-bold text-sm">#{rank + 1}</span>;
   };
 
   return (
-    <ChartCard title="📊 Driver Performance Rankings">
+    <ChartCard
+      title="Driver performance rankings"
+      icon={TrophyIcon} iconColor="text-amber-500"
+      linkTo="/dashboard/drivers" linkColor="text-amber-600"
+    >
       {stats.drivers.scoreData.length === 0 ? (
         <EmptyChart icon={TrophyIcon} message="No driver rankings available yet" />
       ) : (
@@ -462,7 +516,7 @@ const DriverRankingList = ({ stats }) => {
               <div className="flex items-center gap-3">
                 <div className="w-8 flex justify-center">{getMedal(idx)}</div>
                 <div>
-                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition">
+                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition text-sm">
                     {driver.fullName || driver.name}
                   </p>
                   <p className="text-xs text-gray-500">
@@ -496,13 +550,14 @@ const AdminDashboard = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
+
+      {/* Page header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Real-time system overview</p>
       </div>
 
-      {/* KPI StatCards — show — when no data */}
+      {/* ── KPI row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           title="Fleet utilization"
@@ -530,76 +585,36 @@ const AdminDashboard = () => {
         />
       </div>
 
-      {/* Fleet + Shipments */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div>
-          <SectionHeader
-            icon={TruckIcon} iconColor="text-pink-600"
-            title="Vehicles" linkTo="/dashboard/trucks" linkColor="text-pink-600"
-          />
-          <FleetRadialChart stats={stats} />
-        </div>
-        <div>
-          <SectionHeader
-            icon={CubeIcon} iconColor="text-purple-600"
-            title="Shipments" linkTo="/dashboard/shipments" linkColor="text-purple-600"
-          />
-          <ShipmentFunnelChart stats={stats} />
-        </div>
+      {/* ── Fleet & Shipments ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-stretch">
+        <FleetRadialChart stats={stats} />
+        <ShipmentDonutChart stats={stats} />
       </div>
 
-      {/* Radar + Trend */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div>
-          <SectionHeader
-            icon={UserGroupIcon} iconColor="text-green-600"
-            title="Operations health" linkTo="/dashboard/drivers" linkColor="text-green-600"
-          />
-          <DriverRadarChart stats={stats} />
-        </div>
-        <div>
-          <SectionHeader
-            icon={DevicePhoneMobileIcon} iconColor="text-indigo-600"
-            title="Devices & alerts" linkTo="/dashboard/devices" linkColor="text-indigo-600"
-          />
-          {/* ✅ stats prop removed — TrendAreaChart no longer needs it */}
-          <TrendAreaChart devices={devices} notifications={notifications} />
-        </div>
+      {/* ── Devices & Alerts ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-stretch">
+        <DriverRadarChart stats={stats} />
+        <TrendAreaChart devices={devices} notifications={notifications} />
       </div>
 
-      {/* Driver Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div>
-          <SectionHeader
-            icon={StarIcon} iconColor="text-yellow-600"
-            title="Driver Performance Scores" linkTo="/dashboard/drivers" linkColor="text-yellow-600"
-          />
-          <DriverScoreChart stats={stats} />
-        </div>
-        <div>
-          <SectionHeader
-            icon={TrophyIcon} iconColor="text-amber-600"
-            title="Driver Rankings" linkTo="/dashboard/drivers" linkColor="text-amber-600"
-          />
-          <DriverRankingList stats={stats} />
-        </div>
+      {/* ── Drivers section ── */}
+      <SectionTitle icon={UserGroupIcon} iconColor="text-amber-500" title="Drivers" />
+
+      {/* Driver mini-stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard title="Total drivers"  value={stats.drivers.total}                         icon={UserGroupIcon}   color="purple" />
+        <StatCard title="Available"      value={stats.drivers.available}                     icon={CheckCircleIcon} color="green"  />
+        <StatCard title="Off duty"       value={stats.drivers.busy}                          icon={TruckIcon}       color="blue"   />
+        <StatCard title="Avg score"      value={`${stats.drivers.averageScore.toFixed(0)}%`} icon={StarIcon}        color="yellow" />
       </div>
 
-      {/* Drivers Overview */}
-      <div className="bg-white rounded-lg shadow p-5 mb-6">
-        <SectionHeader
-          icon={UserGroupIcon} iconColor="text-green-600"
-          title="Drivers Overview" linkTo="/dashboard/drivers" linkColor="text-green-600"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard title="Total Drivers"  value={stats.drivers.total}                              icon={UserGroupIcon}   color="purple" />
-          <StatCard title="Available"      value={stats.drivers.available}                          icon={CheckCircleIcon} color="green"  />
-          <StatCard title="Off Duty"       value={stats.drivers.busy}                               icon={TruckIcon}       color="blue"   />
-          <StatCard title="Avg Score"      value={`${stats.drivers.averageScore.toFixed(0)}%`}      icon={StarIcon}        color="yellow" />
-        </div>
+      {/* Driver charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-stretch">
+        <DriverScoreChart stats={stats} />
+        <DriverRankingList stats={stats} />
       </div>
 
-      {/* High-priority alert banner */}
+      {/* ── High-priority alert banner ── */}
       {stats.notifications.high > 0 && (
         <Link
           to="/dashboard/notifications"
@@ -614,6 +629,7 @@ const AdminDashboard = () => {
           <span className="text-sm text-red-600">View →</span>
         </Link>
       )}
+
     </div>
   );
 };

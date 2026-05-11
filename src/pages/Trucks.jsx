@@ -482,109 +482,120 @@ const Trucks = () => {
           )}
         </div>
         
-        {isFetching && (
+        {/* {isFetching && (
           <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
             Loading...
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {['Plate', 'Model', 'Year', 'Capacity', 'Speed Limit', 'Driver', 'Devices', 'Status', 'Actions'].map(h => (
-                <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {trucks.map((truck) => (
-              <tr key={truck._id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                  {truck.displayPlate || truck.licensePlate}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {truck.brand} {truck.model}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{truck.year || '—'}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{truck.capacity ? `${truck.capacity}t` : '—'}</td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <BoltIcon className="h-4 w-4 text-blue-500" />
-                    <span>{truck.speedLimit || 90} km/h</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  {truck.driver ? (
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="h-4 w-4 text-gray-400" />
-                      <span>{truck.driver.name}</span>
-                      <button onClick={() => handleUnassignDriver(truck)} className="text-red-500 hover:text-red-700">
-                        <XCircleIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => openAssignDriverModal(truck)} className="text-blue-600 hover:text-blue-800 text-sm">
-                      Assign Driver
-                    </button>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  {truck.devices?.length > 0 ? (
-                    <div className="space-y-1">
-                      {truck.devices.map(device => (
-                        <div key={device._id} className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded">
-                          <span className="text-xs">{device.deviceId}</span>
-                          <button onClick={() => handleUnassignDevice(truck._id, device._id)} className="text-red-500">
-                            <XCircleIcon className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <button onClick={() => openAssignDeviceModal(truck)} className="text-purple-600 hover:text-purple-800 text-sm">
-                      Assign Devices
-                    </button>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <StatusSelect 
-                    status={truck.status}
-                    truckId={truck._id}
-                    onStatusChange={handleStatusUpdate}
-                    isUpdating={updatingStatusId === truck._id}
-                  />
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex gap-3">
-                    <button onClick={() => { setEditingTruck(truck); setIsModalOpen(true); }} className="text-blue-600">
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                    <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
-                      <DocumentTextIcon className="h-5 w-5" />
-                    </Link>
-                    <button onClick={() => handleDelete(truck._id)} className="text-red-600">
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {trucks.length === 0 && (
-              <tr>
-                <td colSpan="9" className="px-6 py-12 text-center text-gray-400">
-                  No trucks found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {isFetching ? (
+        <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading trucks...</p>
+          </div>
         </div>
+      ) : (
+        <>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Plate', 'Model', 'Year', 'Capacity', 'Speed Limit', 'Driver', 'Devices', 'Status', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+               {trucks.map((truck) => (
+  <tr key={truck._id} className="hover:bg-gray-50">
+    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+      {truck.displayPlate || truck.licensePlate}
+    </td>
+    <td className="px-6 py-4 text-sm text-gray-500">
+      {truck.brand} {truck.model}
+    </td>
+    <td className="px-6 py-4 text-sm text-gray-500">{truck.year || '—'}</td>
+    <td className="px-6 py-4 text-sm text-gray-500">{truck.capacity ? `${truck.capacity}t` : '—'}</td>
+    <td className="px-6 py-4 text-sm">
+      <div className="flex items-center gap-1">
+        <BoltIcon className="h-4 w-4 text-blue-500" />
+        <span>{truck.speedLimit || 90} km/h</span>
       </div>
+    </td>
+    <td className="px-6 py-4 text-sm">
+      {truck.driver ? (
+        <div className="flex items-center gap-2">
+          <UserIcon className="h-4 w-4 text-gray-400" />
+          <span>{truck.driver.name}</span>
+          <button onClick={() => handleUnassignDriver(truck)} className="text-red-500 hover:text-red-700">
+            <XCircleIcon className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => openAssignDriverModal(truck)} className="text-blue-600 hover:text-blue-800 text-sm">
+          Assign Driver
+        </button>
+      )}
+    </td>
+    <td className="px-6 py-4 text-sm">
+      {truck.devices?.length > 0 ? (
+        <div className="space-y-1">
+          {truck.devices.map(device => (
+            <div key={device._id} className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded">
+              <span className="text-xs">{device.deviceId}</span>
+              <button onClick={() => handleUnassignDevice(truck._id, device._id)} className="text-red-500">
+                <XCircleIcon className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <button onClick={() => openAssignDeviceModal(truck)} className="text-purple-600 hover:text-purple-800 text-sm">
+          Assign Devices
+        </button>
+      )}
+    </td>
+    <td className="px-6 py-4">
+      <StatusSelect
+        status={truck.status}
+        truckId={truck._id}
+        onStatusChange={handleStatusUpdate}
+        isUpdating={updatingStatusId === truck._id}
+      />
+    </td>
+    <td className="px-6 py-4 text-sm">
+      <div className="flex gap-3">
+        <button onClick={() => { setEditingTruck(truck); setIsModalOpen(true); }} className="text-blue-600">
+          <PencilIcon className="h-5 w-5" />
+        </button>
+        <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
+          <DocumentTextIcon className="h-5 w-5" />
+        </Link>
+        <button onClick={() => handleDelete(truck._id)} className="text-red-600">
+          <TrashIcon className="h-5 w-5" />
+        </button>
+      </div>
+    </td>
+  </tr>
+))}
+                  {trucks.length === 0 && (
+                    <tr>
+                      <td colSpan="9" className="px-6 py-12 text-center text-gray-400">
+                        No trucks found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Pagination */}
       <div className="mt-6">

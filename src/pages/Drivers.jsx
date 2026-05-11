@@ -582,144 +582,134 @@ const Drivers = () => {
           )}
         </div>
         
-        {isFetching && (
-          <div className="mt-2 text-sm text-blue-600 flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            Loading...
-          </div>
-        )}
+       
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Driver', 'CIN', 'License', 'Phone', 'Email', 'Assigned Truck', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {drivers.map((driver) => (
-                <tr key={driver._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <DriverAvatar driver={driver} size="md" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{driver.name}</div>
-                        <div className="text-xs text-gray-500">Score: {driver.score ?? 100}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.cin || '—'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.licenseNumber}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {driver.email ? (
-                      <div className="flex items-center gap-1">
-                        <EnvelopeIcon className="h-3 w-3 text-gray-400" />
-                        <span className="text-sm">{driver.email}</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {driver.assignedTruck ? (
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <TruckIcon className="h-4 w-4 text-gray-400" />
+      {isFetching ? (
+        <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading drivers...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Driver', 'CIN', 'License', 'Phone', 'Email', 'Assigned Truck', 'Status', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {drivers.map((driver) => (
+                    <tr key={driver._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <DriverAvatar driver={driver} size="md" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {driver.assignedTruck?.licensePlate ?? 'Assigned'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {driver.assignedTruck?.brand} {driver.assignedTruck?.model}
-                            </p>
+                            <div className="text-sm font-medium text-gray-900">{driver.name}</div>
+                            <div className="text-xs text-gray-500">Score: {driver.score ?? 100}</div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleUnassignTruck(driver)}
-                          className="text-red-500 hover:text-red-700"
-                          title="Unassign truck"
-                        >
-                          <XCircleIcon className="h-4 w-4" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.cin || '—'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.licenseNumber}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.phone}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {driver.email ? (
+                          <div className="flex items-center gap-1">
+                            <EnvelopeIcon className="h-3 w-3 text-gray-400" />
+                            <span className="text-sm">{driver.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {driver.assignedTruck ? (
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <TruckIcon className="h-4 w-4 text-gray-400" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {driver.assignedTruck?.licensePlate ?? 'Assigned'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {driver.assignedTruck?.brand} {driver.assignedTruck?.model}
+                                </p>
+                              </div>
+                            </div>
+                            <button onClick={() => handleUnassignTruck(driver)} className="text-red-500 hover:text-red-700" title="Unassign truck">
+                              <XCircleIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => openAssignTruckModal(driver)} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            <TruckIcon className="h-4 w-4" />
+                            Assign Truck
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusSelect
+                          status={driver.status}
+                          driverId={driver._id}
+                          onStatusChange={handleStatusUpdate}
+                          isUpdating={updatingStatusId === driver._id}
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm flex items-center gap-3">
+                        <button onClick={() => handleEdit(driver)} className="text-blue-600 hover:text-blue-900" title="Edit">
+                          <PencilIcon className="h-5 w-5" />
                         </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => openAssignTruckModal(driver)}
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <TruckIcon className="h-4 w-4" />
-                        Assign Truck
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusSelect 
-                      status={driver.status}
-                      driverId={driver._id}
-                      onStatusChange={handleStatusUpdate}
-                      isUpdating={updatingStatusId === driver._id}
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm flex items-center gap-3">
-                    <button onClick={() => handleEdit(driver)} className="text-blue-600 hover:text-blue-900" title="Edit">
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                    <Link
-                      to={`/dashboard/driver-history/${driver._id}`}
-                      className="text-indigo-600 hover:text-indigo-900"
-                      title="View history"
-                    >
-                      <DocumentTextIcon className="h-5 w-5" />
-                    </Link>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Delete ${driver.name}?`)) {
-                          deleteMutation.mutate(driver._id);
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {drivers.length === 0 && (
-                <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-400">
-                    No drivers found. Click "Add New Driver" to get started.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                        <Link to={`/dashboard/driver-history/${driver._id}`} className="text-indigo-600 hover:text-indigo-900" title="View history">
+                          <DocumentTextIcon className="h-5 w-5" />
+                        </Link>
+                        <button
+                          onClick={() => { if (window.confirm(`Delete ${driver.name}?`)) deleteMutation.mutate(driver._id); }}
+                          className="text-red-600 hover:text-red-900" title="Delete"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {drivers.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-400">
+                        No drivers found. Click "Add New Driver" to get started.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      {/* Pagination */}
-      <div className="mt-6">
-        <PaginationComponent
-          currentPage={pagination.page || 1}
-          totalPages={pagination.pages || 1}
-          onPageChange={setPage}
-          onPageSizeChange={handleLimitChange}
-          pageSize={limit}
-          totalItems={pagination.total || 0}
-          showFirstLast={true}
-          siblingCount={1}
-          showPageSizeSelector={true}
-          pageSizeOptions={[5, 10, 25, 50, 100]}
-        />
-      </div>
+          {/* Pagination */}
+          <div className="mt-6">
+            <PaginationComponent
+              currentPage={pagination.page || 1}
+              totalPages={pagination.pages || 1}
+              onPageChange={setPage}
+              onPageSizeChange={handleLimitChange}
+              pageSize={limit}
+              totalItems={pagination.total || 0}
+              showFirstLast={true}
+              siblingCount={1}
+              showPageSizeSelector={true}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
+            />
+          </div>
+        </>
+      )}
 
       {/* Add / Edit Driver Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingDriver ? 'Edit Driver' : 'Add New Driver'} size="lg">

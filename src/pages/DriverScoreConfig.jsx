@@ -248,12 +248,18 @@ const DriverScoreConfig = () => {
             </button>
           )}
         </div>
-        {isFetching && (
-          <div className="mt-2 text-sm text-blue-600">Loading...</div>
-        )}
       </div>
 
       {/* Drivers Table */}
+       {isFetching ? (
+        <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">Drivers & Scores</h2>
@@ -322,6 +328,8 @@ const DriverScoreConfig = () => {
           pageSizeOptions={[5, 10, 25, 50, 100]}
         />
       </div>
+       </>
+      )}
 
       {/* Adjust Score Modal */}
       <Modal isOpen={showAdjustModal} onClose={() => setShowAdjustModal(false)} title={`Adjust Score - ${selectedDriver?.name || ''}`} size="sm">

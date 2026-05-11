@@ -199,26 +199,27 @@ const Customers = () => {
             </button>
           )}
         </div>
-        
-        {/* Loading indicator */}
-        {isFetching && (
-          <div className="mt-3 text-sm text-blue-600 flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            Loading customers...
-          </div>
-        )}
       </div>
 
       {/* Info Banner */}
-      {hasActiveFilters && (
+      {/* {hasActiveFilters && (
         <div className="mb-4 px-4 py-2 bg-blue-50 rounded-lg text-sm text-blue-700">
           {!showActiveOnly && 'Showing archived customers'}
           {searchTerm && ` • Search: "${searchTerm}"`}
           {customers.length === 0 && ' • No customers found'}
         </div>
-      )}
+      )} */}
 
       {/* Customers Table */}
+       {isFetching ? (
+        <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -326,6 +327,8 @@ const Customers = () => {
           showPageSizeSelector={true}
           totalItems={pagination.total || 0}
         />
+      )}
+       </>
       )}
 
       {/* Modals */}
