@@ -11,7 +11,7 @@ import { usePagination } from '../hooks/usePagination';
 import { 
   PlusIcon, 
   PencilIcon, 
-  TrashIcon, 
+  ArchiveBoxArrowDownIcon, 
   UserIcon, 
   CheckCircleIcon, 
   XCircleIcon, 
@@ -575,9 +575,9 @@ const Trucks = () => {
         <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
           <DocumentTextIcon className="h-5 w-5" />
         </Link>
-          <button onClick={() => handleDelete(truck._id)} className="text-red-600">
-            <TrashIcon className="h-5 w-5" />
-          </button>
+        <button onClick={() => handleArchive(truck._id)} className="text-red-600">
+          <ArchiveBoxArrowDownIcon className="h-5 w-5" />
+        </button>
       </div>
     </td>
   </tr>
