@@ -183,19 +183,18 @@ const Trucks = () => {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => truckService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trucks'] });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-      toast.success('Truck deleted successfully');
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to delete truck');
-    },
+  const archiveMutation = useMutation({
+  mutationFn: (id) => truckService.archive(id),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['trucks'] });
+    queryClient.invalidateQueries({ queryKey: ['drivers'] });
+    queryClient.invalidateQueries({ queryKey: ['devices'] });
+    toast.success('Truck archived successfully');
+  },
+  onError: (error) => {
+    toast.error(error.response?.data?.message || 'Failed to archive truck');
+  },
   });
-
   // Status update mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => truckService.updateStatus(id, status),
@@ -306,9 +305,9 @@ const Trucks = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this truck?')) {
-      deleteMutation.mutate(id);
+  const handleArchive = (id) => {
+    if (window.confirm('Archive this truck? It will no longer appear in the active fleet.')) {
+      archiveMutation.mutate(id);
     }
   };
 
@@ -576,9 +575,9 @@ const Trucks = () => {
         <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
           <DocumentTextIcon className="h-5 w-5" />
         </Link>
-        <button onClick={() => handleDelete(truck._id)} className="text-red-600">
-          <TrashIcon className="h-5 w-5" />
-        </button>
+          <button onClick={() => handleDelete(truck._id)} className="text-red-600">
+            <TrashIcon className="h-5 w-5" />
+          </button>
       </div>
     </td>
   </tr>

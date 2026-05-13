@@ -25,6 +25,10 @@ export const truckService = {
     const response = await api.delete(`/trucks/${id}`);
     return response.data;
   },
+  archive: async (id) => {
+  const response = await api.patch(`/trucks/${id}/archive`);
+  return response.data;
+  },
   
   getStats: async () => {
     const response = await api.get('/trucks/stats');
