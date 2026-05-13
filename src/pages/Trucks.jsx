@@ -83,26 +83,27 @@ const Trucks = () => {
   const [selectedDeviceIds, setSelectedDeviceIds] = useState([]);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
-  const [filters, setFilters] = useState({ status: '', search: '' });
+  
+  // Filters: status, search, and archived (true/false/undefined)
+  const [filters, setFilters] = useState({ status: '', search: '', archived: false });
   const [searchInput, setSearchInput] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
 
   const queryClient = useQueryClient();
 
-  // Queries with pagination, filtering, and archived flag
+  // Query with archive filter integrated
   const {
     data: trucksData,
     isLoading: trucksLoading,
     isFetching,
   } = useQuery({
-    queryKey: ['trucks', page, limit, filters.status, filters.search, showArchived],
+    queryKey: ['trucks', page, limit, filters.status, filters.search, filters.archived],
     queryFn: () =>
       truckService.getAll({
         page,
         limit,
         status: filters.status || undefined,
         search: filters.search || undefined,
-        archived: showArchived,
+        archived: filters.archived, // false = active only, true = archived only, undefined = all
       }),
     keepPreviousData: true,
     staleTime: 5000,
@@ -125,7 +126,7 @@ const Trucks = () => {
   const drivers = driversData?.data || [];
   const devices = devicesData?.data || [];
 
-  // Stats are based on the current page (for accurate global stats, use a dedicated endpoint)
+  // Stats based on current page (or you could use a separate stats endpoint)
   const stats = {
     total: pagination.total || 0,
     available: trucks.filter((t) => t.status === 'available').length,
@@ -156,16 +157,19 @@ const Trucks = () => {
     setPage(1);
   };
 
-  const clearFilters = () => {
-    setFilters({ status: '', search: '' });
-    setSearchInput('');
-    setShowArchived(false);
+  // Handle archive filter change (all / active / archived)
+  const handleArchiveFilter = (value) => {
+    let archivedValue;
+    if (value === 'all') archivedValue = undefined;
+    else if (value === 'archived') archivedValue = true;
+    else archivedValue = false; // active
+    setFilters((prev) => ({ ...prev, archived: archivedValue }));
     setPage(1);
   };
 
-  // Toggle archived view
-  const toggleArchived = () => {
-    setShowArchived((prev) => !prev);
+  const clearFilters = () => {
+    setFilters({ status: '', search: '', archived: false });
+    setSearchInput('');
     setPage(1);
   };
 
@@ -434,21 +438,6 @@ const Trucks = () => {
         </button>
       </div>
 
-      {/* Archive Toggle Button */}
-      <div className="mb-6">
-        <button
-          onClick={toggleArchived}
-          className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${
-            showArchived
-              ? 'bg-orange-100 text-orange-700 border-orange-300'
-              : 'bg-gray-100 text-gray-600 border-gray-300'
-          }`}
-        >
-          <ArchiveBoxArrowDownIcon className="h-5 w-5" />
-          {showArchived ? 'Active Trucks' : 'Archived Trucks'}
-        </button>
-      </div>
-
       {/* Stat Cards (based on current page data) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
         <StatCard
@@ -495,10 +484,10 @@ const Trucks = () => {
         />
       </div>
 
-      {/* Search Bar */}
+      {/* Search & Filter Bar */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
         <div className="flex gap-4 flex-wrap min-w-0">
-          <div className="flex-1">
+          <div className="flex-1 min-w-[200px]">
             <input
               type="text"
               placeholder="Search by plate, brand, or model..."
@@ -519,13 +508,28 @@ const Trucks = () => {
             <option value="maintenance">Maintenance</option>
             <option value="inactive">Inactive</option>
           </select>
+          <select
+            className="px-4 py-2 border rounded-lg"
+            value={
+              filters.archived === undefined
+                ? 'all'
+                : filters.archived === true
+                ? 'archived'
+                : 'active'
+            }
+            onChange={(e) => handleArchiveFilter(e.target.value)}
+          >
+            <option value="all">All Trucks</option>
+            <option value="active">Active Only</option>
+            <option value="archived">Archived Only</option>
+          </select>
           <button
             onClick={handleSearch}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
-          {(filters.status || filters.search) && (
+          {(filters.status || filters.search || filters.archived !== false) && (
             <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
               Clear
             </button>
@@ -644,7 +648,7 @@ const Trucks = () => {
                           <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
                             <DocumentTextIcon className="h-5 w-5" />
                           </Link>
-                          {showArchived ? (
+                          {filters.archived === true ? (
                             <button onClick={() => handleUnarchive(truck._id)} className="text-green-600">
                               <ArrowUturnLeftIcon className="h-5 w-5" />
                             </button>
