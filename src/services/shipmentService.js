@@ -55,6 +55,29 @@ export const shipmentService = {
       throw error;
     }
   },
+
+  // Archive shipment (soft delete)
+  archive: async (id) => {
+    try {
+      const response = await api.patch(`/shipments/${id}/archive`);
+      return response.data;
+    } catch (error) {
+      console.error('Error archiving shipment:', error);
+      throw error;
+    }
+  },
+
+  // Unarchive shipment
+  unarchive: async (id) => {
+    try {
+      const response = await api.patch(`/shipments/${id}/unarchive`);
+      return response.data;
+    } catch (error) {
+      console.error('Error unarchiving shipment:', error);
+      throw error;
+    }
+  },
+
   getTruckShipments: async (truckId, params) => {
     const response = await api.get(`/shipments/truck/${truckId}`, { params });
     return response.data;

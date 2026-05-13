@@ -16,9 +16,10 @@ import {
   ExclamationTriangleIcon, 
   UserIcon,
   EyeIcon,
-  ArrowPathIcon,
   CubeIcon,
   ScaleIcon,
+  ArchiveBoxArrowDownIcon,
+  ArrowUturnLeftIcon,
   ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 import Modal from '../Common/Modal';
@@ -32,9 +33,9 @@ const ShipmentDetailsModal = ({
   onClose, 
   onAssign, 
   onCancel, 
-  onDelete, 
+  onArchive,
+  onUnarchive, 
   onEdit,
-  onRefresh 
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -583,12 +584,6 @@ const ShipmentDetailsModal = ({
               <EyeIcon className="h-4 w-4" />
               View Full History
             </button>
-            {onRefresh && (
-              <button onClick={onRefresh} className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-sm font-medium">
-                <ArrowPathIcon className="h-4 w-4" />
-                Refresh
-              </button>
-            )}
           </div>
           
           <div className="flex items-center gap-2">
@@ -610,12 +605,29 @@ const ShipmentDetailsModal = ({
                 Cancel
               </button>
             )}
-            {onDelete && shipment.status === 'pending' && (
-              <button onClick={() => { onDelete(shipment._id); onClose(); }} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 text-sm font-medium">
-                <TrashIcon className="h-4 w-4" />
-                Delete
-              </button>
+            {/* Archive / Restore button */}
+            {!shipment.isArchived ? (
+              onArchive && ['completed', 'cancelled'].includes(shipment.status) && (
+                <button
+                  onClick={() => { onArchive(shipment._id); onClose(); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 text-sm font-medium"
+                >
+                  <ArchiveBoxArrowDownIcon className="h-4 w-4" />
+                  Archive
+                </button>
+              )
+            ) : (
+              onUnarchive && (
+                <button
+                  onClick={() => { onUnarchive(shipment._id); onClose(); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 text-sm font-medium"
+                >
+                  <ArrowUturnLeftIcon className="h-4 w-4" />
+                  Restore
+                </button>
+              )
             )}
+
           </div>
         </div>
       </div>

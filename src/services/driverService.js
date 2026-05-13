@@ -64,6 +64,14 @@ export const driverService = {
     const response = await api.delete(`/drivers/${id}/photo`);
     return response.data;
   },
+  archive: async (id) => {
+  const response = await api.patch(`/drivers/${id}/archive`);
+  return response.data;
+  },
+  unarchive: async (id) => {
+    const response = await api.patch(`/drivers/${id}/unarchive`);
+    return response.data;
+  },
 
   // ============================================================
   // NEW SCORE MANAGEMENT APIS

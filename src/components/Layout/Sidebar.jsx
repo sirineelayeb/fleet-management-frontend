@@ -46,11 +46,10 @@ const SubMenu = ({ item, isOpenSidebar, location }) => {
     if (item.children?.some(child => location.pathname.startsWith(child.path))) {
       setOpen(true);
     }
-  }, [location.pathname]);
+  }, [location.pathname, item.children]);
 
   return (
     <div className="mb-1">
-      {/* Parent */}
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-all"
@@ -59,20 +58,14 @@ const SubMenu = ({ item, isOpenSidebar, location }) => {
           <item.icon className="h-5 w-5 mr-3 text-gray-400" />
           {isOpenSidebar && <span className="text-sm">{item.label}</span>}
         </div>
-
         {isOpenSidebar && (
-          <ChevronDownIcon
-            className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
-          />
+          <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
         )}
       </button>
-
-      {/* Children */}
       {open && isOpenSidebar && (
         <div className="ml-6 mt-1 space-y-1">
           {item.children.map(child => {
             const ChildIcon = child.icon;
-
             return (
               <NavLink
                 key={child.path}
@@ -95,7 +88,6 @@ const SubMenu = ({ item, isOpenSidebar, location }) => {
     </div>
   );
 };
-// ─── Scrollbar style injected once ───────────────────────────────────────────
 
 const SCROLLBAR_STYLE = `
   .sidebar-nav {
@@ -106,8 +98,6 @@ const SCROLLBAR_STYLE = `
     display: none;
   }
 `;
-
-// ─── MENU DEFINITIONS ──────────────
 
 const ADMIN_MENU = [
   {
@@ -129,21 +119,9 @@ const ADMIN_MENU = [
         label: 'Fleet Management',
         icon: TruckIcon,
         children: [
-          {
-            path: '/dashboard/trucks',
-            label: 'Trucks',
-            icon: TruckIcon,
-          },
-          {
-            path: '/dashboard/drivers',
-            label: 'Drivers',
-            icon: UserIcon,
-          },
-          {
-            path: '/dashboard/devices',
-            label: 'Devices',
-            icon: WrenchScrewdriverIcon,
-          },
+          { path: '/dashboard/trucks', label: 'Trucks', icon: TruckIcon },
+          { path: '/dashboard/drivers', label: 'Drivers', icon: UserIcon },
+          { path: '/dashboard/devices', label: 'Devices', icon: WrenchScrewdriverIcon },
         ],
       },
     ],
@@ -162,21 +140,9 @@ const ADMIN_MENU = [
             label: 'Live Map',
             description: 'Real‑time fleet tracking',
           },
-          {
-            path: '/dashboard/shipments',
-            label: 'Shipments',
-            icon: CubeIcon,
-          },
-          {
-            path: '/dashboard/trips',
-            label: 'Trips',
-            icon: ClipboardDocumentListIcon,
-          },
-          {
-            path: '/dashboard/lpr-events',
-            label: 'LPR Events',
-            icon: CameraIcon,
-          },
+          { path: '/dashboard/shipments', label: 'Shipments', icon: CubeIcon },
+          { path: '/dashboard/trips', label: 'Trips', icon: ClipboardDocumentListIcon },
+          { path: '/dashboard/lpr-events', label: 'LPR Events', icon: CameraIcon },
         ],
       },
     ],
@@ -188,31 +154,16 @@ const ADMIN_MENU = [
         label: 'Administration',
         icon: Cog6ToothIcon,
         children: [
-          {
-            path: '/dashboard/users',
-            label: 'Users',
-            icon: UserGroupIcon,
-          },
-          {
-            path: '/dashboard/customers',
-            label: 'Customers',
-            icon: BuildingStorefrontIcon,
-          },
-          {
-            path: '/dashboard/loading-zones',
-            label: 'Loading Zones',
-            icon: ArrowUpTrayIcon,
-          },
-          {
-            path: '/dashboard/driver-scores',
-            label: 'Driver Scores',
-            icon: ChartBarIcon,
-          },
+          { path: '/dashboard/users', label: 'Users', icon: UserGroupIcon },
+          { path: '/dashboard/customers', label: 'Customers', icon: BuildingStorefrontIcon },
+          { path: '/dashboard/loading-zones', label: 'Loading Zones', icon: ArrowUpTrayIcon },
+          { path: '/dashboard/driver-scores', label: 'Driver Scores', icon: ChartBarIcon },
         ],
       },
     ],
   },
 ];
+
 const SHIPMENT_MANAGER_MENU = [
   {
     section: 'Overview',
@@ -280,8 +231,6 @@ const SHIPMENT_MANAGER_MENU = [
   },
 ];
 
-// ─── NavItem Component (SAME AS YOUR ORIGINAL) ───────────────────────────────
-
 const NavItem = ({ item, isOpen, searchQuery }) => {
   const highlight = (text) => {
     if (!searchQuery) return text;
@@ -347,8 +296,6 @@ const NavItem = ({ item, isOpen, searchQuery }) => {
   );
 };
 
-// ─── SectionLabel Component (SAME AS YOUR ORIGINAL) ──────────────────────────
-
 const SectionLabel = ({ label, isOpen }) => {
   if (!isOpen) {
     return <div className="h-px bg-white/10 mx-2 my-3" />;
@@ -359,8 +306,6 @@ const SectionLabel = ({ label, isOpen }) => {
     </p>
   );
 };
-
-// ─── SearchInput Component (SAME AS YOUR ORIGINAL) ───────────────────────────
 
 const SearchInput = ({ value, onChange, onClear, inputRef }) => (
   <div className="mx-3 mb-3 relative">
@@ -385,8 +330,6 @@ const SearchInput = ({ value, onChange, onClear, inputRef }) => (
   </div>
 );
 
-// ─── Sidebar Component (SAME AS YOUR ORIGINAL except menu structure) ─────────
-
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -406,21 +349,40 @@ const Sidebar = () => {
     }
   }, []);
 
-  // Handle responsive sidebar
+  // Handle responsive sidebar: on desktop, sidebar is always sticky; on mobile, it's an overlay
   useEffect(() => {
     const handleResize = () => {
-      setIsOpen(window.innerWidth >= 1024);
+      // On desktop (>=1024px) we want the sidebar to be expanded by default
+      if (window.innerWidth >= 1024) {
+        setIsOpen(true);
+      }
+      // When resizing from mobile to desktop, close mobile overlay
+      if (window.innerWidth >= 1024 && isMobileOpen) {
+        setIsMobileOpen(false);
+      }
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isMobileOpen]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
     setIsMobileOpen(false);
     setSearchQuery('');
   }, [location]);
+
+  // 🔒 Body scroll lock when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -436,11 +398,12 @@ const Sidebar = () => {
       if (e.key === 'Escape') {
         setSearchQuery('');
         searchInputRef.current?.blur();
+        if (isMobileOpen) setIsMobileOpen(false);
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen]);
+  }, [isOpen, isMobileOpen]);
 
   // Clear search when sidebar collapses
   useEffect(() => {
@@ -465,7 +428,7 @@ const Sidebar = () => {
           items: group.items.filter(
             (item) =>
               item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              item.description.toLowerCase().includes(searchQuery.toLowerCase())
+              (item.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
           ),
         }))
         .filter((group) => group.items.length > 0)
@@ -488,7 +451,7 @@ const Sidebar = () => {
       {/* Mobile backdrop */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity"
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -500,8 +463,12 @@ const Sidebar = () => {
           'bg-gradient-to-b from-gray-900 to-gray-800 text-white',
           'flex flex-col shadow-2xl',
           'transition-all duration-300 ease-in-out',
+          // Mobile: slide in/out
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          // Desktop: width based on isOpen; mobile: custom width
           isOpen ? 'w-72' : 'lg:w-20',
+          // Mobile fixed width (80% of viewport, max 320px)
+          'w-[80vw] max-w-sm lg:w-auto',
         ].join(' ')}
       >
         {/* Top gradient bar */}
@@ -526,7 +493,7 @@ const Sidebar = () => {
             )}
           </div>
 
-          {/* Collapse toggle */}
+          {/* Collapse toggle (desktop only) */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
@@ -613,27 +580,26 @@ const Sidebar = () => {
             {filteredGroups.map((group) => (
               <div key={group.section}>
                 <SectionLabel label={group.section} isOpen={isOpen} />
-                  {group.items.map((item, index) => {
-                    if (item.children) {
-                      return (
-                        <SubMenu
-                          key={index}
-                          item={item}
-                          isOpenSidebar={isOpen}
-                          location={location}
-                        />
-                      );
-                    }
-
+                {group.items.map((item, index) => {
+                  if (item.children) {
                     return (
-                      <NavItem
-                        key={item.path}
+                      <SubMenu
+                        key={index}
                         item={item}
-                        isOpen={isOpen}
-                        searchQuery={searchQuery}
+                        isOpenSidebar={isOpen}
+                        location={location}
                       />
                     );
-                  })}
+                  }
+                  return (
+                    <NavItem
+                      key={item.path}
+                      item={item}
+                      isOpen={isOpen}
+                      searchQuery={searchQuery}
+                    />
+                  );
+                })}
               </div>
             ))}
           </div>

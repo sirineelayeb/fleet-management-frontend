@@ -11,7 +11,6 @@ import StatCard from '../components/Cards/StatCard';
 import {
   PlusIcon,
   PencilIcon,
-  TrashIcon,
   DevicePhoneMobileIcon,
   BoltIcon,
   ClockIcon,
@@ -24,7 +23,7 @@ import {
   ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline';
 
-// Status select component (unchanged)
+// Status select component
 const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
   const handleChange = (e) => {
     const newStatus = e.target.value;
@@ -61,7 +60,7 @@ const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
   );
 };
 
-// Assign Truck Modal (unchanged)
+// Assign Truck Modal
 const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
   const [selectedTruckId, setSelectedTruckId] = useState('');
 
@@ -103,7 +102,7 @@ const Devices = () => {
   const [assigningDevice, setAssigningDevice] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
-  const [filters, setFilters] = useState({ status: '', search: '', archived: false });
+  const [filters, setFilters] = useState({ status: '', search: '', archived: false });  
   const [searchInput, setSearchInput] = useState('');
 
   const queryClient = useQueryClient();
@@ -123,7 +122,6 @@ const Devices = () => {
         status: filters.status || undefined,
         search: filters.search || undefined
       };
-      // Only add archived if it's a boolean (not undefined)
       if (filters.archived !== undefined) {
         params.archived = filters.archived;
       }
@@ -133,17 +131,17 @@ const Devices = () => {
     staleTime: 5000,
   });
 
-  // Fetch all trucks for assignment (including archived? we only need active ones)
+  // Fetch all active trucks for assignment
   const { data: allTrucksData } = useQuery({
     queryKey: ['trucks-all'],
-    queryFn: () => truckService.getAll({ limit: 1000, archived: false }), // only active trucks
+    queryFn: () => truckService.getAll({ limit: 1000, archived: false }),
   });
 
   const devices = devicesData?.data || [];
   const pagination = devicesData?.pagination || { total: 0, page: 1, pages: 1 };
   const allTrucks = allTrucksData?.data || [];
 
-  // Stats based on current page (or could be improved with global stats)
+  // Stats
   const totalDevices = pagination.total || 0;
   const activeDevices = devices.filter(d => d.status === 'active').length;
   const assignedDevices = devices.filter(d => d.truck).length;
@@ -166,7 +164,7 @@ const Devices = () => {
     let archivedValue;
     if (value === 'all') archivedValue = undefined;
     else if (value === 'archived') archivedValue = true;
-    else archivedValue = false; // active
+    else archivedValue = false;
     setFilters(prev => ({ ...prev, archived: archivedValue }));
     setPage(1);
   };
@@ -176,7 +174,7 @@ const Devices = () => {
     setPage(1);
   };
 
-  // Mutations
+  // Mutations (no delete mutation)
   const registerMutation = useMutation({
     mutationFn: (data) => deviceService.register(data),
     onSuccess: () => {
@@ -196,15 +194,6 @@ const Devices = () => {
       setEditingDevice(null);
     },
     onError: (error) => toast.error(error.response?.data?.message || 'Failed to update device')
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => deviceService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-      toast.success('Device deleted permanently');
-    },
-    onError: (error) => toast.error(error.response?.data?.message || 'Failed to delete device')
   });
 
   const archiveMutation = useMutation({
@@ -280,11 +269,6 @@ const Devices = () => {
   const handleUnarchive = (id) => {
     if (window.confirm('Restore this device?')) unarchiveMutation.mutate(id);
   };
-  const handleDelete = (id) => {
-    if (window.confirm('Permanently delete this device? This action cannot be undone.')) {
-      deleteMutation.mutate(id);
-    }
-  };
 
   const getBatteryColor = (level) => {
     if (level >= 70) return 'text-green-600';
@@ -359,12 +343,12 @@ const Devices = () => {
           </select>
           <select
             className="px-4 py-2 border rounded-lg"
-            value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'active'}
+            value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'current'}
             onChange={(e) => handleArchiveFilter(e.target.value)}
           >
             <option value="all">All Devices</option>
-            <option value="active">Active Only</option>
-            <option value="archived">Archived Only</option>
+            <option value="current">Current Devices</option>
+            <option value="archived">Archived Devices</option>
           </select>
           <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
             <MagnifyingGlassIcon className="h-5 w-5" />
@@ -455,17 +439,14 @@ const Devices = () => {
                           <PencilIcon className="h-5 w-5" />
                         </button>
                         {filters.archived === true ? (
-                          <button onClick={() => handleUnarchive(device._id)} className="text-green-600 hover:text-green-800 mr-3" title="Restore">
+                          <button onClick={() => handleUnarchive(device._id)} className="text-green-600 hover:text-green-800" title="Restore">
                             <ArrowUturnLeftIcon className="h-5 w-5" />
                           </button>
                         ) : (
-                          <button onClick={() => handleArchive(device._id)} className="text-orange-600 hover:text-orange-800 mr-3" title="Archive">
+                          <button onClick={() => handleArchive(device._id)} className="text-orange-600 hover:text-orange-800" title="Archive">
                             <ArchiveBoxArrowDownIcon className="h-5 w-5" />
                           </button>
                         )}
-                        <button onClick={() => handleDelete(device._id)} className="text-red-600 hover:text-red-900" title="Delete Permanently">
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
                       </td>
                     </tr>
                   ))}

@@ -9,15 +9,17 @@ import PaginationComponent from '../components/Common/Pagination';
 import { usePagination } from '../hooks/usePagination';
 import StatCard from '../components/Cards/StatCard';
 import {
-  UserIcon, TruckIcon, PencilIcon, TrashIcon, PlusIcon,
+  UserIcon, TruckIcon, PencilIcon, PlusIcon,
   CheckBadgeIcon, CalendarIcon, PhoneIcon, PhotoIcon,
   ArrowUpTrayIcon, XMarkIcon, XCircleIcon, DocumentTextIcon,
   MagnifyingGlassIcon, IdentificationIcon, UserGroupIcon,
-  CheckCircleIcon, ClockIcon, EnvelopeIcon
+  CheckCircleIcon, ClockIcon, EnvelopeIcon,
+  ArchiveBoxArrowDownIcon, ArrowUturnLeftIcon  // NEW
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import PhoneInputField from '../components/Common/PhoneInputField';
 import { isValidPhoneNumber } from 'react-phone-number-input';  
+
 // ============================================
 // CONSTANTS & HELPERS
 // ============================================
@@ -31,24 +33,21 @@ const EMPTY_FORM = {
   hireDate: new Date().toISOString().split('T')[0],
 };
 
-// Helper to resolve photo URL - uses relative path
+// Helper to resolve photo URL
 const resolvePhotoUrl = (url) => {
   if (!url) return null;
-  // Cloudinary URLs are already absolute — return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  // Fallback for any legacy local paths
   const normalized = url.replace(/\\/g, '/');
   const uploadsIndex = normalized.indexOf('uploads/');
   if (uploadsIndex !== -1) return `${import.meta.env.VITE_API_URL}/${normalized.slice(uploadsIndex)}`;
   return url;
 };
-// Simple inline select for status
+
+// Status select component
 const StatusSelect = ({ status, onStatusChange, driverId, isUpdating }) => {
   const handleChange = (e) => {
     const newStatus = e.target.value;
-    if (newStatus !== status) {
-      onStatusChange(driverId, newStatus);
-    }
+    if (newStatus !== status) onStatusChange(driverId, newStatus);
   };
 
   const getStatusStyle = (value) => {
@@ -72,16 +71,12 @@ const StatusSelect = ({ status, onStatusChange, driverId, isUpdating }) => {
         <option value="busy">Busy</option>
         <option value="off_duty">Off Duty</option>
       </select>
-      {isUpdating && (
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
-      )}
+      {isUpdating && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>}
     </div>
   );
 };
 
-// ============================================
-// SUB-COMPONENTS
-// ============================================
+// DriverAvatar (unchanged)
 const DriverAvatar = ({ driver, size = 'md' }) => {
   const [imgError, setImgError] = useState(false);
   const sizeClass = size === 'lg' ? 'h-20 w-20 text-xl' : 'h-10 w-10 text-sm';
@@ -109,6 +104,7 @@ const DriverAvatar = ({ driver, size = 'md' }) => {
   );
 };
 
+// PhotoPicker (unchanged)
 const PhotoPicker = ({ preview, existingUrl, onSelect, onRemove, onDeleteExisting }) => {
   const inputRef = useRef(null);
   const resolvedExisting = resolvePhotoUrl(existingUrl);
@@ -160,29 +156,38 @@ const Drivers = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [filters, setFilters] = useState({ status: '', search: '' });
+  
+  // New: archive filter state
+  const [filters, setFilters] = useState({ status: '', search: '', archived: false });  // default: current drivers
   const [searchInput, setSearchInput] = useState('');
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
-  // Assign truck modal state
+  // Assign truck modal state (unchanged)
   const [showAssignTruckModal, setShowAssignTruckModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedTruckId, setSelectedTruckId] = useState('');
 
-  // Queries with pagination
+  // Queries with pagination and archive filter
   const { 
     data: driversData, 
     isLoading, 
     isFetching,
     error: driversError 
   } = useQuery({
-    queryKey: ['drivers', page, limit, filters],
-    queryFn: () => driverService.getAll({ 
-      page, 
-      limit: limit,
-      status: filters.status || undefined,
-      search: filters.search || undefined
-    }),
+    queryKey: ['drivers', page, limit, filters.status, filters.search, filters.archived],
+    queryFn: () => {
+      const params = {
+        page, 
+        limit,
+        status: filters.status || undefined,
+        search: filters.search || undefined
+      };
+      // Send archived flag only if defined (true/false)
+      if (filters.archived !== undefined) {
+        params.archived = filters.archived;   // backend will use isActive accordingly
+      }
+      return driverService.getAll(params);
+    },
     keepPreviousData: true,
     staleTime: 5000,
   });
@@ -192,7 +197,6 @@ const Drivers = () => {
     queryFn: () => truckService.getAll({ limit: 1000 }),
   });
 
-  // Safe extraction
   const drivers = driversData?.data || [];
   const pagination = driversData?.pagination || { total: 0, page: 1, pages: 1 };
   const trucks = trucksResponse?.data || [];
@@ -200,7 +204,7 @@ const Drivers = () => {
   // Filter available trucks (available status and no driver assigned)
   const availableTrucks = trucks.filter(t => t.status === 'available' && !t.driver);
 
-  // Stats calculations - similar to Users page
+  // Stats (based on current page data)
   const stats = {
     total: pagination.total || 0,
     available: drivers.filter(d => d.status === 'available').length,
@@ -210,57 +214,31 @@ const Drivers = () => {
     unassigned: drivers.filter(d => !d.assignedTruck && d.status !== 'off_duty').length,
   };
 
-  // Search handlers
+  // Search handlers with archive filter
   const handleSearch = () => {
-    setFilters({ ...filters, search: searchInput });
+    setFilters(prev => ({ ...prev, search: searchInput }));
     setPage(1);
   };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
+  const handleKeyPress = (e) => { if (e.key === 'Enter') handleSearch(); };
   const handleStatusChange = (status) => {
-    setFilters({ ...filters, status });
+    setFilters(prev => ({ ...prev, status }));
     setPage(1);
   };
-
+  const handleArchiveFilter = (value) => {
+    let archivedValue;
+    if (value === 'all') archivedValue = undefined;
+    else if (value === 'archived') archivedValue = true;
+    else archivedValue = false;   // current drivers
+    setFilters(prev => ({ ...prev, archived: archivedValue }));
+    setPage(1);
+  };
   const clearFilters = () => {
-    setFilters({ status: '', search: '' });
+    setFilters({ status: '', search: '', archived: false });
     setSearchInput('');
     setPage(1);
   };
 
-  // Photo helpers
-  const clearPhoto = () => {
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhotoFile(null);
-    setPhotoPreview(null);
-  };
-
-  const handlePhotoSelect = (file) => {
-    clearPhoto();
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-  };
-
-  // Status update mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }) => driverService.update(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      toast.success('Status updated');
-      setUpdatingStatusId(null);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update status');
-      setUpdatingStatusId(null);
-    }
-  });
-
-  // Mutations
+  // Mutations – replaced delete with archive/unarchive
   const createMutation = useMutation({
     mutationFn: (data) => driverService.create(data),
     onSuccess: () => {
@@ -279,15 +257,26 @@ const Drivers = () => {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to update driver'),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => driverService.delete(id),
+  // NEW: archive and unarchive mutations
+  const archiveMutation = useMutation({
+    mutationFn: (id) => driverService.archive(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      queryClient.invalidateQueries({ queryKey: ['trucks-all'] });
-      toast.success('Driver deleted');
+      toast.success('Driver archived');
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to delete driver'),
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to archive driver'),
   });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: (id) => driverService.unarchive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      toast.success('Driver restored');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to restore driver'),
+  });
+
+  // DELETE mutation removed – no permanent delete
 
   const uploadPhotoMutation = useMutation({
     mutationFn: ({ id, file }) => driverService.uploadPhoto(id, file),
@@ -331,7 +320,20 @@ const Drivers = () => {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to unassign truck'),
   });
 
-  // Modal handlers
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => driverService.update(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      toast.success('Status updated');
+      setUpdatingStatusId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update status');
+      setUpdatingStatusId(null);
+    }
+  });
+
+  // Handlers
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingDriver(null);
@@ -347,15 +349,12 @@ const Drivers = () => {
       licenseNumber: driver.licenseNumber || '',
       phone: driver.phone || '',
       email: driver.email || '',
-      hireDate: driver.hireDate
-        ? new Date(driver.hireDate).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0],
+      hireDate: driver.hireDate ? new Date(driver.hireDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     });
     clearPhoto();
     setIsModalOpen(true);
   };
 
-  // Assign / Unassign truck handlers
   const openAssignTruckModal = (driver) => {
     setSelectedDriver(driver);
     setSelectedTruckId('');
@@ -371,25 +370,17 @@ const Drivers = () => {
       toast.error('Invalid driver selected');
       return;
     }
-    try {
-      await assignTruckMutation.mutateAsync({
-        truckId: selectedTruckId,
-        driverId: selectedDriver._id,
-      });
-    } catch (err) {
-      // handled in mutation
-    }
+    await assignTruckMutation.mutateAsync({
+      truckId: selectedTruckId,
+      driverId: selectedDriver._id,
+    });
   };
 
   const handleUnassignTruck = async (driver) => {
     const truckId = driver.assignedTruck?._id ?? driver.assignedTruck;
     if (!truckId) return;
     if (window.confirm(`Remove truck from ${driver.name}?`)) {
-      try {
-        await unassignTruckMutation.mutateAsync(truckId);
-      } catch (err) {
-        // handled in mutation
-      }
+      await unassignTruckMutation.mutateAsync(truckId);
     }
   };
 
@@ -398,7 +389,27 @@ const Drivers = () => {
     updateStatusMutation.mutate({ id: driverId, status: newStatus });
   };
 
-  // Submit (create / edit driver only)
+  // Archive / Unarchive handlers
+  const handleArchive = (id) => {
+    if (window.confirm('Archive this driver?')) archiveMutation.mutate(id);
+  };
+  const handleUnarchive = (id) => {
+    if (window.confirm('Restore this driver?')) unarchiveMutation.mutate(id);
+  };
+
+  // Photo helpers
+  const clearPhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+  const handlePhotoSelect = (file) => {
+    clearPhoto();
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  // Submit (create / edit driver)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -409,7 +420,7 @@ const Drivers = () => {
       toast.error('Please enter a valid phone number');
       return;
     }
-        const submitData = {
+    const submitData = {
       cin: formData.cin.trim(),
       name: formData.name.trim(),
       licenseNumber: formData.licenseNumber.trim().toUpperCase(),
@@ -446,15 +457,13 @@ const Drivers = () => {
   if (isLoading && !driversData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
-              <UserIcon className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
-              Loading Drivers...
-            </p>
-          </div>
-          );
-        } 
+        <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+          <UserIcon className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Drivers...</p>
+      </div>
+    );
+  }
 
   if (driversError) {
     return (
@@ -486,53 +495,17 @@ const Drivers = () => {
         </button>
       </div>
 
-      {/* Stats Cards - Similar to Users page */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
-        <StatCard
-          title="Total Drivers"
-          value={stats.total}
-          icon={UserGroupIcon}
-          color="purple"
-          subtitle="Total workforce"
-        />
-        <StatCard
-          title="Available"
-          value={stats.available}
-          icon={CheckCircleIcon}
-          color="green"
-          subtitle="Ready for assignments"
-        />
-        <StatCard
-          title="Busy"
-          value={stats.busy}
-          icon={ClockIcon}
-          color="yellow"
-          subtitle="Currently on duty"
-        />
-        <StatCard
-          title="Off Duty"
-          value={stats.offDuty}
-          icon={CalendarIcon}
-          color="gray"
-          subtitle="Not available"
-        />
-        <StatCard
-          title="Assigned to Truck"
-          value={stats.assigned}
-          icon={TruckIcon}
-          color="blue"
-          subtitle="With vehicle assigned"
-        />
-        <StatCard
-          title="Unassigned"
-          value={stats.unassigned}
-          icon={UserIcon}
-          color="orange"
-          subtitle="Without vehicle"
-        />
+        <StatCard title="Total Drivers" value={stats.total} icon={UserGroupIcon} color="purple" subtitle="Total workforce" />
+        <StatCard title="Available" value={stats.available} icon={CheckCircleIcon} color="green" subtitle="Ready for assignments" />
+        <StatCard title="Busy" value={stats.busy} icon={ClockIcon} color="yellow" subtitle="Currently on duty" />
+        <StatCard title="Off Duty" value={stats.offDuty} icon={CalendarIcon} color="gray" subtitle="Not available" />
+        <StatCard title="Assigned to Truck" value={stats.assigned} icon={TruckIcon} color="blue" subtitle="With vehicle assigned" />
+        <StatCard title="Unassigned" value={stats.unassigned} icon={UserIcon} color="orange" subtitle="Without vehicle" />
       </div>
 
-      {/* Search and Filter Bar */}
+      {/* Search & Filter Bar – added archive filter dropdown */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-[200px]">
@@ -546,10 +519,7 @@ const Drivers = () => {
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={handleKeyPress}
               />
-              <button
-                onClick={handleSearch}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
+              <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
                 <MagnifyingGlassIcon className="h-5 w-5" />
                 Search
               </button>
@@ -569,23 +539,32 @@ const Drivers = () => {
               <option value="off_duty">Off Duty</option>
             </select>
           </div>
+
+          {/* NEW: Archive filter dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Archive</label>
+            <select
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'current'}
+              onChange={(e) => handleArchiveFilter(e.target.value)}
+            >
+              <option value="all">All Drivers</option>
+              <option value="current">Current Drivers</option>
+              <option value="archived">Archived Drivers</option>
+            </select>
+          </div>
           
-          {(filters.status || filters.search) && (
+          {(filters.status || filters.search || filters.archived !== false) && (
             <div className="flex items-end">
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-              >
+              <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
                 Clear Filters
               </button>
             </div>
           )}
         </div>
-        
-       
       </div>
 
-      {/* Table */}
+      {/* Drivers Table */}
       {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
@@ -601,9 +580,7 @@ const Drivers = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     {['Driver', 'CIN', 'License', 'Phone', 'Email', 'Assigned Truck', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {h}
-                      </th>
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -672,21 +649,25 @@ const Drivers = () => {
                         <Link to={`/dashboard/driver-history/${driver._id}`} className="text-indigo-600 hover:text-indigo-900" title="View history">
                           <DocumentTextIcon className="h-5 w-5" />
                         </Link>
-                        <button
-                          onClick={() => { if (window.confirm(`Delete ${driver.name}?`)) deleteMutation.mutate(driver._id); }}
-                          className="text-red-600 hover:text-red-900" title="Delete"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
+                        {/* Show Archive or Restore based on current filter */}
+                        {filters.archived === true ? (
+                          <button onClick={() => handleUnarchive(driver._id)} className="text-green-600 hover:text-green-800" title="Restore">
+                            <ArrowUturnLeftIcon className="h-5 w-5" />
+                          </button>
+                        ) : (
+                          <button onClick={() => handleArchive(driver._id)} className="text-orange-600 hover:text-orange-800" title="Archive">
+                            <ArchiveBoxArrowDownIcon className="h-5 w-5" />
+                          </button>
+                        )}
+                       </td>
+                     </tr>
                   ))}
                   {drivers.length === 0 && (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-400">
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                         No drivers found. Click "Add New Driver" to get started.
-                      </td>
-                    </tr>
+                       </td>
+                     </tr>
                   )}
                 </tbody>
               </table>
@@ -711,9 +692,10 @@ const Drivers = () => {
         </>
       )}
 
-      {/* Add / Edit Driver Modal */}
+      {/* Add/Edit Driver Modal (unchanged) */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingDriver ? 'Edit Driver' : 'Add New Driver'} size="lg">
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Profile photo section */}
           <div className="border rounded-lg p-4 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 mb-3">Profile Photo</p>
             <PhotoPicker
@@ -765,12 +747,12 @@ const Drivers = () => {
                 required 
               />
             </div>
-        <PhoneInputField
-            label="Phone"
-            required
-            value={formData.phone}
-            onChange={(val) => setFormData({ ...formData, phone: val || '' })}
-          />
+            <PhoneInputField
+              label="Phone"
+              required
+              value={formData.phone}
+              onChange={(val) => setFormData({ ...formData, phone: val || '' })}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -808,22 +790,18 @@ const Drivers = () => {
           )}
 
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button type="button" onClick={closeModal}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+            <button type="button" onClick={closeModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+            <button type="submit" disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
               {isSaving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
-              {isSaving
-                ? (photoUploading ? 'Uploading photo…' : 'Saving…')
-                : (editingDriver ? 'Update Driver' : 'Create Driver')}
+              {isSaving ? (photoUploading ? 'Uploading photo…' : 'Saving…') : (editingDriver ? 'Update Driver' : 'Create Driver')}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Assign Truck Modal */}
+      {/* Assign Truck Modal (unchanged) */}
       <Modal
         isOpen={showAssignTruckModal}
         onClose={() => {
@@ -862,14 +840,14 @@ const Drivers = () => {
                 setSelectedDriver(null);
                 setSelectedTruckId('');
               }}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
             >
               Cancel
             </button>
             <button
               onClick={handleAssignTruck}
               disabled={!selectedTruckId || assignTruckMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {assignTruckMutation.isPending ? 'Assigning...' : 'Assign Truck'}
             </button>

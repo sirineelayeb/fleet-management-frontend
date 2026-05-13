@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { shipmentService } from '../services/shipmentService';
@@ -17,6 +17,8 @@ import {
   CheckCircleIcon,
   ClockIcon,
   XCircleIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -38,7 +40,24 @@ const STAT_CONFIG = [
   { key: 'cancelled', label: 'Cancelled', icon: XCircleIcon,     color: 'text-rose-600',   bg: 'bg-rose-50'   },
 ];
 
-// ─── Stat Card ────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────
+const matchesSearch = (shipment, query) => {
+  if (!query.trim()) return true;
+  const q = query.toLowerCase();
+  return [
+    shipment.shipmentId,
+    shipment._id,
+    shipment.description,
+    shipment.origin,
+    shipment.destination,
+    shipment.goods,
+    shipment.driver?.name,
+    shipment.truck?.licensePlate,
+    shipment.customer?.name,
+  ].some(field => field?.toLowerCase().includes(q));
+};
+
+// ─── Sub-components ───────────────────────────────────────────
 const StatCard = ({ label, value, icon: Icon, color, bg }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
     <div className={`${bg} ${color} w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}>
@@ -51,7 +70,6 @@ const StatCard = ({ label, value, icon: Icon, color, bg }) => (
   </div>
 );
 
-// ─── Kanban Column ────────────────────────────────────────────
 const KanbanColumn = ({ config, shipments, onAction, isAdmin }) => (
   <div className="w-72 shrink-0 flex flex-col bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
     <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 bg-white">
@@ -63,12 +81,11 @@ const KanbanColumn = ({ config, shipments, onAction, isAdmin }) => (
         {shipments.length}
       </span>
     </div>
-
     <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
       {shipments.length === 0 ? (
         <p className="text-center text-xs text-gray-400 py-8">No shipments</p>
       ) : (
-        shipments.map((shipment) => (
+        shipments.map(shipment => (
           <ShipmentCard
             key={shipment._id}
             shipment={shipment}
@@ -77,7 +94,8 @@ const KanbanColumn = ({ config, shipments, onAction, isAdmin }) => (
             onAssign={() => onAction.openAssign(shipment)}
             onAssignManager={() => onAction.openManager(shipment)}
             onCancel={() => onAction.handleCancel(shipment._id)}
-            onDelete={() => onAction.handleDelete(shipment._id)}
+            onArchive={() => onAction.handleArchive(shipment._id)}
+            onUnarchive={() => onAction.handleUnarchive(shipment._id)}
             onEdit={() => onAction.handleEdit(shipment)}
           />
         ))
@@ -93,82 +111,80 @@ const Shipments = () => {
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'admin';
 
-  const [statusFilter, setStatusFilter]         = useState('all');
+  const [statusFilter, setStatusFilter]       = useState('all');
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [archivedFilter, setArchivedFilter]   = useState('current'); // 'current' | 'archived' | 'all'
   const [selectedShipment, setSelectedShipment] = useState(null);
-  const [detailShipment, setDetailShipment]     = useState(null);
-  const [editingShipment, setEditingShipment]   = useState(null);
-  const [showAssignModal, setShowAssignModal]   = useState(false);
+  const [detailShipment, setDetailShipment]   = useState(null);
+  const [editingShipment, setEditingShipment] = useState(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showManagerModal, setShowManagerModal] = useState(false);
-  const [showEditModal, setShowEditModal]       = useState(false);
+  const [showEditModal, setShowEditModal]     = useState(false);
+
+  // archived param: false = current, true = archived, undefined = all
+  const archivedParam = archivedFilter === 'all' ? undefined : archivedFilter === 'archived';
 
   // ── Queries ──
   const { data: shipmentsRes, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['shipments'],
-    queryFn: () => shipmentService.getAll({ limit: PAGE_SIZE }),
+    queryKey: ['shipments', archivedParam],
+    queryFn: async () => {
+      const params = { limit: PAGE_SIZE };
+      if (archivedParam !== undefined) params.archived = archivedParam;
+      return shipmentService.getAll(params);
+    },
   });
-  const { data: trucksRes  } = useQuery({ queryKey: ['trucks'],   queryFn: () => truckService.getAll()  });
-  const { data: driversRes } = useQuery({ queryKey: ['drivers'],  queryFn: () => driverService.getAll() });
+
+  const { data: trucksRes  } = useQuery({ queryKey: ['trucks'],  queryFn: () => truckService.getAll()  });
+  const { data: driversRes } = useQuery({ queryKey: ['drivers'], queryFn: () => driverService.getAll() });
 
   const allShipments = shipmentsRes?.data || [];
   const trucks       = trucksRes?.data    || [];
   const drivers      = driversRes?.data   || [];
 
   // ── Derived ──
-  const byStatus = STATUS_COLUMNS.reduce((acc, col) => {
-    acc[col.status] = allShipments.filter(s => s.status === col.status);
-    return acc;
-  }, {});
+  const byStatus = useMemo(() =>
+    STATUS_COLUMNS.reduce((acc, col) => {
+      acc[col.status] = allShipments.filter(s => s.status === col.status);
+      return acc;
+    }, {}),
+  [allShipments]);
 
-  const counts = {
+  const counts = useMemo(() => ({
     ...Object.fromEntries(STATUS_COLUMNS.map(c => [c.status, byStatus[c.status].length])),
     total:  allShipments.length,
     active: ['pending', 'assigned', 'in_progress'].reduce((n, k) => n + (byStatus[k]?.length ?? 0), 0),
-  };
+  }), [allShipments, byStatus]);
 
-  const filtered = statusFilter === 'all'
-    ? allShipments
-    : allShipments.filter(s => s.status === statusFilter);
+  // Apply status filter + search
+  const filtered = useMemo(() => {
+    const byStatusFiltered = statusFilter === 'all'
+      ? allShipments
+      : allShipments.filter(s => s.status === statusFilter);
+    return byStatusFiltered.filter(s => matchesSearch(s, searchQuery));
+  }, [allShipments, statusFilter, searchQuery]);
+
+  // Kanban columns also respect search
+  const filteredByStatus = useMemo(() =>
+    STATUS_COLUMNS.reduce((acc, col) => {
+      acc[col.status] = (byStatus[col.status] || []).filter(s => matchesSearch(s, searchQuery));
+      return acc;
+    }, {}),
+  [byStatus, searchQuery]);
 
   // ── Mutations ──
   const invalidate = () => queryClient.invalidateQueries(['shipments']);
 
-  const assignMutation = useMutation({
-    mutationFn: ({ shipmentId, truckId, driverId }) => shipmentService.assign(shipmentId, truckId, driverId),
-    onSuccess: () => { invalidate(); toast.success('Shipment assigned'); closeAssign(); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Assign failed'),
-  });
-  const unassignMutation = useMutation({
-    mutationFn: (id) => shipmentService.unassign(id),
-    onSuccess: () => { invalidate(); toast.success('Unassigned'); closeAssign(); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Unassign failed'),
-  });
-  const assignManagerMutation = useMutation({
-    mutationFn: ({ shipmentId, managerId }) => shipmentService.assignToManager(shipmentId, managerId),
-    onSuccess: () => { invalidate(); toast.success('Manager assigned'); closeManager(); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Assign manager failed'),
-  });
-  const unassignManagerMutation = useMutation({
-    mutationFn: (id) => shipmentService.unassignManager(id),
-    onSuccess: () => { invalidate(); toast.success('Manager unassigned'); closeManager(); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Unassign manager failed'),
-  });
-  const cancelMutation = useMutation({
-    mutationFn: ({ id }) => shipmentService.cancel(id),
-    onSuccess: () => { invalidate(); toast.success('Shipment cancelled'); setDetailShipment(null); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Cancel failed'),
-  });
-  const deleteMutation = useMutation({
-    mutationFn: (id) => shipmentService.delete(id),
-    onSuccess: () => { invalidate(); toast.success('Shipment deleted'); setDetailShipment(null); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Delete failed'),
-  });
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => shipmentService.update(id, data),
-    onSuccess: () => { invalidate(); toast.success('Shipment updated'); setShowEditModal(false); setEditingShipment(null); },
-    onError:   (e) => toast.error(e.response?.data?.message || 'Update failed'),
-  });
+  const archiveMutation   = useMutation({ mutationFn: (id) => shipmentService.archive(id),   onSuccess: () => { invalidate(); toast.success('Shipment archived');  }, onError: (e) => toast.error(e.response?.data?.message || 'Archive failed')  });
+  const unarchiveMutation = useMutation({ mutationFn: (id) => shipmentService.unarchive(id), onSuccess: () => { invalidate(); toast.success('Shipment restored');  }, onError: (e) => toast.error(e.response?.data?.message || 'Restore failed')  });
+  const assignMutation    = useMutation({ mutationFn: ({ shipmentId, truckId, driverId }) => shipmentService.assign(shipmentId, truckId, driverId), onSuccess: () => { invalidate(); toast.success('Shipment assigned'); closeAssign(); },  onError: (e) => toast.error(e.response?.data?.message || 'Assign failed')         });
+  const unassignMutation  = useMutation({ mutationFn: (id) => shipmentService.unassign(id),  onSuccess: () => { invalidate(); toast.success('Unassigned');         closeAssign(); },  onError: (e) => toast.error(e.response?.data?.message || 'Unassign failed')       });
+  const assignManagerMutation   = useMutation({ mutationFn: ({ shipmentId, managerId }) => shipmentService.assignToManager(shipmentId, managerId), onSuccess: () => { invalidate(); toast.success('Manager assigned');   closeManager(); }, onError: (e) => toast.error(e.response?.data?.message || 'Assign manager failed')  });
+  const unassignManagerMutation = useMutation({ mutationFn: (id) => shipmentService.unassignManager(id), onSuccess: () => { invalidate(); toast.success('Manager unassigned'); closeManager(); }, onError: (e) => toast.error(e.response?.data?.message || 'Unassign manager failed') });
+  const cancelMutation  = useMutation({ mutationFn: ({ id }) => shipmentService.cancel(id), onSuccess: () => { invalidate(); toast.success('Shipment cancelled'); setDetailShipment(null); }, onError: (e) => toast.error(e.response?.data?.message || 'Cancel failed')  });
+  const deleteMutation  = useMutation({ mutationFn: (id) => shipmentService.delete(id),     onSuccess: () => { invalidate(); toast.success('Shipment deleted');   setDetailShipment(null); }, onError: (e) => toast.error(e.response?.data?.message || 'Delete failed')  });
+  const updateMutation  = useMutation({ mutationFn: ({ id, data }) => shipmentService.update(id, data), onSuccess: () => { invalidate(); toast.success('Shipment updated'); setShowEditModal(false); setEditingShipment(null); }, onError: (e) => toast.error(e.response?.data?.message || 'Update failed') });
 
-  // ── Helpers ──
+  // ── Handlers ──
   const closeAssign  = () => { setShowAssignModal(false);  setSelectedShipment(null); };
   const closeManager = () => { setShowManagerModal(false); setSelectedShipment(null); };
   const openAssign   = (s) => { setSelectedShipment(s); setShowAssignModal(true);  };
@@ -178,10 +194,20 @@ const Shipments = () => {
     if (!window.confirm('Cancel this shipment? This will free the truck and driver.')) return;
     await cancelMutation.mutateAsync({ id });
   };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this shipment? This cannot be undone.')) return;
+    if (!window.confirm('Permanently delete this shipment?')) return;
     await deleteMutation.mutateAsync(id);
   };
+
+  const handleArchive = (id) => {
+    if (window.confirm('Archive this shipment?')) archiveMutation.mutate(id);
+  };
+
+  const handleUnarchive = (id) => {
+    if (window.confirm('Restore this shipment?')) unarchiveMutation.mutate(id);
+  };
+
   const handleEdit = (shipment) => { setEditingShipment(shipment); setShowEditModal(true); };
 
   const handleReassign = async (shipmentId, truckId, driverId) => {
@@ -194,20 +220,12 @@ const Shipments = () => {
     }
   };
 
-  const actions = {
-    handleViewDetails: setDetailShipment,
-    handleCancel,
-    handleDelete,
-    handleEdit,
-    openAssign,
-    openManager,
-  };
+  const actions = { handleViewDetails: setDetailShipment, handleCancel, handleArchive, handleUnarchive, handleEdit, openAssign, openManager };
 
-  const createPath = isAdmin
-    ? '/dashboard/shipments/create'
-    : '/shipment_manager/shipments/create';
+  const createPath = isAdmin ? '/dashboard/shipments/create' : '/shipment_manager/shipments/create';
+  const activeColConfig = STATUS_COLUMNS.find(c => c.status === statusFilter);
+  const isSearching = searchQuery.trim().length > 0;
 
-  // ── Loading ──
   if (isLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
@@ -218,8 +236,6 @@ const Shipments = () => {
       </div>
     </div>
   );
-
-  const activeColConfig = STATUS_COLUMNS.find(c => c.status === statusFilter);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -236,7 +252,6 @@ const Shipments = () => {
               <p className="text-xs text-gray-400">Track and manage all shipments</p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
             <button
               onClick={() => refetch()}
@@ -263,53 +278,86 @@ const Shipments = () => {
           ))}
         </div>
 
-        {/* ── Filter Tabs ── */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shrink-0 ${
-              statusFilter === 'all'
-                ? 'bg-gray-900 text-white'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            All
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-              statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-            }`}>
-              {counts.total}
-            </span>
-          </button>
+        {/* ── Search + Filters row ── */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search */}
+          <div className="relative flex-1 max-w-sm">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by ID, origin, driver, truck…"
+              className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
-          {STATUS_COLUMNS.map(col => (
+          {/* Status tabs */}
+          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto flex-1">
             <button
-              key={col.status}
-              onClick={() => setStatusFilter(col.status)}
+              onClick={() => setStatusFilter('all')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shrink-0 ${
-                statusFilter === col.status
-                  ? `ring-1 ${col.badge}`
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                statusFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${col.dot}`} />
-              {col.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                statusFilter === col.status ? col.badge : 'bg-gray-100 text-gray-500'
-              }`}>
-                {counts[col.status]}
+              All
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                {counts.total}
               </span>
             </button>
-          ))}
+            {STATUS_COLUMNS.map(col => (
+              <button
+                key={col.status}
+                onClick={() => setStatusFilter(col.status)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shrink-0 ${
+                  statusFilter === col.status ? `ring-1 ${col.badge}` : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${col.dot}`} />
+                {col.label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${statusFilter === col.status ? col.badge : 'bg-gray-100 text-gray-500'}`}>
+                  {counts[col.status]}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Archive filter */}
+          <select
+            value={archivedFilter}
+            onChange={(e) => { setArchivedFilter(e.target.value); setStatusFilter('all'); }}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white shrink-0"
+          >
+            <option value="current">Current</option>
+            <option value="archived">Archived</option>
+            <option value="all">All</option>
+          </select>
         </div>
 
+        {/* Search result hint */}
+        {isSearching && (
+          <p className="text-sm text-gray-500">
+            Found <span className="font-semibold text-gray-800">{filtered.length}</span> result{filtered.length !== 1 ? 's' : ''} for{' '}
+            <span className="font-semibold text-blue-600">"{searchQuery}"</span>
+          </p>
+        )}
+
         {/* ── Kanban / Grid ── */}
-        {statusFilter === 'all' ? (
+        {statusFilter === 'all' && !isSearching ? (
           <div className="flex gap-3 overflow-x-auto pb-2">
             {STATUS_COLUMNS.map(config => (
               <KanbanColumn
                 key={config.status}
                 config={config}
-                shipments={byStatus[config.status]}
+                shipments={filteredByStatus[config.status]}
                 onAction={actions}
                 isAdmin={isAdmin}
               />
@@ -317,15 +365,21 @@ const Shipments = () => {
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-500">
-              Showing <span className="font-semibold text-gray-800">{filtered.length}</span>{' '}
-              {activeColConfig?.label.toLowerCase()} shipments
-            </p>
-
+            {!isSearching && (
+              <p className="text-sm text-gray-500">
+                Showing <span className="font-semibold text-gray-800">{filtered.length}</span>{' '}
+                {activeColConfig?.label.toLowerCase()} shipments
+              </p>
+            )}
             {filtered.length === 0 ? (
               <div className="bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center py-20 gap-1">
-                <p className="text-sm font-medium text-gray-500">No {activeColConfig?.label.toLowerCase()} shipments</p>
-                <p className="text-xs text-gray-400">Try a different filter or create a new shipment</p>
+                <MagnifyingGlassIcon className="w-8 h-8 text-gray-300 mb-1" />
+                <p className="text-sm font-medium text-gray-500">
+                  {isSearching ? 'No shipments match your search' : `No ${activeColConfig?.label.toLowerCase()} shipments`}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {isSearching ? 'Try different keywords' : 'Try a different filter or create a new shipment'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -336,10 +390,11 @@ const Shipments = () => {
                     isAdmin={isAdmin}
                     onViewDetails={setDetailShipment}
                     onAssign={() => openAssign(shipment)}
-                    onReassign={() => openAssign(shipment)}
                     onAssignManager={() => openManager(shipment)}
                     onCancel={() => handleCancel(shipment._id)}
-                    onDelete={() => handleDelete(shipment._id)}
+                    isArchivedView={archivedFilter === 'archived'}
+                    onArchive={() => handleArchive(shipment._id)}
+                    onUnarchive={() => handleUnarchive(shipment._id)}
                     onEdit={() => handleEdit(shipment)}
                   />
                 ))}
@@ -393,8 +448,9 @@ const Shipments = () => {
           onClose={() => setDetailShipment(null)}
           onAssign={() => { openAssign(detailShipment); setDetailShipment(null); }}
           onCancel={() => handleCancel(detailShipment._id)}
-          onDelete={() => handleDelete(detailShipment._id)}
           onEdit={() => { handleEdit(detailShipment); setDetailShipment(null); }}
+          onArchive={(id) => { handleArchive(id); setDetailShipment(null); }}
+          onUnarchive={(id) => { handleUnarchive(id); setDetailShipment(null); }}
         />
       )}
     </div>

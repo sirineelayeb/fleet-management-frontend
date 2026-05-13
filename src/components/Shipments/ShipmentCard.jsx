@@ -8,7 +8,8 @@ import {
   UserGroupIcon,
   ArrowPathIcon,
   PencilIcon,
-  TrashIcon,
+  ArchiveBoxArrowDownIcon,
+  ArrowUturnLeftIcon,
   XCircleIcon,
   CheckCircleIcon,
   UserPlusIcon,
@@ -56,8 +57,6 @@ const getStatusAccent = (status) => {
     default:            return 'border-l-gray-300';
   }
 };
-
-
 
 // ── Sub-components ────────────────────────────────────────────
 
@@ -161,7 +160,19 @@ const Tags = ({ shipmentType, weightKg, customer, assignedTo }) => (
   </div>
 );
 
-const ActionButtons = ({ onEdit, onDelete, onAssign, onCancel, onAssignManager, status, isAdmin, shipmentId, shipment }) => {
+const ActionButtons = ({ 
+  onEdit, 
+  onArchive, 
+  onUnarchive, 
+  onAssign, 
+  onCancel, 
+  onAssignManager, 
+  status, 
+  isAdmin, 
+  shipmentId, 
+  shipment, 
+  isArchivedView 
+}) => {
   const btn = (title, onClick, colorClass, icon) => (
     <button
       title={title}
@@ -175,10 +186,29 @@ const ActionButtons = ({ onEdit, onDelete, onAssign, onCancel, onAssignManager, 
   return (
     <div className="flex items-center gap-0.5">
       {onEdit &&
-        btn('Edit shipment',   () => onEdit(shipment),    'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50', <PencilIcon className="h-4 w-4" />)}
-
-      {onDelete && status === 'pending' &&
-        btn('Delete shipment', () => onDelete(shipmentId), 'text-gray-400 hover:text-red-600 hover:bg-red-50',       <TrashIcon className="h-4 w-4" />)}
+        btn('Edit shipment', () => onEdit(shipment), 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50', <PencilIcon className="h-4 w-4" />)}
+      {/* Archive / Restore – only show archive for completed/cancelled */}
+      {shipment.isArchived ? (
+        onUnarchive && (
+          <button
+            title="Restore shipment"
+            onClick={(e) => { e.stopPropagation(); onUnarchive(shipmentId); }}
+            className="text-gray-400 hover:text-green-600 hover:bg-green-50 p-1.5 rounded-lg transition-all"
+          >
+            <ArrowUturnLeftIcon className="h-4 w-4" />
+          </button>
+        )
+      ) : (
+        (status === 'completed' || status === 'cancelled') && onArchive && (
+          <button
+            title="Archive shipment"
+            onClick={(e) => { e.stopPropagation(); onArchive(shipmentId); }}
+            className="text-gray-400 hover:text-orange-600 hover:bg-orange-50 p-1.5 rounded-lg transition-all"
+          >
+            <ArchiveBoxArrowDownIcon className="h-4 w-4" />
+          </button>
+        )
+      )}
 
       {/* ✅ Single button handles both assign and reassign — modal detects mode from shipment.status */}
       {['pending', 'assigned', 'in_progress'].includes(status) && onAssign &&
@@ -194,10 +224,10 @@ const ActionButtons = ({ onEdit, onDelete, onAssign, onCancel, onAssignManager, 
         )}
 
       {!['completed', 'cancelled', 'in_progress'].includes(status) && onCancel &&
-        btn('Cancel shipment', () => onCancel(shipmentId), 'text-gray-400 hover:text-amber-600 hover:bg-amber-50',  <XCircleIcon className="h-4 w-4" />)}
+        btn('Cancel shipment', () => onCancel(shipmentId), 'text-gray-400 hover:text-amber-600 hover:bg-amber-50', <XCircleIcon className="h-4 w-4" />)}
 
       {isAdmin && onAssignManager &&
-        btn('Assign manager',  () => onAssignManager(shipment), 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50', <UserGroupIcon className="h-4 w-4" />)}
+        btn('Assign manager', () => onAssignManager(shipment), 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50', <UserGroupIcon className="h-4 w-4" />)}
     </div>
   );
 };
@@ -221,8 +251,8 @@ const StatusBadgeInline = ({ status }) => {
 // ── Main Card ─────────────────────────────────────────────────
 
 const ShipmentCard = ({
-  shipment, onCancel, onDelete, onAssign,
-  onAssignManager, onEdit, onViewDetails, isAdmin,
+  shipment, onCancel, onAssign,
+  onAssignManager, onEdit, onViewDetails, isAdmin, isArchivedView, onArchive, onUnarchive
 }) => {
   if (!shipment) return null;
 
@@ -258,7 +288,6 @@ const ShipmentCard = ({
     >
       {/* Card body */}
       <div className="p-4 space-y-3">
-        {/* Header row */}
         <StatusHeader
           shipmentId={shipment.shipmentId || shipment._id?.slice(-6)}
           status={shipment.status}
@@ -267,7 +296,6 @@ const ShipmentCard = ({
           onViewDetails={handleViewDetails}
         />
 
-        {/* Description */}
         <div>
           <p className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug">
             {shipment.description || 'No description'}
@@ -277,15 +305,12 @@ const ShipmentCard = ({
           )}
         </div>
 
-        {/* Route */}
         <RouteInfo origin={shipment.origin} destination={shipment.destination} />
 
-        {/* Assignment badge */}
         {isAssigned && shipment.status === 'assigned' && (
           <AssignmentBadge truck={shipment.truck} driver={shipment.driver} />
         )}
 
-        {/* Duration */}
         {getEstimatedDuration() && (
           <DurationBadge
             estimatedDuration={getEstimatedDuration()}
@@ -295,7 +320,6 @@ const ShipmentCard = ({
           />
         )}
 
-        {/* Tags */}
         <Tags
           shipmentType={shipment.shipmentType}
           weightKg={shipment.weightKg}
@@ -309,7 +333,8 @@ const ShipmentCard = ({
         <StatusBadgeInline status={shipment.status} />
         <ActionButtons
           onEdit={onEdit}
-          onDelete={onDelete}
+          onArchive={onArchive}
+          onUnarchive={onUnarchive}
           onAssign={onAssign}
           onCancel={onCancel}
           onAssignManager={onAssignManager}
@@ -317,6 +342,7 @@ const ShipmentCard = ({
           isAdmin={isAdmin}
           shipmentId={shipment._id}
           shipment={shipment}
+          isArchivedView={isArchivedView}
         />
       </div>
     </div>

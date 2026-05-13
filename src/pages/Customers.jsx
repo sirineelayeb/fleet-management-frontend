@@ -176,7 +176,7 @@ const Customers = () => {
               setPage(1);
             }}
           >
-            <option value="active">Active Customers</option>
+            <option value="active">Current Customers</option>
             <option value="archived">Archived Customers</option>
           </select>
           
@@ -295,7 +295,7 @@ const Customers = () => {
                           <ArrowPathIcon className="h-5 w-5" />
                         </button>
                       )}
-                      {isAdmin && (
+                      {/* {isAdmin && (
                         <button
                           onClick={() => handleDelete(customer._id, customer.name)}
                           className="text-red-600 hover:text-red-800 transition-colors"
@@ -303,7 +303,7 @@ const Customers = () => {
                         >
                           <TrashIcon className="h-5 w-5" />
                         </button>
-                      )}
+                      )} */}
                     </td>
                   </tr>
                 ))

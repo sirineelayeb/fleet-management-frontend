@@ -520,8 +520,8 @@ const Trucks = () => {
             onChange={(e) => handleArchiveFilter(e.target.value)}
           >
             <option value="all">All Trucks</option>
-            <option value="active">Active Only</option>
-            <option value="archived">Archived Only</option>
+            <option value="active">Current Trucks</option>
+            <option value="archived">Archived Trucks</option>
           </select>
           <button
             onClick={handleSearch}
