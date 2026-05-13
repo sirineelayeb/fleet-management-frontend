@@ -25,9 +25,21 @@ export const deviceService = {
     return response.data;
   },
   
-  // Delete device
+  // Delete device (permanent)
   delete: async (id) => {
     const response = await api.delete(`/devices/${id}`);
+    return response.data;
+  },
+  
+  // Archive device (soft delete)
+  archive: async (id) => {
+    const response = await api.patch(`/devices/${id}/archive`);
+    return response.data;
+  },
+  
+  // Unarchive device (restore)
+  unarchive: async (id) => {
+    const response = await api.patch(`/devices/${id}/unarchive`);
     return response.data;
   },
   
@@ -35,6 +47,7 @@ export const deviceService = {
     const response = await api.post(`/devices/${deviceId}/assign-truck`, { truckId });
     return response.data;
   },
+  
   unassignFromTruck: async (deviceId) => {
     const response = await api.patch(`/devices/${deviceId}/unassign`);
     return response.data;
