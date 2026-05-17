@@ -6,7 +6,8 @@ import MapPicker from '../Common/MapPicker';
 import Modal from '../Common/Modal';
 import toast from 'react-hot-toast';
 import PhoneInputField from '../Common/PhoneInputField';
-import { isValidPhoneNumber } from 'react-phone-number-input';  
+import { isValidPhoneNumber } from 'react-phone-number-input';
+
 const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
   const isEditing = !!customer;
   const [showMap, setShowMap] = useState(false);
@@ -45,11 +46,11 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
       return;
     }
     if (!formData.phone || !isValidPhoneNumber(formData.phone)) {
-    toast.error('Please enter a valid phone number');
-    return;
-  }
-  mutation.mutate(formData);
-};
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+    mutation.mutate(formData);
+  };
 
   const handleLocationSelect = (lat, lng, placeName) => {
     setFormData({ 
@@ -76,7 +77,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
               placeholder="Customer name"
               autoFocus
             />
@@ -94,7 +95,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
               placeholder="customer@example.com"
             />
           </div>
@@ -105,7 +106,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
               placeholder="Customer address"
             />
           </div>
@@ -119,7 +120,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
               <button
                 type="button"
                 onClick={() => setShowMap(true)}
-                className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                className="text-xs bg-teal-600 text-white px-2 py-1 rounded hover:bg-teal-700 transition-colors flex items-center gap-1"
               >
                 <MapPinIcon className="h-3 w-3" />
                 Select on Map
@@ -127,8 +128,8 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
             </div>
             
             {formData.location.placeName && (
-              <div className="mb-2 p-2 bg-green-100 rounded-lg text-sm text-green-800">
-                📍 {formData.location.placeName}
+              <div className="mb-2 p-2 bg-teal-50 rounded-lg text-sm text-teal-800">
+               {formData.location.placeName}
               </div>
             )}
             
@@ -143,7 +144,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
                     ...formData, 
                     location: { ...formData.location, lat: e.target.value === '' ? '' : parseFloat(e.target.value) } 
                   })}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="Latitude"
                 />
               </div>
@@ -157,7 +158,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
                     ...formData, 
                     location: { ...formData.location, lng: e.target.value === '' ? '' : parseFloat(e.target.value) } 
                   })}
-                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="Longitude"
                 />
               </div>
@@ -171,7 +172,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
                 id="isActive"
                 checked={formData.isActive}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
               <label htmlFor="isActive" className="text-sm text-gray-700">Active</label>
             </div>
@@ -188,7 +189,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
             <button 
               type="submit" 
               disabled={mutation.isPending} 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {mutation.isPending ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
             </button>

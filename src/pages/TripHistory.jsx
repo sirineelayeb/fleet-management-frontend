@@ -24,21 +24,19 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 // ── Status Badge Component ───────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const config = {
-    completed: { color: 'bg-green-100 text-green-800', icon: CheckCircleIcon, label: 'Completed' },
-    in_progress: { color: 'bg-blue-100 text-blue-800', icon: ClockIcon, label: 'In Progress' },
-    cancelled: { color: 'bg-red-100 text-red-800', icon: XMarkIcon, label: 'Cancelled' },
-    pending: { color: 'bg-yellow-100 text-yellow-800', icon: ExclamationTriangleIcon, label: 'Pending' }
+    completed: { color: 'bg-teal-100 text-teal-800', label: 'Completed' },
+    in_progress: { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
+    cancelled: { color: 'bg-orange-100 text-orange-800', label: 'Cancelled' },
+    planned: { color: 'bg-amber-100 text-amber-800', label: 'Planned' }
   };
   
-  const { color, icon: Icon, label } = config[status] || { 
+  const { color, label } = config[status] || { 
     color: 'bg-gray-100 text-gray-800', 
-    icon: null, 
     label: status?.replace('_', ' ') 
   };
   
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium ${color}`}>
-      {Icon && <Icon className="h-3 w-3" />}
       {label}
     </span>
   );
@@ -63,7 +61,7 @@ const TripRow = ({ trip, onClick }) => {
     >
       {/* Trip Number */}
       <td className="px-4 py-3 whitespace-nowrap">
-        <div className="text-sm font-mono font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+        <div className="text-sm font-mono font-medium text-gray-900 group-hover:text-teal-600 transition-colors">
           {trip.tripNumber || trip._id?.slice(-8).toUpperCase() || '—'}
         </div>
       </td>
@@ -121,7 +119,7 @@ const TripRow = ({ trip, onClick }) => {
             e.stopPropagation();
             onClick(trip);
           }}
-          className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          className="text-teal-600 hover:text-teal-800 font-medium transition-colors"
         >
           View Details
         </button>
@@ -225,17 +223,17 @@ const TripHistory = () => {
 
   // ── Loading / error states ────────────────────────────────────────────────
   if (isLoading && !tripsData) {
-   return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
-              <TruckIcon className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
-              Loading Trips...
-            </p>
-          </div>
-          );
-        } 
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
+          <TruckIcon className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">
+          Loading Trips...
+        </p>
+      </div>
+    );
+  } 
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
@@ -268,34 +266,37 @@ const TripHistory = () => {
         </button>
       </div>
 
-      {/* Statistics Cards - Light Colors */}
+      {/* Statistics Cards - aligned with devices.jsx colors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Total Trips"
           value={stats.total.toLocaleString()}
           icon={TruckIcon}
-          color="light-purple"
+          color="blue"
           subtitle="All trips"
         />
+
         <StatCard
           title="Completed"
           value={stats.completed}
           icon={CheckCircleIcon}
-          color="light-green"
+          color="teal"
           subtitle="Successfully delivered"
         />
+
         <StatCard
           title="In Progress"
           value={stats.inProgress}
           icon={ClockIcon}
-          color="light-blue"
+          color="blue"
           subtitle="Active deliveries"
         />
+
         <StatCard
           title="Cancelled"
           value={stats.cancelled}
           icon={XMarkIcon}
-          color="light-red"
+          color="orange"
           subtitle="Failed deliveries"
         />
       </div>
@@ -307,7 +308,7 @@ const TripHistory = () => {
             <input
               type="text"
               placeholder="Search by trip number, route, truck or driver..."
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -315,7 +316,7 @@ const TripHistory = () => {
           </div>
           
           <select
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
             value={statusFilter}
             onChange={(e) => handleStatusChange(e.target.value)}
           >
@@ -323,12 +324,12 @@ const TripHistory = () => {
             <option value="completed">Completed</option>
             <option value="in_progress">In Progress</option>
             <option value="cancelled">Cancelled</option>
-            <option value="pending">Pending</option>
+            <option value="planned">Planned</option>
           </select>
           
           <button 
             onClick={handleSearch} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
           >
             <MagnifyingGlassIcon className="h-5 w-5" />
             Search
@@ -343,78 +344,76 @@ const TripHistory = () => {
             </button>
           )}
         </div>
-        
-       
       </div>
 
-      {/* Trip List Table - Only Important Fields */}
-       {isFetching ? (
+      {/* Trip List Table */}
+      {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading trips...</p>
           </div>
         </div>
       ) : (
         <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-        {trips.length === 0 ? (
-          <div className="text-center py-12">
-            <TruckIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">
-              {hasActiveFilters 
-                ? 'No trips match your search criteria.' 
-                : 'No trips found. Trips will appear here once shipments are assigned.'}
-            </p>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="mt-3 text-blue-600 hover:text-blue-800 text-sm"
-              >
-                Clear filters
-              </button>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+            {trips.length === 0 ? (
+              <div className="text-center py-12">
+                <TruckIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">
+                  {hasActiveFilters 
+                    ? 'No trips match your search criteria.' 
+                    : 'No trips found. Trips will appear here once shipments are assigned.'}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="mt-3 text-teal-600 hover:text-teal-800 text-sm"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip Number</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {trips.map((trip) => (
+                      <TripRow key={trip._id} trip={trip} onClick={handleTripClick} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip Number</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {trips.map((trip) => (
-                  <TripRow key={trip._id} trip={trip} onClick={handleTripClick} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
-      {/* Pagination */}
-      {pagination.total > 0 && (
-        <Pagination
-          currentPage={pagination.page || 1}
-          totalPages={pagination.pages || 1}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          pageSize={limit}
-          pageSizeOptions={[10, 25, 50, 100]}
-          showFirstLast={true}
-          siblingCount={1}
-          showPageSizeSelector={true}
-          totalItems={pagination.total || 0}
-        />
-      )}
-       </>
+          {/* Pagination */}
+          {pagination.total > 0 && (
+            <Pagination
+              currentPage={pagination.page || 1}
+              totalPages={pagination.pages || 1}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              pageSize={limit}
+              pageSizeOptions={[10, 25, 50, 100]}
+              showFirstLast={true}
+              siblingCount={1}
+              showPageSizeSelector={true}
+              totalItems={pagination.total || 0}
+            />
+          )}
+        </>
       )}
 
       {/* Trip Details Modal */}

@@ -70,15 +70,18 @@ const LoadingZoneManagement = () => {
   const [editingZone, setEditingZone] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
   const [searchInput, setSearchInput] = useState('');
-    const handleSearch = () => {
-      setFilters({ ...filters, search: searchInput });
-      setPage(1);
+  
+  const handleSearch = () => {
+    setFilters({ ...filters, search: searchInput });
+    setPage(1);
   };
+  
   const resetFilters = () => {
     setFilters({ status: '', search: '' });
     setSearchInput('');
     setPage(1);
   };
+  
   const { data: zonesData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['loadingZones', filters, page, limit],
     queryFn: () => loadingZoneService.getAll({ ...filters, page, limit }),
@@ -110,25 +113,25 @@ const LoadingZoneManagement = () => {
   };
 
   const getStatusBadge = (status) =>
-    status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    status === 'active' ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-600';
 
   if (isLoading && !zonesData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
-              <BuildingOfficeIcon className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
-              Loading Zones...
-            </p>
-          </div>
-          );
-        } 
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
+          <BuildingOfficeIcon className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">
+          Loading Zones...
+        </p>
+      </div>
+    );
+  } 
 
   if (error) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-red-600">Error loading loading zones: {error.message}</div>
+        <div className="text-rose-600">Error loading loading zones: {error.message}</div>
       </div>
     );
   }
@@ -143,19 +146,20 @@ const LoadingZoneManagement = () => {
         </div>
         <button
           onClick={() => { setEditingZone(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
         >
           <PlusIcon className="h-5 w-5" />
           Add Loading Zone
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - using teal/blue/orange palette from devices.jsx */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Total Zones"    value={stats.total}    icon={BuildingOfficeIcon} color="purple" subtitle="Registered loading zones"  />
-        <StatCard title="Active Zones"   value={stats.active}   icon={CheckCircleIcon}    color="green"  subtitle="Currently operational"      />
-        <StatCard title="Inactive Zones" value={stats.inactive} icon={XCircleIcon}        color="gray"   subtitle="Temporarily closed"         />
+        <StatCard title="Total Zones"    value={stats.total}    icon={BuildingOfficeIcon} color="blue"   subtitle="Registered loading zones"  />
+        <StatCard title="Active Zones"   value={stats.active}   icon={CheckCircleIcon}    color="teal"  subtitle="Currently operational"      />
+        <StatCard title="Inactive Zones" value={stats.inactive} icon={XCircleIcon}        color="gray"  subtitle="Temporarily closed"         />
       </div>
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex gap-4 flex-wrap">
@@ -166,11 +170,11 @@ const LoadingZoneManagement = () => {
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
               placeholder="Search by name or description..."
-              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
             <button
               onClick={handleSearch}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2"
             >
               <MagnifyingGlassIcon className="h-5 w-5" />
               Search
@@ -180,7 +184,7 @@ const LoadingZoneManagement = () => {
           <select
             value={filters.status}
             onChange={(e) => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -204,94 +208,95 @@ const LoadingZoneManagement = () => {
           </button>
         </div>
       </div>
+
       {/* Table */}
-       {isFetching ? (
+      {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading zones...</p>
           </div>
         </div>
       ) : (
         <>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Radius</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {zones.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                    No loading zones found
-                  </td>
-                </tr>
-              ) : (
-                zones.map((zone) => (
-                  <tr key={zone._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {zone.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <div className="max-w-xs truncate">{zone.description || '—'}</div>
-                    </td>
-                    {/* ✅ Clean td — no stray comments or text nodes */}
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <LocationName lat={zone.location?.lat} lng={zone.location?.lng} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {zone.radiusMeters}m
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(zone.status)}`}>
-                        {zone.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                      <button onClick={() => setSelectedZone(zone)} className="text-blue-600 hover:text-blue-800 transition-colors" title="View Details">
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      <button onClick={() => { setEditingZone(zone); setShowForm(true); }} className="text-green-600 hover:text-green-800 transition-colors" title="Edit">
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button onClick={() => handleDelete(zone._id, zone.name)} className="text-red-600 hover:text-red-800 transition-colors" title="Delete">
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </td>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Radius</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {zones.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                        No loading zones found
+                      </td>
+                    </tr>
+                  ) : (
+                    zones.map((zone) => (
+                      <tr key={zone._id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {zone.name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <div className="max-w-xs truncate">{zone.description || '—'}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <LocationName lat={zone.location?.lat} lng={zone.location?.lng} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {zone.radiusMeters}m
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(zone.status)}`}>
+                            {zone.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                          <button onClick={() => setSelectedZone(zone)} className="text-teal-600 hover:text-teal-800 transition-colors" title="View Details">
+                            <EyeIcon className="h-5 w-5" />
+                          </button>
+                          <button onClick={() => { setEditingZone(zone); setShowForm(true); }} className="text-teal-600 hover:text-teal-800 transition-colors" title="Edit">
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
+                          <button onClick={() => handleDelete(zone._id, zone.name)} className="text-rose-600 hover:text-rose-800 transition-colors" title="Delete">
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-        {pagination.total > 0 && (
-          <div className="mt-6 px-6 py-4 border-t">
-            <PaginationComponent
-              currentPage={pagination.page || 1}
-              totalPages={pagination.pages || 1}
-              onPageChange={setPage}
-              onPageSizeChange={handleLimitChange}
-              pageSize={limit}
-              totalItems={pagination.total || 0}
-              showFirstLast={true}
-              siblingCount={1}
-              showPageSizeSelector={true}
-              pageSizeOptions={[5, 10, 25, 50, 100]}
-            />
+            {pagination.total > 0 && (
+              <div className="mt-6 px-6 py-4 border-t">
+                <PaginationComponent
+                  currentPage={pagination.page || 1}
+                  totalPages={pagination.pages || 1}
+                  onPageChange={setPage}
+                  onPageSizeChange={handleLimitChange}
+                  pageSize={limit}
+                  totalItems={pagination.total || 0}
+                  showFirstLast={true}
+                  siblingCount={1}
+                  showPageSizeSelector={true}
+                  pageSizeOptions={[5, 10, 25, 50, 100]}
+                />
+              </div>
+            )}
           </div>
-        )}
-      </div>
         </>
       )}
+
       {/* Modals */}
       {showForm && (
         <LoadingZoneFormModal

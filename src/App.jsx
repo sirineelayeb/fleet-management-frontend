@@ -25,7 +25,7 @@ import TruckHistory from './pages/TruckHistory';
 import AllTruckHistory from './pages/AllTruckHistory';
 import DriverProfile from './pages/DriverProfile';
 import Customers from './pages/Customers';
-import LprEvents from './pages/LprEvents';  // ← NEW
+import LprEvents from './pages/LprEvents';
 
 // ─── Shipment Manager Pages ───────────────────────────────────────────────────
 import ShipmentManagerDashboard from './pages/ShipmentManagerDashboard';
@@ -83,6 +83,7 @@ function App() {
               <Route path="drivers" element={<Drivers />} />
               <Route path="driver-history" element={<DriverHistory />} />       
               <Route path="driver-history/:driverId" element={<DriverHistory />} />
+              <Route path="driver-profile/:driverId" element={<DriverProfile />} />  {/* ✅ ADDED */}
               <Route path="devices" element={<Devices />} />
               <Route path="driver-scores" element={<DriverScoreConfig />} />
 
@@ -94,7 +95,7 @@ function App() {
               <Route path="shipments/create" element={<CreateShipment />} />
               <Route path="shipments/:shipmentId" element={<ShipmentHistory />} />
               <Route path="customers" element={<Customers />} />
-              <Route path="lpr-events" element={<LprEvents />} />  {/* ← NEW */}
+              <Route path="lpr-events" element={<LprEvents />} />
 
               {/* Admin */}
               <Route path="users" element={<Users />} />
@@ -124,7 +125,11 @@ function App() {
               <Route path="customers" element={<Customers />} />
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<Notifications />} />
-              <Route path="lpr-events" element={<LprEvents />} />  {/* ← NEW */}
+              <Route path="lpr-events" element={<LprEvents />} />
+
+              <Route path="drivers/:driverId" element={<DriverProfile />} />
+              <Route path="driver-profile/:driverId" element={<DriverProfile />} />  {/* ✅ ADDED */}
+              <Route path="truck-history/:truckId" element={<TruckHistory />} />
             </Route>
 
             {/* ── Fallback ─────────────────────────────────────────────────── */}

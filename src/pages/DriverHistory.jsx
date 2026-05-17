@@ -1,14 +1,16 @@
 // frontend/src/pages/DriverHistory.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { driverService } from '../services/driverService';
 import { tripHistoryService } from '../services/tripHistoryService';
+import { useAuth } from '../context/AuthContext';
+import { getStatusBadge, getStatusText } from '../constants/colors';
 import TripDetailsModal from '../components/Trips/TripDetailsModal';
-import { 
+import {
   ArrowLeftIcon,
-  UserIcon, 
-  TruckIcon, 
+  UserIcon,
+  TruckIcon,
   PhoneIcon,
   StarIcon,
   CalendarIcon,
@@ -18,7 +20,7 @@ import {
   IdentificationIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
@@ -27,21 +29,21 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 // ============================================
 const formatDate = (date) => {
   if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 };
 
 const formatDateTime = (date) => {
   if (!date) return 'N/A';
-  return new Date(date).toLocaleString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
+  return new Date(date).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 };
 
@@ -53,70 +55,38 @@ const formatDuration = (hours) => {
   const remainingMins = mins % 60;
   return remainingMins > 0 ? `${hrs}h ${remainingMins}m` : `${hrs}h`;
 };
-
-const getStatusClass = (status) => {
-  const classes = {
-    completed: 'bg-green-100 text-green-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    cancelled: 'bg-red-100 text-red-800',
-    pending: 'bg-yellow-100 text-yellow-800'
-  };
-  return classes[status] || 'bg-gray-100 text-gray-800';
+const resolvePhotoUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const normalized = url.replace(/\\/g, '/');
+  const uploadsIndex = normalized.indexOf('uploads/');
+  if (uploadsIndex !== -1) return `${import.meta.env.VITE_API_URL}/${normalized.slice(uploadsIndex)}`;
+  return url;
 };
 
-const getStatusText = (status) => {
-  const map = {
-    completed: 'Completed',
-    in_progress: 'In Progress',
-    cancelled: 'Cancelled',
-    pending: 'Pending'
-  };
-  return map[status] || status;
-};
-
-const getStatusIcon = (status) => {
-  switch(status) {
-    case 'completed': return <CheckCircleIcon className="h-4 w-4" />;
-    case 'in_progress': return <PlayCircleIcon className="h-4 w-4" />;
-    case 'cancelled': return <XCircleIcon className="h-4 w-4" />;
-    default: return null;
-  }
-};
 
 // ============================================
-// STAT CARD - EXACT SAME COLORS AS TRUCKHISTORY
+// STAT CARD – neutral white, same as TruckHistory
 // ============================================
-const StatCard = ({ title, value, icon: Icon, color, subtitle }) => {
-  const colorStyles = {
-    blue: 'from-blue-400 to-blue-500',
-    green: 'from-emerald-400 to-emerald-500',
-    orange: 'from-orange-400 to-orange-500',
-    purple: 'from-violet-400 to-violet-500',
-    red: 'from-rose-400 to-rose-500',
-    teal: 'from-teal-400 to-teal-500',
-    indigo: 'from-indigo-400 to-indigo-500'
-  };
-  
-  return (
-    <div className={`bg-gradient-to-br ${colorStyles[color]} rounded-xl p-5 text-white shadow-lg hover:shadow-xl transition-shadow duration-200`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium opacity-90">{title}</p>
-          <p className="text-3xl font-bold mt-2 tracking-tight">{value}</p>
-          {subtitle && <p className="text-xs opacity-80 mt-1">{subtitle}</p>}
-        </div>
-        {Icon && (
-          <div className="bg-white/20 rounded-lg p-2 backdrop-blur-sm">
-            <Icon className="h-6 w-6" />
-          </div>
-        )}
+const StatCard = ({ title, value, icon: Icon, subtitle }) => (
+  <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 transition-all duration-300 hover:shadow-md">
+    <div className="flex items-start justify-between">
+      <div className="flex-1">
+        <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">{title}</p>
+        <p className="text-3xl font-bold text-gray-900 mt-2 tracking-tight">{value}</p>
+        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
       </div>
+      {Icon && (
+        <div className="bg-gray-100 rounded-xl p-2">
+          <Icon className="h-6 w-6 text-gray-600" />
+        </div>
+      )}
     </div>
-  );
-};
+  </div>
+);
 
 // ============================================
-// INFO ROW
+// INFO ROW – simple, no background
 // ============================================
 const InfoRow = ({ label, value, icon: Icon }) => (
   <div className="flex items-center gap-2 text-sm">
@@ -127,36 +97,41 @@ const InfoRow = ({ label, value, icon: Icon }) => (
 );
 
 // ============================================
-// TRUCK CARD - DISPLAY TRUCK STATISTICS
+// TRUCK CARD – minimal, as in TruckHistory
 // ============================================
-const TruckCard = ({ truck, trips, onViewTruck }) => {
-  const truckTrips = trips.filter(t => t.truck?._id === truck._id || t.truck === truck._id);
+const TruckCard = ({ truck, trips, basePath }) => {
+  const truckTrips = trips.filter(
+    (t) => t.truck?._id === truck._id || t.truck === truck._id
+  );
   const totalDistance = truckTrips.reduce((sum, t) => sum + (t.actualDistanceKm || 0), 0);
   const totalTrips = truckTrips.length;
   const violations = truckTrips.reduce((sum, t) => sum + (t.speedViolations || 0), 0);
-  const avgSpeed = truckTrips.reduce((sum, t) => sum + (t.averageSpeed || 0), 0) / totalTrips || 0;
+  const avgSpeed =
+    truckTrips.reduce((sum, t) => sum + (t.averageSpeed || 0), 0) / totalTrips || 0;
   const lastUsed = truckTrips[0]?.endTime || truckTrips[0]?.startTime;
 
   return (
-    <div 
-      onClick={() => onViewTruck(truck._id)}
-      className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all cursor-pointer"
+    <Link
+      to={`${basePath}/truck-history/${truck._id}`}
+      className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all cursor-pointer"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <TruckIcon className="h-5 w-5 text-blue-600" />
+          <div className="bg-gray-100 p-2 rounded-lg">
+            <TruckIcon className="h-5 w-5 text-gray-600" />
           </div>
           <div>
             <h4 className="font-semibold text-gray-900">{truck.licensePlate}</h4>
-            <p className="text-xs text-gray-500">{truck.brand} {truck.model}</p>
+            <p className="text-xs text-gray-500">
+              {truck.brand} {truck.model}
+            </p>
           </div>
         </div>
         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
           {totalTrips} trips
         </span>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div>
           <p className="text-xs text-gray-500">Distance</p>
@@ -168,40 +143,47 @@ const TruckCard = ({ truck, trips, onViewTruck }) => {
         </div>
         <div>
           <p className="text-xs text-gray-500">Violations</p>
-          <p className={`font-semibold ${violations > 0 ? 'text-red-600' : 'text-green-600'}`}>
+          <p
+            className={`font-semibold ${
+              violations > 0 ? 'text-rose-600' : 'text-teal-600'
+            }`}
+          >
             {violations}
           </p>
         </div>
       </div>
-      
+
       {lastUsed && (
-        <p className="text-xs text-gray-400 mt-3">
-          Last used: {formatDate(lastUsed)}
-        </p>
+        <p className="text-xs text-gray-400 mt-3">Last used: {formatDate(lastUsed)}</p>
       )}
-    </div>
+    </Link>
   );
 };
 
 // ============================================
-// TRIP ITEM - SAME AS TRUCKHISTORY
+// TRIP ITEM – matches TruckHistory cards
 // ============================================
 const TripItem = ({ trip, onViewDetails }) => {
+  const statusBadge = getStatusBadge(trip.status, 'shipment', 'sm');
+  const statusText = getStatusText(trip.status);
+
   return (
     <div className="border-b border-gray-100 last:border-0">
-      <div className="p-4 hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => onViewDetails(trip)}>
+      <div
+        className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+        onClick={() => onViewDetails(trip)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="font-semibold text-gray-900">
                 {trip.tripNumber || trip._id?.slice(-8)}
               </span>
-              <span className={`px-2 py-0.5 text-xs rounded-full flex items-center gap-1 ${getStatusClass(trip.status)}`}>
-                {getStatusIcon(trip.status)}
-                {getStatusText(trip.status)}
+              <span className={`px-2 py-0.5 text-xs rounded-full ${statusBadge}`}>
+                {statusText}
               </span>
               {trip.speedViolations > 0 && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 flex items-center gap-1">
+                <span className="px-2 py-0.5 text-xs rounded-full bg-rose-100 text-rose-700 flex items-center gap-1">
                   <ExclamationTriangleIcon className="h-3 w-3" />
                   {trip.speedViolations}
                 </span>
@@ -226,7 +208,8 @@ const TripItem = ({ trip, onViewDetails }) => {
               </div>
             </div>
             <div className="text-xs text-gray-500 mt-1 truncate">
-              {typeof trip.origin === 'string' ? trip.origin : 'N/A'} → {typeof trip.destination === 'string' ? trip.destination : 'N/A'}
+              {typeof trip.origin === 'string' ? trip.origin : 'N/A'} →{' '}
+              {typeof trip.destination === 'string' ? trip.destination : 'N/A'}
             </div>
             {trip.truck && (
               <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
@@ -235,9 +218,12 @@ const TripItem = ({ trip, onViewDetails }) => {
               </div>
             )}
           </div>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onViewDetails(trip); }}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1"
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(trip);
+            }}
+            className="text-sm text-teal-600 hover:text-teal-700 font-medium px-3 py-1"
           >
             View Details →
           </button>
@@ -248,81 +234,25 @@ const TripItem = ({ trip, onViewDetails }) => {
 };
 
 // ============================================
-// STICKY HEADER
-// ============================================
-const StickyHeader = ({ driver, onBack }) => {
-  const [isSticky, setIsSticky] = useState(false);
-  const headerRef = useRef(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (headerRef.current) {
-        const offset = headerRef.current.getBoundingClientRect().top;
-        setIsSticky(offset <= 0);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  return (
-    <>
-      <div 
-        ref={headerRef}
-        className={`bg-white border-b transition-all duration-300 z-50 ${
-          isSticky ? 'fixed top-0 left-0 right-0 shadow-md' : ''
-        }`}
-      >
-        <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={onBack} className="p-1 hover:bg-gray-100 rounded-full">
-              <ArrowLeftIcon className="h-5 w-5" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold">Driver History</h1>
-              {driver && (
-                <p className="text-sm text-gray-500">{driver.name}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      {isSticky && <div className="h-[57px]" />}
-    </>
-  );
-};
-
-// ============================================
-// CUSTOM ICON COMPONENTS
-// ============================================
-const PlayCircleIcon = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const XCircleIcon = ({ className }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-// ============================================
 // MAIN COMPONENT
 // ============================================
 const DriverHistory = () => {
   const { driverId } = useParams();
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+  const basePath = user?.role === 'admin' ? '/dashboard' : '/shipment_manager';
+
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showTripModal, setShowTripModal] = useState(false);
 
+  // Fetch driver details
   const { data: driverData, isLoading: driverLoading } = useQuery({
     queryKey: ['driver', driverId],
     queryFn: () => driverService.getById(driverId),
     enabled: !!driverId,
   });
 
+  // Fetch driver trips
   const { data: tripsData, isLoading: tripsLoading } = useQuery({
     queryKey: ['driver-trips', driverId],
     queryFn: () => tripHistoryService.getDriverTrips(driverId, { limit: 100 }),
@@ -332,93 +262,119 @@ const DriverHistory = () => {
   const driver = driverData?.data;
   const trips = tripsData?.data || [];
 
-  // Calculate statistics
   const totalTrips = trips.length;
-  const completedTrips = trips.filter(t => t.status === 'completed').length;
+  const completedTrips = trips.filter((t) => t.status === 'completed').length;
   const totalDistance = trips.reduce((sum, t) => sum + (t.actualDistanceKm || 0), 0);
   const speedViolations = trips.reduce((sum, t) => sum + (t.speedViolations || 0), 0);
   const avgScore = driver?.score || 0;
 
-  // Get unique trucks driven by this driver
+  // Unique trucks driven
   const trucksDriven = trips.reduce((unique, trip) => {
     const truck = trip.truck;
-    if (truck && truck._id && !unique.some(t => t._id === truck._id)) {
+    if (truck && truck._id && !unique.some((t) => t._id === truck._id)) {
       unique.push(truck);
     }
     return unique;
   }, []);
 
-  const handleBack = () => navigate('/dashboard/drivers');
-  
   const handleViewTripDetails = (trip) => {
     setSelectedTrip(trip);
     setShowTripModal(true);
-  };
-
-  const handleViewTruckHistory = (truckId) => {
-    navigate(`/dashboard/truck-history/${truckId}`);
   };
 
   if (driverLoading || tripsLoading) return <LoadingSpinner />;
 
   if (!driver) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <UserIcon className="h-12 w-12 mx-auto text-gray-400 mb-3" />
           <p className="text-gray-500">Driver not found</p>
-          <button onClick={handleBack} className="mt-3 text-blue-600">Go Back</button>
+          <button
+            onClick={() => navigate(`${basePath}/drivers`)}
+            className="mt-3 text-teal-600 hover:text-teal-700"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-50">
-        <StickyHeader driver={driver} onBack={handleBack} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Fixed back button – only for admin */}
+      {isAdmin && (
+        <button
+          onClick={() => navigate('/dashboard/drivers')}
+          className="fixed top-4 left-4 z-50 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-md border border-gray-200 hover:bg-gray-100 transition-all duration-200"
+        >
+          <ArrowLeftIcon className="h-4 w-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">Back to Drivers</span>
+        </button>
+      )}
+
+      {/* Conditional padding-top: only when admin has fixed button */}
+      <div className={isAdmin ? 'pt-16' : ''}>
+        {/* Inline header bar – only for admin */}
+        {isAdmin && (
+          <div className="bg-white border-b border-gray-200 shadow-sm mb-6">
+            <div className="px-6 py-4">
+              <button
+                onClick={() => navigate('/dashboard/drivers')}
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeftIcon className="h-4 w-4" />
+                <span>Back to Drivers</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="p-6 max-w-7xl mx-auto">
-          {/* Stats Row - EXACT SAME COLORS AS TRUCKHISTORY */}
+          {/* Stats Row – neutral StatCards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <StatCard 
-              title="Total Trips" 
-              value={totalTrips} 
+            <StatCard
+              title="Total Trips"
+              value={totalTrips}
               icon={ChartBarIcon}
-              color="blue" 
+              subtitle={`${completedTrips} completed`}
             />
-            <StatCard 
-              title="Completed" 
-              value={completedTrips} 
+            <StatCard
+              title="Completed"
+              value={completedTrips}
               icon={CalendarIcon}
-              color="green" 
+              subtitle={`${totalTrips > 0 ? ((completedTrips / totalTrips) * 100).toFixed(0) : 0}% rate`}
             />
-            <StatCard 
-              title="Distance" 
-              value={`${totalDistance.toFixed(0)} km`} 
+            <StatCard
+              title="Distance"
+              value={`${totalDistance.toFixed(0)} km`}
               icon={MapPinIcon}
-              color="teal" 
             />
-            <StatCard 
-              title="Violations" 
-              value={speedViolations} 
+            <StatCard
+              title="Violations"
+              value={speedViolations}
               icon={ExclamationTriangleIcon}
-              color="red" 
             />
-            <StatCard 
-              title="Score" 
-              value={avgScore} 
-              icon={StarIcon}
-              color="purple" 
-            />
+            <StatCard title="Score" value={avgScore} icon={StarIcon} />
           </div>
 
-          {/* Driver Info Card */}
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
-            <div className="flex items-start gap-5">
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-md">
-                <UserIcon className="h-10 w-10 text-white" />
-              </div>
+          {/* Driver Info Card – white, border */}
+          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-200">
+           <div className="flex items-start gap-5">
+            {/* Driver photo or fallback */}
+            <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center shadow-sm overflow-hidden">
+              {driver.photo?.url ? (
+                <img
+                  src={resolvePhotoUrl(driver.photo.url)}
+                  alt={driver.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg ...>'; /* fallback to icon */ }}
+                />
+              ) : (
+                <UserIcon className="h-10 w-10 text-gray-600" />
+              )}
+            </div>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">{driver.name}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
@@ -427,20 +383,24 @@ const DriverHistory = () => {
                   <InfoRow label="Email" value={driver.email} icon={EnvelopeIcon} />
                   <InfoRow label="CIN" value={driver.cin} icon={IdentificationIcon} />
                   <InfoRow label="Status" value={driver.status?.toUpperCase()} icon={ClockIcon} />
-                  <InfoRow label="Current Truck" value={driver.assignedTruck?.licensePlate || 'None'} icon={TruckIcon} />
+                  <InfoRow
+                    label="Current Truck"
+                    value={driver.assignedTruck?.licensePlate || 'None'}
+                    icon={TruckIcon}
+                  />
                   <InfoRow label="Hire Date" value={formatDate(driver.hireDate)} icon={CalendarIcon} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Trucks Driven Section */}
+          {/* Trucks Driven Section – same style as TruckHistory */}
           {trucksDriven.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
+            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <TruckIcon className="h-5 w-5 text-blue-600" />
+                  <div className="bg-gray-100 p-2 rounded-lg">
+                    <TruckIcon className="h-5 w-5 text-gray-600" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Trucks Driven</h3>
@@ -451,14 +411,14 @@ const DriverHistory = () => {
                   {trucksDriven.length} truck{trucksDriven.length !== 1 ? 's' : ''}
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {trucksDriven.map((truck) => (
-                  <TruckCard 
-                    key={truck._id} 
-                    truck={truck} 
+                  <TruckCard
+                    key={truck._id}
+                    truck={truck}
                     trips={trips}
-                    onViewTruck={handleViewTruckHistory}
+                    basePath={basePath}
                   />
                 ))}
               </div>
@@ -466,15 +426,17 @@ const DriverHistory = () => {
           )}
 
           {/* Trips List */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div className="px-5 py-4 border-b border-gray-100">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
+            <div className="px-5 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-900">Trip History</h3>
                   <p className="text-xs text-gray-500 mt-0.5">Complete record of all trips</p>
                 </div>
                 <div className="bg-gray-100 px-3 py-1 rounded-full">
-                  <span className="text-sm font-semibold text-gray-700">{totalTrips} total trips</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {totalTrips} total trips
+                  </span>
                 </div>
               </div>
             </div>
@@ -482,12 +444,18 @@ const DriverHistory = () => {
               <div className="p-12 text-center text-gray-500">
                 <TruckIcon className="h-16 w-16 mx-auto mb-3 text-gray-300" />
                 <p className="text-lg font-medium text-gray-400">No trips found</p>
-                <p className="text-sm text-gray-400 mt-1">This driver hasn't completed any trips yet</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  This driver hasn't completed any trips yet
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {trips.map((trip) => (
-                  <TripItem key={trip._id} trip={trip} onViewDetails={handleViewTripDetails} />
+                  <TripItem
+                    key={trip._id}
+                    trip={trip}
+                    onViewDetails={handleViewTripDetails}
+                  />
                 ))}
               </div>
             )}
@@ -505,7 +473,7 @@ const DriverHistory = () => {
           }}
         />
       )}
-    </>
+    </div>
   );
 };
 

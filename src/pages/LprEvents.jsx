@@ -13,13 +13,14 @@ import {
   ShieldCheckIcon, FunnelIcon, TrashIcon, ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
+
 // ── Badges ────────────────────────────────────────────────────
 
 const DirectionBadge = ({ direction }) => (
   <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold
     ${direction === 'entry'
-      ? 'bg-green-100 text-green-700'
-      : 'bg-orange-100 text-orange-700'}`}>
+      ? 'bg-teal-100 text-teal-800'
+      : 'bg-orange-100 text-orange-800'}`}>
     {direction === 'entry'
       ? <ArrowDownCircleIcon className="h-3.5 w-3.5" />
       : <ArrowUpCircleIcon  className="h-3.5 w-3.5" />}
@@ -29,8 +30,8 @@ const DirectionBadge = ({ direction }) => (
 
 const AuthBadge = ({ isAuthorized }) => {
   const map = {
-    true:  { label: 'Authorized',   cls: 'bg-blue-100 text-blue-700',  icon: <CheckCircleIcon className="h-3.5 w-3.5" /> },
-    false: { label: 'Unauthorized', cls: 'bg-red-100 text-red-700',    icon: <XCircleIcon     className="h-3.5 w-3.5" /> },
+    true:  { label: 'Authorized',   cls: 'bg-teal-100 text-teal-800',  icon: <CheckCircleIcon className="h-3.5 w-3.5" /> },
+    false: { label: 'Unauthorized', cls: 'bg-rose-100 text-rose-800',   icon: <XCircleIcon     className="h-3.5 w-3.5" /> },
     null:  { label: 'Unknown',      cls: 'bg-gray-100 text-gray-500',  icon: <ClockIcon       className="h-3.5 w-3.5" /> },
   };
   const s = map[String(isAuthorized)] ?? map['null'];
@@ -44,9 +45,9 @@ const AuthBadge = ({ isAuthorized }) => {
 const EntryStatusBadge = ({ status, minutes }) => {
   if (!status) return <span className="text-gray-400 text-xs">—</span>;
   const map = {
-    on_time: { label: 'On Time', cls: 'bg-green-100 text-green-700' },
-    late:    { label: 'Late',    cls: 'bg-red-100 text-red-700'     },
-    early:   { label: 'Early',   cls: 'bg-yellow-100 text-yellow-700' },
+    on_time: { label: 'On Time', cls: 'bg-teal-100 text-teal-800' },
+    late:    { label: 'Late',    cls: 'bg-rose-100 text-rose-800'   },
+    early:   { label: 'Early',   cls: 'bg-amber-100 text-amber-800' },
   };
   const s = map[status];
   if (!s) return null;
@@ -66,7 +67,7 @@ const EntryStatusBadge = ({ status, minutes }) => {
 
 const ConfidenceBar = ({ value }) => {
   const pct   = Math.round((value ?? 1) * 100);
-  const color = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+  const color = pct >= 80 ? 'bg-teal-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500';
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
@@ -115,8 +116,8 @@ const EventDetailModal = ({ event }) => {
         <Row label="Timestamp"><p>{fmt(event.createdAt)}</p></Row>
         <Row label="Loading Zone">
           {event.loadingZone
-            ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                📍 {event.loadingZone.name}
+            ? <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                Loading Zone: {event.loadingZone.name}
               </span>
             : <span className="text-gray-400 italic">Not assigned</span>}
         </Row>
@@ -133,7 +134,7 @@ const EventDetailModal = ({ event }) => {
       {event.matchedShipment && (
         <div className="border-t pt-4">
           <p className="text-gray-400 text-xs uppercase font-semibold mb-2">Matched Shipment</p>
-          <p className="font-medium text-blue-600">{event.matchedShipment.shipmentId}</p>
+          <p className="font-medium text-teal-800">{event.matchedShipment.shipmentId}</p>
           <p className="text-gray-500 text-xs mt-1">Planned departure: {fmt(event.matchedShipment.plannedDepartureDate)}</p>
           <p className="text-gray-500 text-xs capitalize">Status: {event.matchedShipment.status}</p>
         </div>
@@ -219,16 +220,16 @@ const LprEvents = () => {
 
   if (isLoading && !eventsData) {
     return (
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
-                  <CameraIcon className="h-8 w-8 text-white" />
-                </div>
-                <p className="text-gray-500 text-sm font-medium animate-pulse">
-                  Loading LPR Events...
-                </p>
-              </div>
-              );
-            }   
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
+          <CameraIcon className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">
+          Loading LPR Events...
+        </p>
+      </div>
+    );
+  }   
 
   return (
     <div className="p-6">
@@ -240,24 +241,23 @@ const LprEvents = () => {
           <p className="text-gray-500 mt-1">Track all gate entry and exit events</p>
         </div>
         <button onClick={() => refetch()}
-          className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 hover:bg-blue-100">
+          className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-lg text-sm text-teal-800 hover:bg-teal-100">
           <CameraIcon className="h-4 w-4" /> Refresh
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Total Events"  value={stats.totalEvents  ?? 0} icon={ClockIcon}          color="purple" subtitle="All time" />
-        <StatCard title="Entries"       value={stats.entries      ?? 0} icon={ArrowDownCircleIcon} color="green"  subtitle="Vehicles entered" />
-        <StatCard title="Exits"         value={stats.exits        ?? 0} icon={ArrowUpCircleIcon}   color="blue"   subtitle="Vehicles exited" />
-        <StatCard title="Unauthorized"  value={stats.unauthorized ?? 0} icon={ShieldCheckIcon}     color="red"    subtitle="Blocked detections" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <StatCard title="Entries"      value={stats.entries      ?? 0} icon={ArrowDownCircleIcon} color="teal"   subtitle="Vehicles entered" />
+        <StatCard title="Exits"        value={stats.exits        ?? 0} icon={ArrowUpCircleIcon}   color="teal"   subtitle="Vehicles exited" />
+        <StatCard title="Unauthorized" value={stats.unauthorized ?? 0} icon={ShieldCheckIcon}     color="orange" subtitle="Blocked detections" />
       </div>
 
       {/* Filters */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow flex flex-wrap gap-3">
         <input
           type="text" placeholder="Search plate..."
-          className="flex-1 min-w-[180px] px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-[180px] px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -276,7 +276,7 @@ const LprEvents = () => {
           value={filters.to}
           onChange={e => { setFilters(f => ({ ...f, to: e.target.value })); setPage(1); }} />
         <button onClick={handleSearch}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm">
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 text-sm">
           <MagnifyingGlassIcon className="h-4 w-4" /> Search
         </button>
         {hasFilters && (
@@ -288,97 +288,96 @@ const LprEvents = () => {
       </div>
 
       {/* Table */}
-       {isFetching ? (
+      {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading events...</p>
           </div>
         </div>
       ) : (
         <>
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {TABLE_HEADERS.map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {events.length === 0 ? (
-              <tr>
-                <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400">
-                  <CameraIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  No events found
-                </td>
-              </tr>
-            ) : events.map(event => (
-              <tr key={event._id}
-                className={`hover:bg-gray-50 transition-colors ${event.isAuthorized === false ? 'bg-red-50' : ''}`}>
-                <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmt(event.createdAt)}</td>
-                <td className="px-4 py-3 font-mono font-semibold text-sm">{event.plateNumber}</td>
-                <td className="px-4 py-3"><DirectionBadge direction={event.direction} /></td>
-                <td className="px-4 py-3 text-sm">
-                  {event.truck
-                    ? <div>
-                        <p className="font-medium">{event.truck.licensePlate}</p>
-                        <p className="text-xs text-gray-400">{event.truck.brand} {event.truck.model}</p>
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {TABLE_HEADERS.map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {events.length === 0 ? (
+                  <tr>
+                    <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400">
+                      <CameraIcon className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                      No events found
+                    </td>
+                  </tr>
+                ) : events.map(event => (
+                  <tr key={event._id}
+                    className={`hover:bg-gray-50 transition-colors ${event.isAuthorized === false ? 'bg-rose-50' : ''}`}>
+                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmt(event.createdAt)}</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-sm">{event.plateNumber}</td>
+                    <td className="px-4 py-3"><DirectionBadge direction={event.direction} /></td>
+                    <td className="px-4 py-3 text-sm">
+                      {event.truck
+                        ? <div>
+                            <p className="font-medium">{event.truck.licensePlate}</p>
+                            <p className="text-xs text-gray-400">{event.truck.brand} {event.truck.model}</p>
+                          </div>
+                        : <span className="text-gray-400 text-xs">Not registered</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {event.matchedShipment
+                        ? <div>
+                            <p className="font-medium text-teal-800">{event.matchedShipment.shipmentId}</p>
+                            <p className="text-xs text-gray-400 capitalize">{event.matchedShipment.status}</p>
+                          </div>
+                        : <span className="text-gray-400 text-xs">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <EntryStatusBadge status={event.entryStatus} minutes={event.minutesFromPlanned} />
+                    </td>
+                    <td className="px-4 py-3"><ConfidenceBar value={event.confidence} /></td>
+                    <td className="px-4 py-3"><AuthBadge isAuthorized={event.isAuthorized} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button onClick={() => setSelectedEvent(event)}
+                          className="text-xs text-teal-600 hover:text-teal-800 underline">
+                          View
+                        </button>
+                        {isAdmin && (
+                          <button onClick={() => setEventToDelete(event)}
+                            className="text-rose-500 hover:text-rose-800">
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
-                    : <span className="text-gray-400 text-xs">Not registered</span>}
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  {event.matchedShipment
-                    ? <div>
-                        <p className="font-medium text-blue-700">{event.matchedShipment.shipmentId}</p>
-                        <p className="text-xs text-gray-400 capitalize">{event.matchedShipment.status}</p>
-                      </div>
-                    : <span className="text-gray-400 text-xs">—</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <EntryStatusBadge status={event.entryStatus} minutes={event.minutesFromPlanned} />
-                </td>
-                <td className="px-4 py-3"><ConfidenceBar value={event.confidence} /></td>
-                <td className="px-4 py-3"><AuthBadge isAuthorized={event.isAuthorized} /></td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button onClick={() => setSelectedEvent(event)}
-                      className="text-xs text-blue-600 hover:text-blue-800 underline">
-                      View
-                    </button>
-                    {/* Only admins see the delete button */}
-                    {isAdmin && (
-                      <button onClick={() => setEventToDelete(event)}
-                        className="text-red-500 hover:text-red-700">
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Pagination */}
-      <div className="mt-6">
-        <PaginationComponent
-          currentPage={eventsData?.page || 1}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          onPageSizeChange={handleLimitChange}
-          pageSize={limit}
-          totalItems={eventsData?.total || 0}
-          showFirstLast showPageSizeSelector
-          siblingCount={1}
-          pageSizeOptions={[10, 20, 50, 100]}
-        />
-      </div>
-       </>
+          {/* Pagination */}
+          <div className="mt-6">
+            <PaginationComponent
+              currentPage={eventsData?.page || 1}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onPageSizeChange={handleLimitChange}
+              pageSize={limit}
+              totalItems={eventsData?.total || 0}
+              showFirstLast showPageSizeSelector
+              siblingCount={1}
+              pageSizeOptions={[10, 20, 50, 100]}
+            />
+          </div>
+        </>
       )}
 
       {/* Detail Modal */}
@@ -391,11 +390,11 @@ const LprEvents = () => {
       <Modal isOpen={!!eventToDelete} onClose={() => setEventToDelete(null)}
         title="Delete Event" size="sm">
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-red-600">
+          <div className="flex items-center gap-3 text-rose-800">
             <ExclamationTriangleIcon className="h-6 w-6" />
             <p className="font-semibold">This action cannot be undone</p>
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-800">
             Delete event for <span className="font-bold">{eventToDelete?.plateNumber}</span> from {fmt(eventToDelete?.createdAt)}?
           </p>
           <div className="flex justify-end gap-3 pt-2">
@@ -405,7 +404,7 @@ const LprEvents = () => {
             </button>
             <button onClick={() => deleteMutation.mutate(eventToDelete._id)}
               disabled={deleteMutation.isLoading}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50">
+              className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 text-sm disabled:opacity-50">
               {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
             </button>
           </div>

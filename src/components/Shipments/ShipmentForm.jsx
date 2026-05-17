@@ -1,11 +1,13 @@
+// frontend/src/components/Shipments/ShipmentForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customerService } from '../../services/customerService';
 import { loadingZoneService } from '../../services/loadingZoneService';
 import MapPicker from '../Common/MapPicker';
 import Modal from '../Common/Modal';
-import { MapPinIcon, PlusIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { semantic } from '../../constants/colors';
 
 const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
   const navigate = useNavigate();
@@ -14,7 +16,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
   const [loading, setLoading] = useState(true);
   const [showOriginMap, setShowOriginMap] = useState(false);
   const [showDestMap, setShowDestMap] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     description: '',
     goods: '',
@@ -34,7 +36,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     plannedDeliveryDate: '',
   });
 
-  // Fetch customers and loading zones
+  // Fetch customers and loading zones (unchanged)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -54,7 +56,6 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     };
     fetchData();
 
-    // Restore form data from sessionStorage
     const shouldReturn = sessionStorage.getItem('returnToShipmentForm');
     if (shouldReturn === 'true') {
       const savedData = sessionStorage.getItem('shipmentFormData');
@@ -72,7 +73,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     }
   }, []);
 
-  // Populate form when editing
+  // Populate form when editing (unchanged)
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -170,12 +171,10 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     }
   };
 
-  // Auto-fill origin from loading zone
   const handleLoadingZoneChange = (loadingZoneId) => {
     const selectedZone = loadingZones.find(zone => zone._id === loadingZoneId);
     if (selectedZone) {
       const locationName = selectedZone.location?.placeName || selectedZone.name;
-      // Validate that coordinates exist
       if (!selectedZone.location?.lat || !selectedZone.location?.lng) {
         toast.error('This loading zone has no valid coordinates. Please edit the zone first.');
         return;
@@ -190,13 +189,11 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         },
         originPlaceName: locationName
       }));
-      toast.success(`Origin set to "${locationName}"`);
     } else {
       setFormData(prev => ({ ...prev, loadingZone: '' }));
     }
   };
 
-  // Clear origin coordinates (keep text field)
   const clearOriginCoordinates = () => {
     setFormData(prev => ({
       ...prev,
@@ -206,7 +203,6 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     toast.success('Origin coordinates cleared');
   };
 
-  // Clear destination coordinates
   const clearDestinationCoordinates = () => {
     setFormData(prev => ({
       ...prev,
@@ -216,7 +212,6 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     toast.success('Destination coordinates cleared');
   };
 
-  // Reset loading zone selection (clear origin auto-fill)
   const resetLoadingZone = () => {
     setFormData(prev => ({
       ...prev,
@@ -227,14 +222,12 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     }));
   };
 
-  // Navigate to create customer page
   const handleCreateCustomer = () => {
     sessionStorage.setItem('shipmentFormData', JSON.stringify(formData));
     sessionStorage.setItem('returnToShipmentForm', 'true');
     navigate('/dashboard/customers');
   };
 
-  // Navigate to create loading zone page
   const handleCreateLoadingZone = () => {
     sessionStorage.setItem('shipmentFormData', JSON.stringify(formData));
     sessionStorage.setItem('returnToShipmentForm', 'true');
@@ -243,9 +236,9 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const errors = [];
-    
+
     if (!formData.description.trim()) errors.push('Description required');
     if (!formData.goods.trim()) errors.push('Goods description required');
     if (!formData.origin.trim()) errors.push('Origin required');
@@ -254,8 +247,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
     if (!formData.customer) errors.push('Customer required');
     if (!formData.plannedDepartureDate) errors.push('Planned departure date required');
     if (!formData.plannedDeliveryDate) errors.push('Planned delivery date required');
-    
-    // Validate dates
+
     if (formData.plannedDepartureDate && formData.plannedDeliveryDate) {
       const departure = new Date(formData.plannedDepartureDate);
       const delivery = new Date(formData.plannedDeliveryDate);
@@ -263,12 +255,12 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         errors.push('Delivery date must be after departure date');
       }
     }
-    
+
     if (errors.length > 0) {
       errors.forEach(error => toast.error(error));
       return;
     }
-    
+
     const cleanData = {
       description: formData.description.trim(),
       goods: formData.goods.trim(),
@@ -294,16 +286,16 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
       plannedDepartureDate: new Date(formData.plannedDepartureDate).toISOString(),
       plannedDeliveryDate: new Date(formData.plannedDeliveryDate).toISOString(),
     };
-    
+
     onSubmit(cleanData);
   };
 
-  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
+  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700 focus:border-green-800 text-sm";
 
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
       </div>
     );
   }
@@ -330,7 +322,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Route Information</h3>
           <div className="grid grid-cols-2 gap-6">
-            
+
             {/* Origin Column */}
             <div className="space-y-3">
               <div>
@@ -366,7 +358,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
                     <button
                       type="button"
                       onClick={() => setShowOriginMap(true)}
-                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
+                      className="text-xs bg-green-700 text-white px-2 py-1 rounded hover:bg-green-800 flex items-center gap-1"
                     >
                       <MapPinIcon className="h-3 w-3" /> Map
                     </button>
@@ -418,7 +410,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
                   placeholder="e.g., Sfax, Tunisia"
                 />
                 {formData.destinationPlaceName && (
-                  <p className="text-xs text-green-600 mt-1">✓ {formData.destinationPlaceName}</p>
+                  <p className="text-xs text-green-700 mt-1">✓ {formData.destinationPlaceName}</p>
                 )}
               </div>
 
@@ -439,7 +431,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
                     <button
                       type="button"
                       onClick={() => setShowDestMap(true)}
-                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
+                      className="text-xs bg-green-700 text-white px-2 py-1 rounded hover:bg-green-800 flex items-center gap-1"
                     >
                       <MapPinIcon className="h-3 w-3" /> Map
                     </button>
@@ -487,7 +479,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
             <button
               type="button"
               onClick={handleCreateCustomer}
-              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              className="text-xs text-green-700 hover:text-green-800 flex items-center gap-1"
             >
               <PlusIcon className="h-3 w-3" />
               Create New Customer
@@ -520,7 +512,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
             <button
               type="button"
               onClick={handleCreateLoadingZone}
-              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              className="text-xs text-green-700  hover:text-green-800 flex items-center gap-1"
             >
               <PlusIcon className="h-3 w-3" />
               Create Loading Zone
@@ -536,7 +528,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
               <option value="">Select a loading zone...</option>
               {loadingZones.map(zone => (
                 <option key={zone._id} value={zone._id}>
-                  {zone.name || zone.name} - {zone.description || 'No description'} - {zone.location?.placeName ? `📍 ${zone.location.placeName}` : 'No location'}
+                  {zone.name} - {zone.description || 'No description'} - {zone.location?.placeName ? `📍 ${zone.location.placeName}` : 'No location'}
                 </option>
               ))}
             </select>
@@ -555,6 +547,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
             Select a loading zone - origin will auto-fill with its address and coordinates
           </p>
         </div>
+
         {/* Cargo Details */}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Cargo Details</h3>
@@ -567,28 +560,37 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
               <label className="block text-sm font-medium mb-2">Shipment Type *</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'normal', label: 'Normal', icon: '📦', color: 'blue' },
-                  { value: 'refrigerated', label: 'Refrigerated', icon: '❄️', color: 'cyan' },
-                  { value: 'fragile', label: 'Fragile', icon: '🔔', color: 'amber' },
-                ].map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, shipmentType: type.value }))}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 text-center transition-all ${
-                      formData.shipmentType === type.value
-                        ? type.color === 'blue'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : type.color === 'cyan'
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                          : 'border-amber-500 bg-amber-50 text-amber-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
-                  >
-                    <span className="text-xl">{type.icon}</span>
-                    <span className="text-xs font-medium">{type.label}</span>
-                  </button>
-                ))}
+                  { value: 'normal', label: 'Normal', brand: 'green' },
+                  { value: 'refrigerated', label: 'Refrigerated', brand: 'teal' },
+                  { value: 'fragile', label: 'Fragile', brand: 'orange' },
+                ].map((type) => {
+                  const isActive = formData.shipmentType === type.value;
+                  let brandColor, lightBg;
+                  if (type.brand === 'green') {
+                    brandColor = '#22c55e'; // Tailwind green-500
+                    lightBg = '#f0fdf4';
+                  } else if (type.brand === 'teal') {
+                    brandColor = semantic.success.primary || '#34B1AA';
+                    lightBg = semantic.success.light || '#E8F8F7';
+                  } else {
+                    brandColor = semantic.danger.primary || '#F29F67';
+                    lightBg = semantic.danger.light || '#FEF0E7';
+                  }
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, shipmentType: type.value }))}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 text-center transition-all ${
+                        isActive ? 'border-green-500' : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                      }`}
+                      style={isActive ? { borderColor: brandColor, backgroundColor: lightBg, color: brandColor } : {}}
+                    >
+                      <span className="text-xl">{type.icon}</span>
+                      <span className="text-xs font-medium">{type.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -616,8 +618,8 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
         </div>
 
         {/* Note about assignment */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-800">
+        <div className="rounded-lg p-3" style={{ backgroundColor: semantic.info.light, border: `1px solid ${semantic.info.primary}` }}>
+          <p className="text-xs" style={{ color: semantic.info.dark }}>
             After creating the shipment, you can assign a truck and driver using the "Assign" button on the shipment card.
             The shipment will remain in "Pending" status until assigned.
           </p>
@@ -630,7 +632,7 @@ const ShipmentForm = ({ onSubmit, initialData, onCancel }) => {
               Cancel
             </button>
           )}
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button type="submit" className="px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors">
             {initialData ? 'Update Shipment' : 'Create Shipment'}
           </button>
         </div>

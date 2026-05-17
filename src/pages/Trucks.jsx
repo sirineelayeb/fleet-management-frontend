@@ -27,7 +27,7 @@ import Modal from '../components/Common/Modal';
 import StatCard from '../components/Cards/StatCard';
 import { Link } from 'react-router-dom';
 
-// Status select dropdown component
+// Status select component — aligned with device.jsx colors
 const StatusSelect = ({ status, onStatusChange, truckId, isUpdating }) => {
   const handleChange = (e) => {
     const newStatus = e.target.value;
@@ -38,16 +38,11 @@ const StatusSelect = ({ status, onStatusChange, truckId, isUpdating }) => {
 
   const getStatusStyle = (value) => {
     switch (value) {
-      case 'available':
-        return 'bg-green-100 text-green-700';
-      case 'in_mission':
-        return 'bg-blue-100 text-blue-700';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
+      case 'available':   return 'bg-teal-100 text-teal-700';
+      case 'in_mission':  return 'bg-blue-100 text-blue-700';
+      case 'maintenance': return 'bg-orange-100 text-orange-700';
+      case 'inactive':    return 'bg-gray-100 text-gray-600';
+      default:            return 'bg-gray-100 text-gray-600';
     }
   };
 
@@ -57,9 +52,7 @@ const StatusSelect = ({ status, onStatusChange, truckId, isUpdating }) => {
         value={status}
         onChange={handleChange}
         disabled={isUpdating}
-        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 ${getStatusStyle(
-          status
-        )}`}
+        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-400 ${getStatusStyle(status)}`}
       >
         <option value="available">Available</option>
         <option value="in_mission">In Mission</option>
@@ -67,7 +60,7 @@ const StatusSelect = ({ status, onStatusChange, truckId, isUpdating }) => {
         <option value="inactive">Inactive</option>
       </select>
       {isUpdating && (
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500"></div>
       )}
     </div>
   );
@@ -84,13 +77,12 @@ const Trucks = () => {
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
   
-  // Filters: status, search, and archived (true/false/undefined)
+  // Filters
   const [filters, setFilters] = useState({ status: '', search: '', archived: false });
   const [searchInput, setSearchInput] = useState('');
 
   const queryClient = useQueryClient();
 
-  // Query with archive filter integrated
   const {
     data: trucksData,
     isLoading: trucksLoading,
@@ -103,7 +95,7 @@ const Trucks = () => {
         limit,
         status: filters.status || undefined,
         search: filters.search || undefined,
-        archived: filters.archived, // false = active only, true = archived only, undefined = all
+        archived: filters.archived,
       }),
     keepPreviousData: true,
     staleTime: 5000,
@@ -120,53 +112,40 @@ const Trucks = () => {
     queryFn: () => deviceService.getAll(),
   });
 
-  // Safe array extraction
   const trucks = trucksData?.data || [];
   const pagination = trucksData?.pagination || { total: 0, page: 1, pages: 1 };
   const drivers = driversData?.data || [];
   const devices = devicesData?.data || [];
 
-  // Stats based on current page (or you could use a separate stats endpoint)
+  // Stats
   const stats = {
-    total: pagination.total || 0,
-    available: trucks.filter((t) => t.status === 'available').length,
-    inMission: trucks.filter((t) => t.status === 'in_mission').length,
+    total:       pagination.total || 0,
+    available:   trucks.filter((t) => t.status === 'available').length,
+    inMission:   trucks.filter((t) => t.status === 'in_mission').length,
     maintenance: trucks.filter((t) => t.status === 'maintenance').length,
-    inactive: trucks.filter((t) => t.status === 'inactive').length,
-    withDevices: trucks.filter((t) => t.devices?.length > 0).length,
   };
 
-  // Available drivers (unassigned)
   const availableDrivers = drivers.filter((d) => !d.assignedTruck);
-
-  // Available devices (not assigned to any truck)
   const availableDevices = devices.filter((d) => !d.truck);
 
-  // Handle search
+  // Handlers
   const handleSearch = () => {
     setFilters((prev) => ({ ...prev, search: searchInput }));
     setPage(1);
   };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleSearch();
-  };
-
+  const handleKeyPress = (e) => { if (e.key === 'Enter') handleSearch(); };
   const handleStatusFilter = (status) => {
     setFilters((prev) => ({ ...prev, status }));
     setPage(1);
   };
-
-  // Handle archive filter change (all / active / archived)
   const handleArchiveFilter = (value) => {
     let archivedValue;
     if (value === 'all') archivedValue = undefined;
     else if (value === 'archived') archivedValue = true;
-    else archivedValue = false; // active
+    else archivedValue = false;
     setFilters((prev) => ({ ...prev, archived: archivedValue }));
     setPage(1);
   };
-
   const clearFilters = () => {
     setFilters({ status: '', search: '', archived: false });
     setSearchInput('');
@@ -183,9 +162,7 @@ const Trucks = () => {
       toast.success('Truck created successfully');
       setIsModalOpen(false);
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to create truck');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to create truck'),
   });
 
   const updateMutation = useMutation({
@@ -198,9 +175,7 @@ const Trucks = () => {
       setIsModalOpen(false);
       setEditingTruck(null);
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update truck');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to update truck'),
   });
 
   const archiveMutation = useMutation({
@@ -211,9 +186,7 @@ const Trucks = () => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
       toast.success('Truck archived successfully');
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to archive truck');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to archive truck'),
   });
 
   const unarchiveMutation = useMutation({
@@ -222,9 +195,7 @@ const Trucks = () => {
       queryClient.invalidateQueries({ queryKey: ['trucks'] });
       toast.success('Truck restored successfully');
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to restore truck');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to restore truck'),
   });
 
   const updateStatusMutation = useMutation({
@@ -250,9 +221,7 @@ const Trucks = () => {
       setSelectedTruck(null);
       setSelectedDriverId('');
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to assign driver');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to assign driver'),
   });
 
   const unassignDriverMutation = useMutation({
@@ -262,9 +231,7 @@ const Trucks = () => {
       queryClient.invalidateQueries({ queryKey: ['drivers'] });
       toast.success('Driver unassigned');
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to unassign driver');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to unassign driver'),
   });
 
   const assignDevicesMutation = useMutation({
@@ -281,9 +248,7 @@ const Trucks = () => {
       setSelectedTruck(null);
       setSelectedDeviceIds([]);
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to assign devices');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to assign devices'),
   });
 
   const unassignDeviceMutation = useMutation({
@@ -293,43 +258,27 @@ const Trucks = () => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
       toast.success('Device unassigned');
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to unassign device');
-    },
+    onError: (error) => toast.error(error.response?.data?.message || 'Failed to unassign device'),
   });
 
-  // Handlers
   const handleSubmit = async (data) => {
     const { devices: newDevices, ...truckData } = data;
-
     try {
       let truckId;
-
       if (editingTruck) {
         await updateMutation.mutateAsync({ id: editingTruck._id, data: truckData });
         truckId = editingTruck._id;
-
-        const currentDeviceIds =
-          editingTruck.devices?.map((d) => d._id?.toString() || d.toString()) || [];
+        const currentDeviceIds = editingTruck.devices?.map((d) => d._id?.toString() || d.toString()) || [];
         const newDeviceIds = newDevices || [];
-
         const toAdd = newDeviceIds.filter((id) => !currentDeviceIds.includes(id));
         const toRemove = currentDeviceIds.filter((id) => !newDeviceIds.includes(id));
-
-        for (const deviceId of toAdd) {
-          await truckService.assignDevice(truckId, deviceId);
-        }
-        for (const deviceId of toRemove) {
-          await truckService.unassignDevice(truckId, deviceId);
-        }
+        for (const deviceId of toAdd) await truckService.assignDevice(truckId, deviceId);
+        for (const deviceId of toRemove) await truckService.unassignDevice(truckId, deviceId);
       } else {
         const res = await createMutation.mutateAsync(truckData);
         truckId = res?.data?._id ?? res?._id;
-
         if (newDevices && newDevices.length > 0 && truckId) {
-          for (const deviceId of newDevices) {
-            await truckService.assignDevice(truckId, deviceId);
-          }
+          for (const deviceId of newDevices) await truckService.assignDevice(truckId, deviceId);
         }
       }
     } catch (err) {
@@ -365,10 +314,7 @@ const Trucks = () => {
       toast.error('Select a driver');
       return;
     }
-    await assignDriverMutation.mutateAsync({
-      truckId: selectedTruck._id,
-      driverId: selectedDriverId,
-    });
+    await assignDriverMutation.mutateAsync({ truckId: selectedTruck._id, driverId: selectedDriverId });
   };
 
   const handleUnassignDriver = async (truck) => {
@@ -395,10 +341,7 @@ const Trucks = () => {
       toast.error('Select at least one device');
       return;
     }
-    await assignDevicesMutation.mutateAsync({
-      truckId: selectedTruck._id,
-      deviceIds: selectedDeviceIds,
-    });
+    await assignDevicesMutation.mutateAsync({ truckId: selectedTruck._id, deviceIds: selectedDeviceIds });
   };
 
   const handleUnassignDevice = async (truckId, deviceId) => {
@@ -409,8 +352,8 @@ const Trucks = () => {
 
   if (trucksLoading && !trucksData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
           <TruckIconOutline className="h-8 w-8 text-white" />
         </div>
         <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Trucks...</p>
@@ -421,84 +364,43 @@ const Trucks = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trucks Management</h1>
-          <p className="text-gray-500 mt-1">Manage your fleet of trucks</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Trucks Management</h1>
+          <p className="text-gray-600 mt-1 text-sm">Manage your fleet of trucks</p>
         </div>
         <button
-          onClick={() => {
-            setEditingTruck(null);
-            setIsModalOpen(true);
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+          onClick={() => { setEditingTruck(null); setIsModalOpen(true); }}
+          className="w-full sm:w-auto bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-teal-700"
         >
           <PlusIcon className="h-5 w-5" />
-          Add Truck
+          <span>Add Truck</span>
         </button>
       </div>
 
-      {/* Stat Cards (based on current page data) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
-        <StatCard
-          title="Total Trucks"
-          value={stats.total}
-          icon={TruckIconOutline}
-          color="purple"
-          subtitle="Total fleet size"
-        />
-        <StatCard
-          title="Available"
-          value={stats.available}
-          icon={CheckCircleIcon}
-          color="green"
-          subtitle="Ready for missions"
-        />
-        <StatCard
-          title="In Mission"
-          value={stats.inMission}
-          icon={ClockIcon}
-          color="blue"
-          subtitle="On the road"
-        />
-        <StatCard
-          title="Maintenance"
-          value={stats.maintenance}
-          icon={XCircleIcon}
-          color="yellow"
-          subtitle="In workshop"
-        />
-        <StatCard
-          title="Inactive"
-          value={stats.inactive}
-          icon={XCircleIcon}
-          color="red"
-          subtitle="Out of service"
-        />
-        <StatCard
-          title="With Devices"
-          value={stats.withDevices}
-          icon={CpuChipIcon}
-          color="indigo"
-          subtitle="IoT equipped"
-        />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard title="Total Trucks" value={stats.total}       icon={TruckIconOutline} color="blue" subtitle="Total fleet size" />
+        <StatCard title="Available"    value={stats.available}   icon={CheckCircleIcon}  color="teal" subtitle="Ready for missions" />
+        <StatCard title="In Mission"   value={stats.inMission}   icon={ClockIcon}        color="blue" subtitle="On the road" />
+        <StatCard title="Maintenance"  value={stats.maintenance} icon={XCircleIcon}      color="gold" subtitle="In workshop" />
       </div>
 
       {/* Search & Filter Bar */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
-        <div className="flex gap-4 flex-wrap min-w-0">
+        <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
               placeholder="Search by plate, brand, or model..."
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyPress={handleKeyPress}
             />
           </div>
           <select
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
             value={filters.status}
             onChange={(e) => handleStatusFilter(e.target.value)}
           >
@@ -509,30 +411,22 @@ const Trucks = () => {
             <option value="inactive">Inactive</option>
           </select>
           <select
-            className="px-4 py-2 border rounded-lg"
-            value={
-              filters.archived === undefined
-                ? 'all'
-                : filters.archived === true
-                ? 'archived'
-                : 'active'
-            }
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+            value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'current'}
             onChange={(e) => handleArchiveFilter(e.target.value)}
           >
             <option value="all">All Trucks</option>
-            <option value="active">Current Trucks</option>
+            <option value="current">Current Trucks</option>
             <option value="archived">Archived Trucks</option>
           </select>
           <button
             onClick={handleSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
           >
             <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
           {(filters.status || filters.search || filters.archived !== false) && (
-            <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-              Clear
-            </button>
+            <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Clear</button>
           )}
         </div>
       </div>
@@ -541,7 +435,7 @@ const Trucks = () => {
       {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
             <p className="text-sm text-gray-400 font-medium">Loading trucks...</p>
           </div>
         </div>
@@ -552,29 +446,21 @@ const Trucks = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Plate', 'Model', 'Year', 'Capacity', 'Speed Limit', 'Driver', 'Devices', 'Status', 'Actions'].map(
-                      (h) => (
-                        <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          {h}
-                        </th>
-                      )
-                    )}
+                    {['Plate', 'Model', 'Speed Limit', 'Driver', 'Devices', 'Status', 'Actions'].map((h) => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {trucks.map((truck) => (
                     <tr key={truck._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {truck.displayPlate || truck.licensePlate}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {truck.brand} {truck.model}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{truck.year || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{truck.capacity ? `${truck.capacity}t` : '—'}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{truck.displayPlate || truck.licensePlate}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{truck.brand} {truck.model}</td>
+                      {/* <td className="px-6 py-4 text-sm text-gray-500">{truck.year || '—'}</td> */}
+                      {/* <td className="px-6 py-4 text-sm text-gray-500">{truck.capacity ? `${truck.capacity}t` : '—'}</td> */}
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-1">
-                          <BoltIcon className="h-4 w-4 text-blue-500" />
+                          <BoltIcon className="h-4 w-4 text-teal-500" />
                           <span>{truck.speedLimit || 90} km/h</span>
                         </div>
                       </td>
@@ -583,19 +469,13 @@ const Trucks = () => {
                           <div className="flex items-center gap-2">
                             <UserIcon className="h-4 w-4 text-gray-400" />
                             <span>{truck.driver.name}</span>
-                            <button
-                              onClick={() => handleUnassignDriver(truck)}
-                              className="text-red-500 hover:text-red-700"
-                            >
+                            <button onClick={() => handleUnassignDriver(truck)} className="text-orange-500 hover:text-orange-700">
                               <XCircleIcon className="h-4 w-4" />
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => openAssignDriverModal(truck)}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            Assign Driver
+                          <button onClick={() => openAssignDriverModal(truck)} className="text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1">
+                            <UserIcon className="h-4 w-4" /> Assign Driver
                           </button>
                         )}
                       </td>
@@ -603,26 +483,17 @@ const Trucks = () => {
                         {truck.devices?.length > 0 ? (
                           <div className="space-y-1">
                             {truck.devices.map((device) => (
-                              <div
-                                key={device._id}
-                                className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded"
-                              >
+                              <div key={device._id} className="flex items-center justify-between gap-2 bg-gray-50 p-1 rounded">
                                 <span className="text-xs">{device.deviceId}</span>
-                                <button
-                                  onClick={() => handleUnassignDevice(truck._id, device._id)}
-                                  className="text-red-500"
-                                >
+                                <button onClick={() => handleUnassignDevice(truck._id, device._id)} className="text-orange-500">
                                   <XCircleIcon className="h-3 w-3" />
                                 </button>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <button
-                            onClick={() => openAssignDeviceModal(truck)}
-                            className="text-purple-600 hover:text-purple-800 text-sm"
-                          >
-                            Assign Devices
+                          <button onClick={() => openAssignDeviceModal(truck)} className="text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1">
+                            <CpuChipIcon className="h-4 w-4" /> Assign Devices
                           </button>
                         )}
                       </td>
@@ -636,24 +507,18 @@ const Trucks = () => {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex gap-3">
-                          <button
-                            onClick={() => {
-                              setEditingTruck(truck);
-                              setIsModalOpen(true);
-                            }}
-                            className="text-blue-600"
-                          >
+                          <button onClick={() => { setEditingTruck(truck); setIsModalOpen(true); }} className="text-teal-600 hover:text-teal-800">
                             <PencilIcon className="h-5 w-5" />
                           </button>
-                          <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600">
+                          <Link to={`/dashboard/truck-history/${truck._id}`} className="text-indigo-600 hover:text-indigo-800">
                             <DocumentTextIcon className="h-5 w-5" />
                           </Link>
                           {filters.archived === true ? (
-                            <button onClick={() => handleUnarchive(truck._id)} className="text-green-600">
+                            <button onClick={() => handleUnarchive(truck._id)} className="text-teal-600 hover:text-teal-800">
                               <ArrowUturnLeftIcon className="h-5 w-5" />
                             </button>
                           ) : (
-                            <button onClick={() => handleArchive(truck._id)} className="text-red-600">
+                            <button onClick={() => handleArchive(truck._id)} className="text-orange-500 hover:text-orange-700">
                               <ArchiveBoxArrowDownIcon className="h-5 w-5" />
                             </button>
                           )}
@@ -663,9 +528,7 @@ const Trucks = () => {
                   ))}
                   {trucks.length === 0 && (
                     <tr>
-                      <td colSpan="9" className="px-6 py-12 text-center text-gray-400">
-                        No trucks found
-                      </td>
+                      <td colSpan="9" className="px-6 py-12 text-center text-gray-400">No trucks found</td>
                     </tr>
                   )}
                 </tbody>
@@ -692,68 +555,35 @@ const Trucks = () => {
       </div>
 
       {/* Modals */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingTruck ? 'Edit Truck' : 'Add Truck'}
-        size="lg"
-      >
-        <TruckForm
-          onSubmit={handleSubmit}
-          initialData={editingTruck}
-          devices={availableDevices}
-          onCancel={() => setIsModalOpen(false)}
-        />
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingTruck ? 'Edit Truck' : 'Add Truck'} size="lg">
+        <TruckForm onSubmit={handleSubmit} initialData={editingTruck} devices={availableDevices} onCancel={() => setIsModalOpen(false)} />
       </Modal>
 
-      <Modal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Driver">
+      <Modal isOpen={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Driver" size="sm">
         <div className="space-y-4">
           <select
             value={selectedDriverId}
             onChange={(e) => setSelectedDriverId(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded focus:ring-2 focus:ring-teal-500"
           >
             <option value="">Select driver...</option>
             {availableDrivers.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.name} - {d.licenseNumber}
-              </option>
+              <option key={d._id} value={d._id}>{d.name} - {d.licenseNumber}</option>
             ))}
           </select>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 bg-gray-200 rounded">
-              Cancel
-            </button>
-            <button
-              onClick={handleAssignDriver}
-              disabled={!selectedDriverId}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              Assign
-            </button>
+            <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+            <button onClick={handleAssignDriver} disabled={!selectedDriverId} className="px-4 py-2 bg-teal-600 text-white rounded disabled:opacity-50 hover:bg-teal-700">Assign</button>
           </div>
         </div>
       </Modal>
 
-      <Modal
-        isOpen={showAssignDeviceModal}
-        onClose={() => setShowAssignDeviceModal(false)}
-        title="Assign Devices"
-        size="md"
-      >
+      <Modal isOpen={showAssignDeviceModal} onClose={() => setShowAssignDeviceModal(false)} title="Assign Devices" size="md">
         <div className="space-y-4">
           <div className="max-h-64 overflow-y-auto border rounded">
             {availableDevices.map((device) => (
-              <label
-                key={device._id}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedDeviceIds.includes(device._id)}
-                  onChange={() => handleToggleDevice(device._id)}
-                  className="h-4 w-4"
-                />
+              <label key={device._id} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b">
+                <input type="checkbox" checked={selectedDeviceIds.includes(device._id)} onChange={() => handleToggleDevice(device._id)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" />
                 <CpuChipIcon className="h-5 w-5 text-gray-400" />
                 <div className="flex-1">
                   <p className="font-medium">{device.deviceId}</p>
@@ -764,16 +594,8 @@ const Trucks = () => {
           </div>
           <p className="text-sm">{selectedDeviceIds.length} selected</p>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowAssignDeviceModal(false)} className="px-4 py-2 bg-gray-200 rounded">
-              Cancel
-            </button>
-            <button
-              onClick={handleAssignDevices}
-              disabled={selectedDeviceIds.length === 0}
-              className="px-4 py-2 bg-purple-600 text-white rounded"
-            >
-              Assign
-            </button>
+            <button onClick={() => setShowAssignDeviceModal(false)} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+            <button onClick={handleAssignDevices} disabled={selectedDeviceIds.length === 0} className="px-4 py-2 bg-teal-600 text-white rounded disabled:opacity-50 hover:bg-teal-700">Assign</button>
           </div>
         </div>
       </Modal>

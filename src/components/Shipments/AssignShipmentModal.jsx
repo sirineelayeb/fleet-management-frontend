@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { isAdmin, isShipmentManager } = useAuth();
+  const modalRef = useRef(null);
 
   const isReassign = ['assigned', 'in_progress'].includes(shipment?.status);
 
@@ -32,6 +33,24 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
         d._id !== shipment?.driver
       )
     : driversArray.filter(d => d.status === 'available' && !d.assignedTruck);
+
+  // Handle ESC key press
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  // Handle click outside
+  const handleBackdropClick = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      onClose();
+    }
+  };
 
   const handleCreateTruck = () => {
     if (isAdmin) navigate('/dashboard/trucks');
@@ -58,7 +77,7 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
     const driverId = selectedDriverId || null;
     setLoading(true);
 
-   try {
+    try {
       if (isReassign && typeof onReassign === 'function') {
         await onReassign(shipment._id, selectedTruckId, driverId);
       } else {
@@ -76,13 +95,16 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
   if (!shipment) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-md">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div ref={modalRef} className="bg-white rounded-lg w-full max-w-md">
 
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {isReassign && <ArrowPathIcon className="h-5 w-5 text-purple-500" />}
+            {isReassign && <ArrowPathIcon className="h-5 w-5 text-teal-600" />}
             {isReassign ? 'Reassign Shipment' : 'Assign Shipment'}
           </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -102,17 +124,17 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
               <p className="text-xs font-semibold text-amber-800 mb-1">Current Assignment:</p>
               {shipment.truck && (
                 <p className="text-xs text-amber-700">
-                  🚛 {shipment.truck?.licensePlate || shipment.truck}
+                  Truck: {shipment.truck?.licensePlate || shipment.truck}
                 </p>
               )}
               {shipment.driver && (
                 <p className="text-xs text-amber-700">
-                  👤 {shipment.driver?.name || shipment.driver}
+                  Driver: {shipment.driver?.name || shipment.driver}
                 </p>
               )}
               {shipment.status === 'in_progress' && (
                 <p className="text-xs text-red-600 mt-1 font-medium">
-                  ⚠️ Mission is currently in progress — reassigning will cancel it
+                  Warning: Mission is currently in progress — reassigning will cancel it
                 </p>
               )}
             </div>
@@ -130,7 +152,7 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
               value={selectedTruckId}
               onChange={(e) => setSelectedTruckId(e.target.value)}
               required
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
             >
               <option value="">
                 {isReassign ? 'Select a different truck...' : 'Select a truck...'}
@@ -144,8 +166,7 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
 
             {selectedTruckId && (
               <p className="text-xs text-gray-500 mt-1">
-                Truck's driver:{' '}
-                {availableTrucks.find(t => t._id === selectedTruckId)?.driver?.name || 'None assigned'}
+                Truck's driver: {availableTrucks.find(t => t._id === selectedTruckId)?.driver?.name || 'None assigned'}
               </p>
             )}
 
@@ -157,7 +178,7 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
                 <button
                   type="button"
                   onClick={handleCreateTruck}
-                  className="mt-1 text-sm text-blue-600 hover:underline"
+                  className="mt-1 text-sm text-teal-600 hover:underline"
                 >
                   + Create Truck
                 </button>
@@ -173,7 +194,7 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
             <select
               value={selectedDriverId}
               onChange={(e) => setSelectedDriverId(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
             >
               <option value="">Use truck's assigned driver</option>
               {availableDrivers.map(driver => (
@@ -206,13 +227,13 @@ const AssignShipmentModal = ({ shipment, trucks, drivers, onClose, onAssign, onR
               disabled={loading || availableTrucks.length === 0}
               className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 transition-colors ${
                 isReassign
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : 'bg-blue-600 hover:bg-blue-700'
+                  ? 'bg-teal-600 hover:bg-teal-700'
+                  : 'bg-teal-600 hover:bg-teal-700'
               }`}
             >
               {loading
                 ? (isReassign ? 'Reassigning...' : 'Assigning...')
-                : (isReassign ? '🔄 Reassign' : '✅ Assign Shipment')
+                : (isReassign ? 'Reassign' : 'Assign Shipment')
               }
             </button>
           </div>

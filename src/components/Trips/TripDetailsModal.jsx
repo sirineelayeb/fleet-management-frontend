@@ -267,10 +267,10 @@ const TripDetailsModal = ({ trip, onClose }) => {
   const getOnTimeStatus = () => {
     if (!trip.endTime || !trip.plannedDeliveryDate) return null;
     const diffHours = (new Date(trip.endTime) - new Date(trip.plannedDeliveryDate)) / 3_600_000;
-    if (diffHours <= 0)  return { text: 'Early',    color: 'text-green-600',  icon: '✅' };
-    if (diffHours <= 2)  return { text: 'On Time',  color: 'text-blue-600',   icon: '✓'  };
-    if (diffHours <= 24) return { text: 'Late',      color: 'text-orange-600', icon: '⚠️' };
-    return                      { text: 'Very Late', color: 'text-red-600',    icon: '🔴' };
+    if (diffHours <= 0)  return { text: 'Early',    color: 'text-green-600' };
+    if (diffHours <= 2)  return { text: 'On Time',  color: 'text-blue-600' };
+    if (diffHours <= 24) return { text: 'Late',      color: 'text-orange-600' };
+    return                      { text: 'Very Late', color: 'text-red-600' };
   };
 
   const onTimeStatus = getOnTimeStatus();

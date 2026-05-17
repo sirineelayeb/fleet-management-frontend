@@ -69,7 +69,7 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
   };
 
   const devicesList = Array.isArray(devices) ? devices : (devices?.data || []);
-  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -201,7 +201,7 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
             <button
               type="button"
               onClick={handleSelectAllDevices}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="text-xs text-teal-600 hover:text-teal-800"
             >
               {formData.devices.length === devicesList.length ? 'Deselect All' : 'Select All'}
             </button>
@@ -225,7 +225,7 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
                     type="checkbox"
                     checked={formData.devices.includes(device._id)}
                     onChange={() => handleDeviceToggle(device._id)}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{device.deviceId}</p>
@@ -272,7 +272,7 @@ const TruckForm = ({ onSubmit, initialData, devices, onCancel }) => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
           {initialData ? 'Update' : 'Create'} Truck
         </button>

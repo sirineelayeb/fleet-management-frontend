@@ -41,7 +41,7 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
           { fps: 10, qrbox: { width: 250, height: 150 } },
           (decodedText) => {
             setFormData(prev => ({ ...prev, deviceId: decodedText.trim() }));
-            setScanSuccess(`✅ Device ID scanned: ${decodedText.trim()}`);
+            setScanSuccess(`Device ID scanned: ${decodedText.trim()}`);
             stopScan();
           },
           () => {}
@@ -96,7 +96,7 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
             value={formData.deviceId}
             onChange={handleChange}
             placeholder="Scan QR or enter manually (e.g., A4CF1234ABCD)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
             required
           />
           <button
@@ -105,7 +105,7 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
             className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               scanning
                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
             }`}
           >
             {scanning ? (
@@ -132,7 +132,7 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
       )}
 
       {scanSuccess && (
-        <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+        <p className="text-sm text-teal-600 bg-teal-50 px-3 py-2 rounded-lg">
           {scanSuccess}
         </p>
       )}
@@ -153,7 +153,7 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
           name="truckId"
           value={formData.truckId}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">— Unassigned —</option>
           {trucks.map((truck) => (
@@ -175,7 +175,7 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
           {initialData ? 'Update' : 'Register'} Device
         </button>

@@ -23,6 +23,17 @@ import { deviceService } from '../services/deviceService';
 import StatCard from '../components/Cards/StatCard';
 
 // ============================================
+// BRAND COLORS
+// ============================================
+const COLORS = {
+  orange: '#F29F67',
+  navy:   '#1E1E2C',
+  gold:   '#E0B50F',
+  teal:   '#34B1AA',
+  blue:   '#3B8FF3',
+};
+
+// ============================================
 // UTILITIES
 // ============================================
 
@@ -51,37 +62,36 @@ const EmptyChart = ({ icon: Icon, message, height = 220 }) => (
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600" />
+    <div
+      className="animate-spin rounded-full h-12 w-12 border-b-2"
+      style={{ borderColor: COLORS.orange }}
+    />
   </div>
 );
 
-/** Card with a clean title header separated by a border */
 const ChartCard = ({ title, icon: Icon, iconColor, linkTo, linkColor, children, className = '' }) => (
   <div className={`bg-white rounded-lg shadow flex flex-col h-full ${className}`}>
-    {/* Card header */}
     <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
       <div className="flex items-center gap-2">
-        {Icon && <Icon className={`h-4 w-4 ${iconColor || 'text-gray-400'}`} />}
-        <p className="text-sm font-semibold text-gray-800">{title}</p>
+        {Icon && <Icon className="h-4 w-4" style={{ color: iconColor || '#9ca3af' }} />}
+        <p className="text-sm font-semibold" style={{ color: COLORS.navy }}>{title}</p>
       </div>
       {linkTo && (
-        <Link to={linkTo} className={`text-xs ${linkColor || 'text-gray-400'} hover:opacity-75`}>
+        <Link to={linkTo} className="text-xs hover:opacity-75" style={{ color: linkColor || '#9ca3af' }}>
           View All →
         </Link>
       )}
     </div>
-    {/* Card body */}
     <div className="flex-1 px-5 py-4 flex flex-col justify-center min-h-[220px]">
       {children}
     </div>
   </div>
 );
 
-/** Grouped section title (above a group of cards, not inside) */
 const SectionTitle = ({ icon: Icon, iconColor, title }) => (
   <div className="flex items-center gap-2 mb-4">
-    <Icon className={`h-5 w-5 ${iconColor}`} />
-    <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+    <Icon className="h-5 w-5" style={{ color: iconColor }} />
+    <h2 className="text-base font-semibold" style={{ color: COLORS.navy }}>{title}</h2>
   </div>
 );
 
@@ -201,17 +211,17 @@ const useStats = (trucks, shipments, notifications, drivers, devices) =>
 
 const FleetRadialChart = ({ stats }) => {
   const data = [
-    { name: 'Available',   value: stats.trucks.available,   fill: '#22c55e' },
-    { name: 'In Mission',  value: stats.trucks.inMission,   fill: '#3b82f6' },
-    { name: 'Maintenance', value: stats.trucks.maintenance, fill: '#f97316' },
-    { name: 'Inactive',    value: stats.trucks.inactive,    fill: '#9ca3af' },
+    { name: 'Available',   value: stats.trucks.available,   fill: COLORS.teal   },
+    { name: 'In Mission',  value: stats.trucks.inMission,   fill: COLORS.blue   },
+    { name: 'Maintenance', value: stats.trucks.maintenance, fill: COLORS.orange  },
+    { name: 'Inactive',    value: stats.trucks.inactive,    fill: '#9ca3af'      },
   ];
 
   return (
     <ChartCard
       title="Fleet status breakdown"
-      icon={TruckIcon} iconColor="text-pink-500"
-      linkTo="/dashboard/trucks" linkColor="text-pink-600"
+      icon={TruckIcon} iconColor={COLORS.orange}
+      linkTo="/dashboard/trucks" linkColor={COLORS.orange}
     >
       {stats.trucks.total === 0 ? (
         <EmptyChart icon={TruckIcon} message="No trucks registered yet" />
@@ -247,9 +257,9 @@ const FleetRadialChart = ({ stats }) => {
 };
 
 const DONUT_COLORS = {
-  'Completed':   '#22c55e',
-  'In Progress': '#3b82f6',
-  'Pending':     '#f97316',
+  'Completed':   COLORS.teal,
+  'In Progress': COLORS.blue,
+  'Pending':     COLORS.orange,
   'Cancelled':   '#9ca3af',
 };
 
@@ -264,14 +274,13 @@ const ShipmentDonutChart = ({ stats }) => {
   return (
     <ChartCard
       title="Shipment status distribution"
-      icon={CubeIcon} iconColor="text-purple-500"
-      linkTo="/dashboard/shipments" linkColor="text-purple-600"
+      icon={CubeIcon} iconColor={COLORS.blue}
+      linkTo="/dashboard/shipments" linkColor={COLORS.blue}
     >
       {stats.shipments.total === 0 ? (
         <EmptyChart icon={CubeIcon} message="No shipments recorded yet" />
       ) : (
         <div className="flex flex-col lg:flex-row items-center gap-6">
-          {/* Donut */}
           <div className="w-full lg:w-1/2">
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -292,7 +301,6 @@ const ShipmentDonutChart = ({ stats }) => {
             </ResponsiveContainer>
           </div>
 
-          {/* Legend list */}
           <div className="w-full lg:w-1/2 space-y-2">
             {donutData.map((item) => (
               <div key={item.name} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
@@ -333,8 +341,8 @@ const DriverRadarChart = ({ stats }) => {
   return (
     <ChartCard
       title="Operations health radar"
-      icon={UserGroupIcon} iconColor="text-green-500"
-      linkTo="/dashboard/drivers" linkColor="text-green-600"
+      icon={UserGroupIcon} iconColor={COLORS.teal}
+      linkTo="/dashboard/drivers" linkColor={COLORS.teal}
     >
       {stats.drivers.total === 0 ? (
         <EmptyChart icon={UserGroupIcon} message="No operational data yet" />
@@ -346,8 +354,8 @@ const DriverRadarChart = ({ stats }) => {
             <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
             <Radar
               name="System" dataKey="value"
-              stroke="#d4537e" fill="#d4537e" fillOpacity={0.25}
-              dot={{ r: 3, fill: '#d4537e' }}
+              stroke={COLORS.orange} fill={COLORS.orange} fillOpacity={0.25}
+              dot={{ r: 3, fill: COLORS.orange }}
             />
             <Tooltip formatter={(val) => [`${val}%`]} />
           </RadarChart>
@@ -386,8 +394,8 @@ const TrendAreaChart = ({ devices, notifications }) => {
   return (
     <ChartCard
       title="Weekly devices & alerts trend"
-      icon={DevicePhoneMobileIcon} iconColor="text-indigo-500"
-      linkTo="/dashboard/devices" linkColor="text-indigo-600"
+      icon={DevicePhoneMobileIcon} iconColor={COLORS.blue}
+      linkTo="/dashboard/devices" linkColor={COLORS.blue}
     >
       {!hasData ? (
         <EmptyChart icon={DevicePhoneMobileIcon} message="No device activity this week" />
@@ -397,28 +405,28 @@ const TrendAreaChart = ({ devices, notifications }) => {
             <AreaChart data={weeklyData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="gDevices" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%"  stopColor={COLORS.blue} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gAlerts" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                  <stop offset="5%"  stopColor={COLORS.orange} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={COLORS.orange} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9ca3af' }} />
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
               <Tooltip />
-              <Area type="monotone" dataKey="devices" stroke="#6366f1" fill="url(#gDevices)" strokeWidth={2} name="Devices online" />
-              <Area type="monotone" dataKey="alerts"  stroke="#ef4444" fill="url(#gAlerts)"  strokeWidth={2} name="Active alerts" />
+              <Area type="monotone" dataKey="devices" stroke={COLORS.blue}   fill="url(#gDevices)" strokeWidth={2} name="Devices online" />
+              <Area type="monotone" dataKey="alerts"  stroke={COLORS.orange} fill="url(#gAlerts)"  strokeWidth={2} name="Active alerts" />
             </AreaChart>
           </ResponsiveContainer>
           <div className="flex gap-4 mt-3">
             <span className="flex items-center gap-1 text-xs text-gray-500">
-              <span className="inline-block w-3 h-0.5 bg-indigo-500" /> Devices online
+              <span className="inline-block w-3 h-0.5" style={{ backgroundColor: COLORS.blue }} /> Devices online
             </span>
             <span className="flex items-center gap-1 text-xs text-gray-500">
-              <span className="inline-block w-3 h-0.5 bg-red-500" /> Active alerts
+              <span className="inline-block w-3 h-0.5" style={{ backgroundColor: COLORS.orange }} /> Active alerts
             </span>
           </div>
         </>
@@ -428,24 +436,24 @@ const TrendAreaChart = ({ devices, notifications }) => {
 };
 
 const getScoreColor = (score) => {
-  if (score >= 90) return '#22c55e';
-  if (score >= 75) return '#3b82f6';
-  if (score >= 60) return '#eab308';
-  return '#ef4444';
+  if (score >= 90) return COLORS.teal;
+  if (score >= 75) return COLORS.blue;
+  if (score >= 60) return COLORS.gold;
+  return COLORS.orange;
 };
 
-const getBadgeColor = (score) => {
-  if (score >= 90) return 'bg-green-100 text-green-700';
-  if (score >= 75) return 'bg-blue-100 text-blue-700';
-  if (score >= 60) return 'bg-yellow-100 text-yellow-700';
-  return 'bg-red-100 text-red-700';
+const getBadgeStyle = (score) => {
+  if (score >= 90) return { background: '#d1faf8', color: '#0f6e56' };
+  if (score >= 75) return { background: '#dbeafe', color: '#1e40af' };
+  if (score >= 60) return { background: '#fef9c3', color: '#854d0e' };
+  return { background: '#ffedd5', color: '#9a3412' };
 };
 
 const DriverScoreChart = ({ stats }) => (
   <ChartCard
     title="Top driver performance scores"
-    icon={StarIcon} iconColor="text-yellow-500"
-    linkTo="/dashboard/drivers" linkColor="text-yellow-600"
+    icon={StarIcon} iconColor={COLORS.gold}
+    linkTo="/dashboard/drivers" linkColor={COLORS.gold}
   >
     {stats.drivers.scoreData.length === 0 ? (
       <EmptyChart icon={UserGroupIcon} message="No driver scores available yet" />
@@ -473,13 +481,13 @@ const DriverScoreChart = ({ stats }) => (
         </ResponsiveContainer>
         <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-100">
           {[
-            { color: 'bg-green-500',  label: 'Excellent (90–100)' },
-            { color: 'bg-blue-500',   label: 'Good (75–89)' },
-            { color: 'bg-yellow-500', label: 'Average (60–74)' },
-            { color: 'bg-red-500',    label: 'Needs training (<60)' },
+            { color: COLORS.teal,   label: 'Excellent (90–100)' },
+            { color: COLORS.blue,   label: 'Good (75–89)' },
+            { color: COLORS.gold,   label: 'Average (60–74)' },
+            { color: COLORS.orange, label: 'Needs training (<60)' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${color}`} />
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
               <span className="text-xs text-gray-600">{label}</span>
             </div>
           ))}
@@ -491,17 +499,17 @@ const DriverScoreChart = ({ stats }) => (
 
 const DriverRankingList = ({ stats }) => {
   const getMedal = (rank) => {
-    if (rank === 0) return <TrophyIcon className="h-5 w-5 text-yellow-500" />;
+    if (rank === 0) return <TrophyIcon className="h-5 w-5" style={{ color: COLORS.gold }} />;
     if (rank === 1) return <TrophyIcon className="h-5 w-5 text-gray-400" />;
-    if (rank === 2) return <TrophyIcon className="h-5 w-5 text-amber-600" />;
+    if (rank === 2) return <TrophyIcon className="h-5 w-5" style={{ color: COLORS.orange }} />;
     return <span className="text-gray-400 font-bold text-sm">#{rank + 1}</span>;
   };
 
   return (
     <ChartCard
       title="Driver performance rankings"
-      icon={TrophyIcon} iconColor="text-amber-500"
-      linkTo="/dashboard/drivers" linkColor="text-amber-600"
+      icon={TrophyIcon} iconColor={COLORS.gold}
+      linkTo="/dashboard/drivers" linkColor={COLORS.gold}
     >
       {stats.drivers.scoreData.length === 0 ? (
         <EmptyChart icon={TrophyIcon} message="No driver rankings available yet" />
@@ -516,7 +524,7 @@ const DriverRankingList = ({ stats }) => {
               <div className="flex items-center gap-3">
                 <div className="w-8 flex justify-center">{getMedal(idx)}</div>
                 <div>
-                  <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition text-sm">
+                  <p className="font-semibold text-gray-900 group-hover:opacity-75 transition text-sm">
                     {driver.fullName || driver.name}
                   </p>
                   <p className="text-xs text-gray-500">
@@ -525,10 +533,16 @@ const DriverRankingList = ({ stats }) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`px-2 py-1 rounded-full text-xs font-bold ${getBadgeColor(driver.score)}`}>
+                <div
+                  className="px-2 py-1 rounded-full text-xs font-bold"
+                  style={getBadgeStyle(driver.score)}
+                >
                   {driver.score}%
                 </div>
-                <StarIcon className={`h-4 w-4 ${driver.score >= 90 ? 'text-yellow-500' : 'text-gray-300'}`} />
+                <StarIcon
+                  className="h-4 w-4"
+                  style={{ color: driver.score >= 90 ? COLORS.gold : '#d1d5db' }}
+                />
               </div>
             </Link>
           ))}
@@ -553,7 +567,7 @@ const AdminDashboard = () => {
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold" style={{ color: COLORS.navy }}>Admin Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Real-time system overview</p>
       </div>
 
@@ -562,13 +576,13 @@ const AdminDashboard = () => {
         <StatCard
           title="Fleet utilization"
           value={stats.trucks.total === 0 ? '—' : `${stats.trucks.utilization}%`}
-          icon={TruckIcon} color="pink"
+          icon={TruckIcon} color="orange"
           subtitle={`${stats.trucks.inMission} / ${stats.trucks.total} in mission`}
         />
         <StatCard
           title="Delivery success"
           value={stats.shipments.total === 0 ? '—' : `${stats.shipments.successRate}%`}
-          icon={CheckCircleIcon} color="green"
+          icon={CheckCircleIcon} color="gold"
           subtitle={`${fmt(stats.shipments.completed)} completed`}
         />
         <StatCard
@@ -580,7 +594,7 @@ const AdminDashboard = () => {
         <StatCard
           title="Devices online"
           value={stats.devices.total === 0 ? '—' : `${stats.devices.onlineRate}%`}
-          icon={DevicePhoneMobileIcon} color="purple"
+          icon={DevicePhoneMobileIcon} color="blue"
           subtitle={`${stats.devices.active} / ${stats.devices.total} active`}
         />
       </div>
@@ -598,14 +612,14 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── Drivers section ── */}
-      <SectionTitle icon={UserGroupIcon} iconColor="text-amber-500" title="Drivers" />
+      <SectionTitle icon={UserGroupIcon} iconColor={COLORS.gold} title="Drivers" />
 
       {/* Driver mini-stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total drivers"  value={stats.drivers.total}                         icon={UserGroupIcon}   color="purple" />
-        <StatCard title="Available"      value={stats.drivers.available}                     icon={CheckCircleIcon} color="green"  />
+        <StatCard title="Total drivers"  value={stats.drivers.total}                         icon={UserGroupIcon}   color="navy"   />
+        <StatCard title="Available"      value={stats.drivers.available}                     icon={CheckCircleIcon} color="teal"   />
         <StatCard title="Off duty"       value={stats.drivers.busy}                          icon={TruckIcon}       color="blue"   />
-        <StatCard title="Avg score"      value={`${stats.drivers.averageScore.toFixed(0)}%`} icon={StarIcon}        color="yellow" />
+        <StatCard title="Avg score"      value={`${stats.drivers.averageScore.toFixed(0)}%`} icon={StarIcon}        color="gold"   />
       </div>
 
       {/* Driver charts */}
@@ -618,15 +632,16 @@ const AdminDashboard = () => {
       {stats.notifications.high > 0 && (
         <Link
           to="/dashboard/notifications"
-          className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-4 hover:bg-red-100 transition"
+          className="flex items-center justify-between rounded-lg p-4 hover:opacity-90 transition"
+          style={{ background: '#fff3ed', border: `1px solid ${COLORS.orange}` }}
         >
           <div className="flex items-center gap-2">
-            <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
-            <span className="text-sm font-medium text-red-700">
+            <ExclamationTriangleIcon className="h-5 w-5" style={{ color: COLORS.orange }} />
+            <span className="text-sm font-medium" style={{ color: COLORS.navy }}>
               {stats.notifications.high} high-priority alert{stats.notifications.high > 1 ? 's' : ''} require attention
             </span>
           </div>
-          <span className="text-sm text-red-600">View →</span>
+          <span className="text-sm" style={{ color: COLORS.orange }}>View →</span>
         </Link>
       )}
 

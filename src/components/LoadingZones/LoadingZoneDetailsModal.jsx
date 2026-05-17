@@ -70,13 +70,13 @@ const LoadingZoneDetailsModal = ({ zone, onClose }) => {
           </div>
         </div>
 
-        {/* Status */}
+        {/* Status - now uses teal for active to match theme */}
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
             zone.status === 'active' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
+              ? 'bg-teal-100 text-teal-800' 
+              : 'bg-gray-100 text-gray-600'
           }`}>
             {zone.status?.toUpperCase() || 'UNKNOWN'}
           </span>

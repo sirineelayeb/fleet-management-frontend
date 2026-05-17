@@ -18,6 +18,17 @@ import {
 import { getStatusBadge, getStatusText } from '../constants/colors';
 
 // ============================================
+// BRAND COLORS
+// ============================================
+const COLORS = {
+  orange: '#F29F67',
+  navy:   '#1E1E2C',
+  gold:   '#E0B50F',
+  teal:   '#34B1AA',
+  blue:   '#3B8FF3',
+};
+
+// ============================================
 // UTILITIES
 // ============================================
 
@@ -30,11 +41,11 @@ const toArray = (r) => {
 const pct = (v, t) => (t > 0 ? parseFloat(((v / t) * 100).toFixed(1)) : 0);
 
 const DONUT_COLORS = {
-  Completed:   '#10b981',
-  'In Progress': '#3b82f6',
-  Assigned:    '#8b5cf6',
-  Pending:     '#f59e0b',
-  Cancelled:   '#ef4444',
+  Completed:     COLORS.teal,
+  'In Progress': COLORS.blue,
+  Assigned:      COLORS.gold,
+  Pending:       COLORS.orange,
+  Cancelled:     '#9ca3af',
 };
 
 // ============================================
@@ -50,7 +61,7 @@ const EmptyChart = ({ icon: Icon, message, height = 240 }) => (
 );
 
 // ============================================
-// CHART COMPONENTS (isolated for hook safety)
+// CHART COMPONENTS
 // ============================================
 
 const ShipmentDonutChart = ({ donutData }) => {
@@ -116,8 +127,6 @@ const VehicleBarChart = ({ vehicleData }) => {
   );
 };
 
-// ✅ FIX: weeklyTrend now derived from real shipment data grouped by week,
-//    not Math.random() — which produced different values on every render.
 const WeeklyTrendChart = ({ shipments }) => {
   const weeklyTrend = useMemo(() => {
     const now = new Date();
@@ -155,8 +164,8 @@ const WeeklyTrendChart = ({ shipments }) => {
         <YAxis allowDecimals={false} />
         <Tooltip />
         <Legend />
-        <Line type="monotone" dataKey="shipments" stroke="#3b82f6" strokeWidth={2} name="Total Shipments" />
-        <Line type="monotone" dataKey="completed"  stroke="#10b981" strokeWidth={2} name="Completed" />
+        <Line type="monotone" dataKey="shipments" stroke={COLORS.blue}   strokeWidth={2} name="Total Shipments" />
+        <Line type="monotone" dataKey="completed"  stroke={COLORS.teal}  strokeWidth={2} name="Completed" />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -164,9 +173,9 @@ const WeeklyTrendChart = ({ shipments }) => {
 
 const PerformanceBars = ({ onTimeRate, utilizationRate, completionRate }) => {
   const metrics = [
-    { label: 'On-Time Delivery',  value: onTimeRate,      color: 'bg-green-500',  textColor: 'text-green-600'  },
-    { label: 'Fleet Utilization', value: utilizationRate, color: 'bg-blue-500',   textColor: 'text-blue-600'   },
-    { label: 'Completion Rate',   value: completionRate,  color: 'bg-purple-500', textColor: 'text-purple-600' },
+    { label: 'On-Time Delivery',  value: onTimeRate,      color: COLORS.teal,   textColor: COLORS.teal   },
+    { label: 'Fleet Utilization', value: utilizationRate, color: COLORS.blue,   textColor: COLORS.blue   },
+    { label: 'Completion Rate',   value: completionRate,  color: COLORS.orange, textColor: COLORS.orange },
   ];
 
   return (
@@ -175,12 +184,12 @@ const PerformanceBars = ({ onTimeRate, utilizationRate, completionRate }) => {
         <div key={label}>
           <div className="flex justify-between text-sm mb-1">
             <span className="text-gray-600">{label}</span>
-            <span className={`font-semibold ${textColor}`}>{value}%</span>
+            <span className="font-semibold" style={{ color: textColor }}>{value}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className={`${color} rounded-full h-2 transition-all`}
-              style={{ width: `${Math.min(value, 100)}%` }}
+              className="rounded-full h-2 transition-all"
+              style={{ width: `${Math.min(value, 100)}%`, backgroundColor: color }}
             />
           </div>
         </div>
@@ -276,7 +285,6 @@ const ShipmentManagerDashboard = () => {
     utilizationRate:    truckStats?.utilizationRate || 0,
   }), [shipments, shipmentStats, truckStats]);
 
-  // ✅ FIX: on-time rate derived correctly — no random data
   const onTimeRate = useMemo(() => {
     const completed = shipments.filter(s => s.status === 'completed');
     const onTime = completed.filter(
@@ -288,7 +296,6 @@ const ShipmentManagerDashboard = () => {
 
   const completionRate = pct(stats.deliveredShipments, stats.totalShipments);
 
-  // ✅ FIX: avgCompletionTime derived from real data, not hardcoded "2.4 days"
   const avgCompletionTime = useMemo(() => {
     const completed = shipments.filter(
       s => s.status === 'completed' && s.createdAt && s.actualDeliveryDate
@@ -316,9 +323,9 @@ const ShipmentManagerDashboard = () => {
   ].filter(d => d.value > 0);
 
   const vehicleData = [
-    { name: 'Available',   value: stats.availableTrucks,   color: '#22c55e' },
-    { name: 'In Mission',  value: stats.onRoadTrucks,      color: '#3b82f6' },
-    { name: 'Maintenance', value: stats.maintenanceTrucks, color: '#f97316' },
+    { name: 'Available',   value: stats.availableTrucks,   color: COLORS.teal   },
+    { name: 'In Mission',  value: stats.onRoadTrucks,      color: COLORS.blue   },
+    { name: 'Maintenance', value: stats.maintenanceTrucks, color: COLORS.orange },
   ].filter(v => v.value > 0);
 
   const recentShipments = shipments.slice(0, 5);
@@ -335,7 +342,9 @@ const ShipmentManagerDashboard = () => {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Shipment Manager Dashboard</h1>
+            <h1 className="text-3xl font-bold" style={{ color: COLORS.navy }}>
+              Shipment Manager Dashboard
+            </h1>
             <p className="text-gray-600 mt-1">Track shipments and monitor fleet performance</p>
             <p className="text-xs text-gray-400 mt-2">Last updated: {lastRefresh.toLocaleTimeString()}</p>
           </div>
@@ -353,13 +362,13 @@ const ShipmentManagerDashboard = () => {
           <StatCard
             title="Total Shipments"
             value={stats.totalShipments || '—'}
-            icon={CubeIcon} color="purple"
+            icon={CubeIcon} color="blue"
             subtitle={`${stats.inTransitShipments} in transit`}
           />
           <StatCard
             title="Completion Rate"
             value={stats.totalShipments === 0 ? '—' : `${completionRate}%`}
-            icon={CheckCircleIcon} color="green"
+            icon={CheckCircleIcon} color="teal"
             subtitle={`${stats.deliveredShipments} of ${stats.totalShipments} completed`}
           />
           <StatCard
@@ -387,36 +396,39 @@ const ShipmentManagerDashboard = () => {
           <StatCard
             title="Pending Shipments"
             value={stats.pendingShipments}
-            icon={CalendarIcon} color="yellow"
+            icon={CalendarIcon} color="gold"
             subtitle="Awaiting assignment"
           />
-          {/* ✅ FIX: real avg from data, not hardcoded "2.4 days" */}
           <StatCard
             title="Avg Completion Time"
             value={avgCompletionTime ? `${avgCompletionTime}d` : '—'}
-            icon={ArrowTrendingUpIcon} color="indigo"
+            icon={ArrowTrendingUpIcon} color="navy"
             subtitle="Based on completed shipments"
           />
         </div>
 
         {/* Delayed Shipments Alert */}
         {delayedShipments.length > 0 && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div
+            className="mb-8 p-4 rounded-xl"
+            style={{ background: '#fff3ed', border: `1px solid ${COLORS.orange}` }}
+          >
             <div className="flex items-center gap-2 mb-2">
-              <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
-              <h3 className="font-semibold text-red-800">
+              <ExclamationTriangleIcon className="h-5 w-5" style={{ color: COLORS.orange }} />
+              <h3 className="font-semibold" style={{ color: COLORS.navy }}>
                 Delayed Shipments ({delayedShipments.length})
               </h3>
             </div>
             <div className="space-y-2">
               {delayedShipments.slice(0, 5).map(s => (
                 <div key={s._id} className="flex justify-between items-center text-sm">
-                  <span className="font-mono">
+                  <span className="font-mono text-gray-700">
                     {s.shipmentId || s._id.slice(-8)} – {s.origin} → {s.destination}
                   </span>
                   <Link
                     to={`/shipment_manager/shipments/${s._id}`}
-                    className="text-blue-600 text-xs hover:underline"
+                    className="text-xs hover:underline"
+                    style={{ color: COLORS.blue }}
                   >
                     View Details
                   </Link>
@@ -429,11 +441,15 @@ const ShipmentManagerDashboard = () => {
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Shipment Status Distribution</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: COLORS.navy }}>
+              Shipment Status Distribution
+            </h2>
             <ShipmentDonutChart donutData={donutData} />
           </div>
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">🚛 Vehicle Fleet Status</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: COLORS.navy }}>
+              Vehicle Fleet Status
+            </h2>
             <VehicleBarChart vehicleData={vehicleData} />
           </div>
         </div>
@@ -441,12 +457,15 @@ const ShipmentManagerDashboard = () => {
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📈 Weekly Shipment Trend</h2>
-            {/* ✅ passes real shipments — no random data */}
+            <h2 className="text-lg font-semibold mb-4" style={{ color: COLORS.navy }}>
+              Weekly Shipment Trend
+            </h2>
             <WeeklyTrendChart shipments={shipments} />
           </div>
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">🎯 Performance Metrics</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: COLORS.navy }}>
+              Performance Metrics
+            </h2>
             <PerformanceBars
               onTimeRate={onTimeRate}
               utilizationRate={stats.utilizationRate}
@@ -457,20 +476,20 @@ const ShipmentManagerDashboard = () => {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold mb-4" style={{ color: COLORS.navy }}>Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { to: '/shipment_manager/shipments', icon: CubeIcon,      color: 'text-blue-600',   title: 'Manage Shipments', desc: 'View and manage all shipments' },
-              { to: '/shipment_manager/map',       icon: MapIcon,       color: 'text-green-600',  title: 'Live Map',         desc: 'Real-time fleet tracking' },
-              { to: '/shipment_manager/reports',   icon: ChartBarIcon,  color: 'text-purple-600', title: 'Reports',          desc: 'View detailed analytics' },
+              { to: '/shipment_manager/shipments', icon: CubeIcon,     color: COLORS.blue,   title: 'Manage Shipments', desc: 'View and manage all shipments' },
+              { to: '/shipment_manager/map',       icon: MapIcon,       color: COLORS.teal,   title: 'Live Map',         desc: 'Real-time fleet tracking' },
+              { to: '/shipment_manager/reports',   icon: ChartBarIcon,  color: COLORS.orange, title: 'Reports',          desc: 'View detailed analytics' },
             ].map(({ to, icon: Icon, color, title, desc }) => (
               <Link
                 key={to}
                 to={to}
                 className="bg-white rounded-xl shadow-sm border p-4 hover:shadow-md transition group"
               >
-                <Icon className={`h-8 w-8 ${color} mb-2 group-hover:scale-110 transition`} />
-                <h3 className="font-semibold">{title}</h3>
+                <Icon className="h-8 w-8 mb-2 group-hover:scale-110 transition" style={{ color }} />
+                <h3 className="font-semibold" style={{ color: COLORS.navy }}>{title}</h3>
                 <p className="text-sm text-gray-500">{desc}</p>
               </Link>
             ))}
@@ -480,8 +499,12 @@ const ShipmentManagerDashboard = () => {
         {/* Recent Shipments */}
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="flex justify-between items-center p-6 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Shipments</h2>
-            <Link to="/shipment_manager/shipments" className="text-blue-600 text-sm hover:underline">
+            <h2 className="text-lg font-semibold" style={{ color: COLORS.navy }}>Recent Shipments</h2>
+            <Link
+              to="/shipment_manager/shipments"
+              className="text-sm hover:underline"
+              style={{ color: COLORS.blue }}
+            >
               View All →
             </Link>
           </div>
@@ -510,7 +533,8 @@ const ShipmentManagerDashboard = () => {
                     </div>
                     <Link
                       to={`/shipment_manager/shipments/${shipment._id}`}
-                      className="px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                      className="px-3 py-1.5 text-sm rounded-lg hover:opacity-80 transition"
+                      style={{ color: COLORS.blue, border: `1px solid ${COLORS.blue}20` }}
                     >
                       View Details
                     </Link>

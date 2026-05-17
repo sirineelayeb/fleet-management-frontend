@@ -10,10 +10,12 @@ import { getStatusText } from '../constants/colors';
 import webSocketService from '../services/websocket';
 import MapStyleSwitcher from '../components/Common/MapStyleSwitcher';
 import { getSavedMapPreference, saveMapPreference, MAP_STYLES, getRouteColor } from '../config/mapConfig';
+import { useAuth } from '../context/AuthContext';
+import { shipmentService } from '../services/shipmentService';
 import {
   TruckIcon, ClockIcon, MapPinIcon, ChevronRightIcon,
   BoltIcon, XMarkIcon, GlobeAltIcon, SignalIcon,
-  MapIcon
+  MapIcon, ChevronUpIcon, ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 // ---------- Fix Leaflet default icon ----------
@@ -36,18 +38,14 @@ const hasCoords = (obj) =>
   obj.lng !== null &&
   !isNaN(obj.lat) &&
   !isNaN(obj.lng) &&
-  !(obj.lat === 0 && obj.lng === 0)
+  !(obj.lat === 0 && obj.lng === 0);
 
 const getLocationFromTruck = (truck) => {
   const loc = truck?.currentLocation;
   if (!loc) return null;
-  
   const lat = Number(loc.lat);
   const lng = Number(loc.lng);
-  
-  // Treat 0,0 as no location (default unset value)
   if (lat === 0 && lng === 0) return null;
-
   return { lat, lng };
 };
 
@@ -93,14 +91,25 @@ const fetchRoutePoints = async (truckId, limit = 500) => {
   }
 };
 
-// ─── Truck icon (receives full truck object) ─────────────────────────────────
+// ─── Custom hook: detect mobile ─────────────────────────────────────────────
 
-const STATUS_COLORS = {
-  in_mission: '#3B82F6',
-  available: '#6B7280',
-  maintenance: '#F59E0B',
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
 };
 
+// ─── Truck icon ──────────────────────────────────────────────────────────────
+
+const STATUS_COLORS = {
+  in_mission: '#3B8FF3',   // BRAND.blue
+  available: '#9CA3AF',    // BRAND.gray
+  maintenance: '#E0B50F',  // BRAND.gold
+};
 const createTruckIcon = (truck, isSelected = false) => {
   const color = STATUS_COLORS[truck?.status] || '#6B7280';
   const speed = getSpeedFromTruck(truck);
@@ -179,31 +188,23 @@ const RouteLines = ({ routes, mapStyle }) => {
     </>
   );
 };
+
 const RoutePointsMarkers = ({ routes, visible }) => {
   if (!visible) return null;
-
-  // Small semi-transparent circle icon for each historical point
   const pointIcon = L.divIcon({
-    html: `<div style="background:#3B82F6; width:6px; height:6px; border-radius:50%; border:1px solid white; opacity:0.7;"></div>`,
+    html: `<div style="background:#34B1AA;width:6px;height:6px;border-radius:50%;border:1px solid white;opacity:0.7;"></div>`,
     className: '',
     iconSize: [6, 6],
     iconAnchor: [3, 3],
   });
-
   return (
     <>
       {Object.entries(routes).map(([truckId, points]) => {
         if (!points || points.length === 0) return null;
         return points.map((point, idx) => (
-          <Marker
-            key={`${truckId}-point-${idx}`}
-            position={[point[0], point[1]]}
-            icon={pointIcon}
-            // Optional: add a popup with order index and timestamp
-            // interactive={false}  // uncomment to make them non-clickable
-          >
+          <Marker key={`${truckId}-point-${idx}`} position={[point[0], point[1]]} icon={pointIcon}>
             <Popup>
-              <span className="text-xs">Point #{idx + 1}<br/>{point[0].toFixed(5)}, {point[1].toFixed(5)}</span>
+              <span className="text-xs">Point #{idx + 1}<br />{point[0].toFixed(5)}, {point[1].toFixed(5)}</span>
             </Popup>
           </Marker>
         ));
@@ -211,22 +212,18 @@ const RoutePointsMarkers = ({ routes, visible }) => {
     </>
   );
 };
-// ─── Shipment origin/destination markers ────────────────────────────────────
+
+// ─── Shipment markers ────────────────────────────────────────────────────────
 
 const ShipmentMarkers = ({ trucks }) => {
   const startIcon = L.divIcon({
-    html: `<div style="background:#10B981;width:18px;height:18px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
-    className: '',
-    iconSize: [18, 18],
-    popupAnchor: [0, -10],
+    html: `<div style="background:#34B1AA;width:18px;height:18px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
+    className: '', iconSize: [18, 18], popupAnchor: [0, -10],
   });
   const endIcon = L.divIcon({
-    html: `<div style="background:#EF4444;width:18px;height:18px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
-    className: '',
-    iconSize: [18, 18],
-    popupAnchor: [0, -10],
+    html: `<div style="background:#F29F67;width:18px;height:18px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
+    className: '', iconSize: [18, 18], popupAnchor: [0, -10],
   });
-
   return (
     <>
       {trucks.map((truck) => {
@@ -251,7 +248,7 @@ const ShipmentMarkers = ({ trucks }) => {
   );
 };
 
-// ─── Fit bounds on first load ────────────────────────────────────────────────
+// ─── Fit bounds ──────────────────────────────────────────────────────────────
 
 const FitBounds = ({ markers, done }) => {
   const map = useMap();
@@ -266,13 +263,28 @@ const FitBounds = ({ markers, done }) => {
   return null;
 };
 
+const PanToTruck = ({ truck }) => {
+  const map = useMap();
+  const prevTruckId = useRef();
+  useEffect(() => {
+    if (!truck) return;
+    const location = getLocationFromTruck(truck);
+    if (!location) return;
+    const truckId = getTruckId(truck);
+    if (prevTruckId.current === truckId) return;
+    prevTruckId.current = truckId;
+    map.flyTo([location.lat, location.lng], map.getZoom(), { animate: true, duration: 0.8 });
+  }, [truck, map]);
+  return null;
+};
+
 // ─── Sidebar helpers ─────────────────────────────────────────────────────────
 
 const STATUS_BADGE = {
-  in_mission: 'bg-blue-100 text-blue-800',
-  on_road: 'bg-green-100 text-green-800',
-  available: 'bg-gray-100 text-gray-700',
-  maintenance: 'bg-yellow-100 text-yellow-800',
+  in_mission: 'bg-blue-100 text-blue-700',
+  on_road:    'bg-teal-100 text-teal-700',
+  available:  'bg-gray-100 text-gray-600',
+  maintenance:'bg-yellow-100 text-yellow-700',
 };
 
 const StatusBadge = ({ status }) => (
@@ -283,12 +295,12 @@ const StatusBadge = ({ status }) => (
 
 const getSpeedColor = (speed) => {
   if (!speed || speed === 0) return 'text-gray-400';
-  if (speed < 60) return 'text-emerald-600';
-  if (speed < 90) return 'text-amber-500';
-  return 'text-red-500';
+    if (speed < 60) return 'text-teal-600';
+    if (speed < 90) return 'text-yellow-600';
+    return 'text-orange-500';
 };
 
-// ─── Live location card (always visible when truck selected) ─────────────────
+// ─── Live location card ───────────────────────────────────────────────────────
 
 const LiveLocationCard = ({ truck }) => {
   const location = getLocationFromTruck(truck);
@@ -297,7 +309,6 @@ const LiveLocationCard = ({ truck }) => {
   const [locationName, setLocationName] = useState('Locating…');
   const prevLocRef = useRef(null);
 
-  // Re-geocode only when coordinates actually change
   useEffect(() => {
     if (!location) return;
     const key = `${location.lat.toFixed(4)},${location.lng.toFixed(4)}`;
@@ -310,9 +321,8 @@ const LiveLocationCard = ({ truck }) => {
   const isMoving = speed > 0;
 
   return (
-    <div className="mx-3 mb-3 rounded-xl overflow-hidden border border-blue-200 shadow-sm">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 flex items-center justify-between">
+    <div className="mx-3 mb-3 rounded-xl overflow-hidden border border-teal-200 shadow-sm">
+      <div className="bg-gradient-to-r from-blue-500 to-teal-500 px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isMoving ? 'bg-green-300 animate-pulse' : 'bg-gray-300'}`} />
           <span className="text-white text-xs font-semibold tracking-wide">
@@ -321,18 +331,13 @@ const LiveLocationCard = ({ truck }) => {
         </div>
         <span className="text-blue-100 text-xs">{formatDate(lastUpdate)}</span>
       </div>
-
-      {/* Body */}
       <div className="bg-white px-3 py-2 space-y-2">
         {location ? (
           <>
-            {/* Address */}
             <div className="flex items-start gap-2">
-              <MapPinIcon className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+              <MapPinIcon className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
               <p className="text-xs font-medium text-gray-800 leading-snug">{locationName}</p>
             </div>
-
-            {/* Coordinates */}
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-gray-50 rounded-lg p-2">
                 <p className="text-xs text-gray-400 mb-0.5">LAT</p>
@@ -343,8 +348,6 @@ const LiveLocationCard = ({ truck }) => {
                 <p className="text-xs font-mono font-semibold text-gray-700">{location.lng.toFixed(6)}°</p>
               </div>
             </div>
-
-            {/* Speed */}
             <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
                 <BoltIcon className={`h-4 w-4 ${getSpeedColor(speed)}`} />
@@ -364,7 +367,7 @@ const LiveLocationCard = ({ truck }) => {
   );
 };
 
-// ─── Truck details panel (Follow feature removed) ───────────────────────────
+// ─── Truck details panel ──────────────────────────────────────────────────────
 
 const Row = ({ label, value }) => (
   <div className="flex justify-between items-center py-0.5">
@@ -376,15 +379,11 @@ const Row = ({ label, value }) => (
 const TruckDetailsPanel = ({ truck, onClose, showRoutePoints, onToggleRoutePoints }) => {
   if (!truck) return null;
   const driver = truck.driver;
-
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ background: STATUS_COLORS[truck.status] || '#9CA3AF' }}
-          />
+          <div className="w-3 h-3 rounded-full" style={{ background: STATUS_COLORS[truck.status] || '#9CA3AF' }} />
           <span className="text-sm font-bold text-gray-800">{truck.licensePlate}</span>
           <StatusBadge status={truck.status} />
         </div>
@@ -411,7 +410,6 @@ const TruckDetailsPanel = ({ truck, onClose, showRoutePoints, onToggleRoutePoint
           <Row label="Capacity" value={truck.capacity ? `${truck.capacity} T` : '—'} />
           <Row label="Year" value={truck.year || '—'} />
         </div>
-
         {driver && typeof driver === 'object' && (
           <div className="bg-gray-50 rounded-xl p-3 space-y-1">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Driver</p>
@@ -420,7 +418,6 @@ const TruckDetailsPanel = ({ truck, onClose, showRoutePoints, onToggleRoutePoint
             <Row label="Email" value={driver.email || '—'} />
           </div>
         )}
-
         {truck.shipment && (
           <div className="bg-blue-50 rounded-xl p-3 space-y-1 border border-blue-100">
             <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Active Shipment</p>
@@ -445,7 +442,6 @@ const FleetSummaryCard = ({ trucks, onSelectTruck }) => {
       </div>
     );
   }
-
   return (
     <div className="divide-y divide-gray-100">
       {trucks.map(truck => {
@@ -454,11 +450,10 @@ const FleetSummaryCard = ({ trucks, onSelectTruck }) => {
         const location = getLocationFromTruck(truck);
         const isMoving = speed > 0;
         const color = STATUS_COLORS[truck.status] || '#9CA3AF';
-
         return (
           <div
             key={id}
-            className="px-3 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+            className="px-3 py-3 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors"
             onClick={() => onSelectTruck(truck)}
           >
             <div className="flex items-center justify-between mb-1">
@@ -469,13 +464,12 @@ const FleetSummaryCard = ({ trucks, onSelectTruck }) => {
               </div>
               <span className={`text-xs font-bold ${getSpeedColor(speed)}`}>{speed} km/h</span>
             </div>
-
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">{truck.brand} {truck.model}</span>
-              <span className={`text-xs flex items-center gap-1 ${location ? 'text-green-600' : 'text-gray-400'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full inline-block ${location && isMoving ? 'bg-green-500 animate-pulse' : location ? 'bg-green-400' : 'bg-gray-300'}`} />
-              {location ? (isMoving ? 'Moving' : 'GPS Active') : 'GPS not available yet'}
-            </span>
+              <span className={`text-xs flex items-center gap-1 ${location ? 'text-teal-600' : 'text-gray-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full inline-block ${location && isMoving ? 'bg-teal-500 animate-pulse' : location ? 'bg-teal-400' : 'bg-gray-300'}`} />
+                {location ? (isMoving ? 'Moving' : 'GPS Active') : 'No GPS yet'}
+              </span>
             </div>
           </div>
         );
@@ -484,34 +478,172 @@ const FleetSummaryCard = ({ trucks, onSelectTruck }) => {
   );
 };
 
-// ─── One-time pan to selected truck (no follow) ─────────────────────────────
+// ─── Mobile Bottom Sheet ─────────────────────────────────────────────────────
 
-const PanToTruck = ({ truck }) => {
-  const map = useMap();
-  const prevTruckId = useRef();
+const SHEET_SNAP = { PEEK: 'peek', HALF: 'half', FULL: 'full' };
+
+const SHEET_HEIGHT = {
+  peek: '72px',
+  half: '45vh',
+  full: '85vh',
+};
+
+const MobileBottomSheet = ({
+  trucks, selectedTruck, onSelectTruck, onCloseSelectedTruck,
+  updateCount, lastUpdateTime, showRoutePoints, onToggleRoutePoints,
+}) => {
+  const [snap, setSnap] = useState(SHEET_SNAP.PEEK);
 
   useEffect(() => {
-    if (!truck) return;
-    const location = getLocationFromTruck(truck);
-    if (!location) return;
-    const truckId = getTruckId(truck);
-    // Only pan when a different truck is selected
-    if (prevTruckId.current === truckId) return;
-    prevTruckId.current = truckId;
+    if (selectedTruck) setSnap(SHEET_SNAP.HALF);
+    else setSnap(SHEET_SNAP.PEEK);
+  }, [selectedTruck]);
 
-    map.flyTo([location.lat, location.lng], map.getZoom(), {
-      animate: true,
-      duration: 0.8,
-    });
-  }, [truck, map]);
+  const cycleSnap = () => {
+    if (snap === SHEET_SNAP.PEEK) setSnap(SHEET_SNAP.HALF);
+    else if (snap === SHEET_SNAP.HALF) setSnap(SHEET_SNAP.FULL);
+    else setSnap(SHEET_SNAP.PEEK);
+  };
 
-  return null;
+  const isOpen = snap !== SHEET_SNAP.PEEK;
+
+  return (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-[150] bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 flex flex-col"
+      style={{
+        height: SHEET_HEIGHT[snap],
+        transition: 'height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+      }}
+    >
+      <div
+        className="flex flex-col items-center pt-2 pb-1 cursor-pointer flex-shrink-0"
+        onClick={cycleSnap}
+      >
+        <div className="w-10 h-1 rounded-full bg-gray-300 mb-2" />
+        <div className="w-full px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TruckIcon className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-semibold text-gray-800">
+              {selectedTruck ? selectedTruck.licensePlate : `${trucks.length} Trucks`}
+            </span>
+            {selectedTruck && <StatusBadge status={selectedTruck.status} />}
+          </div>
+          <div className="flex items-center gap-2">
+            {updateCount > 0 && (
+              <span className="text-xs text-teal-600 font-medium">{lastUpdateTime}</span>
+            )}
+            {snap === SHEET_SNAP.FULL
+              ? <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+              : <ChevronUpIcon className="h-4 w-4 text-gray-400" />
+            }
+          </div>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {selectedTruck ? (
+            <TruckDetailsPanel
+              truck={selectedTruck}
+              onClose={() => { onCloseSelectedTruck(); setSnap(SHEET_SNAP.PEEK); }}
+              showRoutePoints={showRoutePoints}
+              onToggleRoutePoints={onToggleRoutePoints}
+            />
+          ) : (
+            <>
+              {updateCount > 0 && (
+                <p className="text-xs text-teal-600 px-4 pb-1">
+                  {updateCount} live updates received
+                </p>
+              )}
+              <FleetSummaryCard trucks={trucks} onSelectTruck={onSelectTruck} />
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
+
+// ─── Desktop Sidebar ──────────────────────────────────────────────────────────
+
+const DesktopSidebar = ({
+  trucks, selectedTruck, onSelectTruck, onCloseSelectedTruck,
+  updateCount, lastUpdateTime, showRoutePoints, onToggleRoutePoints,
+  sidebarOpen, setSidebarOpen,
+}) => (
+  <div className={`
+    bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 flex-shrink-0
+    transition-all duration-300
+    ${sidebarOpen ? 'w-96' : 'w-12'}
+  `}>
+    {sidebarOpen ? (
+      <>
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-3 py-3 z-10 flex justify-between items-center">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900">Fleet Status</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {trucks.length} trucks ·{' '}
+              {trucks.filter(t => getLocationFromTruck(t)).length} with GPS ·{' '}
+              {trucks.filter(t => getSpeedFromTruck(t) > 0).length} moving
+            </p>
+            {updateCount > 0 && (
+              <p className="text-xs text-teal-600 mt-1">
+                Updates: {updateCount} | Last: {lastUpdateTime}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
+          {selectedTruck ? (
+            <TruckDetailsPanel
+              truck={selectedTruck}
+              onClose={onCloseSelectedTruck}
+              showRoutePoints={showRoutePoints}
+              onToggleRoutePoints={onToggleRoutePoints}
+            />
+          ) : (
+            <FleetSummaryCard trucks={trucks} onSelectTruck={onSelectTruck} />
+          )}
+        </div>
+      </>
+    ) : (
+      <div className="flex flex-col items-center py-4 gap-4">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <ChevronRightIcon className="h-5 w-5 text-gray-500 rotate-180" />
+        </button>
+        <div className="text-center">
+          <div className="text-xs font-bold text-gray-700">{trucks.length}</div>
+          <div className="text-xs text-gray-400">Trucks</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xs font-bold text-green-600">
+            {trucks.filter(t => getSpeedFromTruck(t) > 0).length}
+          </div>
+          <div className="text-xs text-gray-400">Moving</div>
+        </div>
+      </div>
+    )}
+  </div>
+);
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const LiveMap = () => {
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
+
   const [trucks, setTrucks] = useState([]);
+  const [allowedTruckIds, setAllowedTruckIds] = useState(null);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [loading, setLoading] = useState(true);
   const [routes, setRoutes] = useState({});
@@ -521,131 +653,45 @@ const LiveMap = () => {
   const [updateCount, setUpdateCount] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
   const [markerUpdateTrigger, setMarkerUpdateTrigger] = useState(0);
+  const [showRoutePoints, setShowRoutePoints] = useState(false);
 
   const wsInitialized = useRef(false);
   const fitBoundsDone = useRef(false);
   const userInteracted = useRef(false);
   const markerRefs = useRef({});
-  const [showRoutePoints, setShowRoutePoints] = useState(false);
 
-  // Re-render map when style changes
   useEffect(() => { setMapKey(p => p + 1); }, [currentMapStyle]);
 
-  // Handle truck location updates
-  const handleTruckLocation = useCallback((data) => {
-    console.log("📡 WS RAW DATA RECEIVED:", data);
+  // ✅ FIXED: fetch allowed trucks using the dedicated manager endpoint
+  const fetchAllowedTruckIds = useCallback(async () => {
+    try {
+      const res = await shipmentService.getMyAssignedShipments();
+      const shipments = res.data || [];
 
-    const incomingId = data.truckId?.toString();
-    if (!incomingId || !hasCoords(data.location)) {
-      console.warn('⚠️ Invalid WS payload:', data);
-      return;
+      const truckIds = [...new Set(
+        shipments
+          .filter(s => s.truck)
+          .map(s => {
+            // If truck is populated, extract _id; else it's a string ID
+            const truckId = s.truck._id ? s.truck._id.toString() : s.truck.toString();
+            return truckId;
+          })
+      )];
+      console.log('✅ Allowed truck IDs for manager:', truckIds);
+      return truckIds;
+    } catch (err) {
+      console.error('❌ Failed to fetch manager shipments:', err);
+      return [];
     }
-
-    setUpdateCount(prev => prev + 1);
-    setLastUpdateTime(new Date().toLocaleTimeString());
-
-    // Force marker re-render
-    setMarkerUpdateTrigger(prev => prev + 1);
-
-    // Update trucks state
-    setTrucks(prevTrucks => {
-      const truckExists = prevTrucks.some(truck => getTruckId(truck) === incomingId);
-
-      if (!truckExists) {
-        console.warn(`⚠️ Truck ${incomingId} not found in current trucks list`);
-        return prevTrucks;
-      }
-
-      const updated = prevTrucks.map(truck => {
-        if (getTruckId(truck) !== incomingId) return truck;
-
-        const updatedTruck = {
-          ...truck,
-          currentLocation: {
-            lat: Number(data.location.lat),
-            lng: Number(data.location.lng),
-          },
-          currentSpeed: Number(data.speed ?? 0),
-          status: data.status ?? truck.status,
-          lastUpdate: data.timestamp,
-          lastTelemetryAt: data.timestamp,
-        };
-
-        console.log(`Updated truck ${incomingId} to:`, updatedTruck.currentLocation);
-        return updatedTruck;
-      });
-
-      return updated;
-    });
-
-    // Directly update marker if ref exists
-    if (markerRefs.current[incomingId]) {
-      const marker = markerRefs.current[incomingId];
-      if (marker && marker.setLatLng) {
-        marker.setLatLng([data.location.lat, data.location.lng]);
-        console.log(`Direct marker update for ${incomingId}`);
-      }
-    }
-
-    // Update route trail
-    setRoutes(prevRoutes => {
-      const newPoint = [data.location.lat, data.location.lng];
-      const existing = prevRoutes[incomingId] || [];
-      const last = existing[existing.length - 1];
-
-      if (last && last[0] === newPoint[0] && last[1] === newPoint[1]) {
-        return prevRoutes;
-      }
-
-      const updatedRoutes = {
-        ...prevRoutes,
-        [incomingId]: [...existing, newPoint].slice(-500)
-      };
-
-      return updatedRoutes;
-    });
-
-    // Update selected truck if needed
-    if (selectedTruck && getTruckId(selectedTruck) === incomingId) {
-      setSelectedTruck(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          currentLocation: {
-            lat: Number(data.location.lat),
-            lng: Number(data.location.lng),
-          },
-          currentSpeed: Number(data.speed ?? 0),
-          status: data.status ?? prev.status,
-          lastUpdate: data.timestamp,
-        };
-      });
-    }
-  }, [selectedTruck]);
-
-  // WebSocket setup
-  useEffect(() => {
-    if (wsInitialized.current) return;
-    wsInitialized.current = true;
-    webSocketService.connect();
   }, []);
-  useEffect(() => {
-    webSocketService.on('truck_location', handleTruckLocation);
-    return () => {
-      webSocketService.off('truck_location', handleTruckLocation);
-    };
-  }, [handleTruckLocation]);
 
-  // Log truck state changes for debugging
-  useEffect(() => {
-    if (trucks.length > 0) {
-      console.log("Trucks state updated:", trucks.map(t => ({
-        id: getTruckId(t),
-        location: getLocationFromTruck(t),
-        speed: getSpeedFromTruck(t)
-      })));
-    }
-  }, [trucks]);
+  // Filter trucks based on user role
+  const filterTrucksByRole = useCallback((allTrucks, allowedIds) => {
+    if (!user) return [];
+    if (user.role === 'admin') return allTrucks;
+    if (!allowedIds || allowedIds.length === 0) return [];
+    return allTrucks.filter(truck => allowedIds.includes(getTruckId(truck)));
+  }, [user]);
 
   // Initial data fetch
   useEffect(() => {
@@ -654,7 +700,6 @@ const LiveMap = () => {
         setLoading(true);
         const res = await trackingService.getLiveTracking();
         const raw = res.data || [];
-
         const seen = new Set();
         const uniqueTrucks = raw.filter(t => {
           const id = getTruckId(t);
@@ -663,16 +708,25 @@ const LiveMap = () => {
           return true;
         });
 
-        const routeMap = {};
-        await Promise.all(
-          uniqueTrucks.map(async (truck) => {
-            const id = getTruckId(truck);
-            const points = await fetchRoutePoints(id, 500);
-            if (points.length > 0) routeMap[id] = points;
-          })
-        );
+        let allowedIds = null;
+        if (user?.role === 'shipment_manager') {
+          allowedIds = await fetchAllowedTruckIds();
+          setAllowedTruckIds(allowedIds);
+        } else {
+          setAllowedTruckIds(null);
+        }
 
-        setTrucks(uniqueTrucks);
+        const allowedTrucks = filterTrucksByRole(uniqueTrucks, allowedIds);
+        console.log(`📊 Filtered trucks: ${allowedTrucks.length} / ${uniqueTrucks.length}`);
+
+        const routeMap = {};
+        await Promise.all(allowedTrucks.map(async (truck) => {
+          const id = getTruckId(truck);
+          const points = await fetchRoutePoints(id, 500);
+          if (points.length > 0) routeMap[id] = points;
+        }));
+
+        setTrucks(allowedTrucks);
         setRoutes(routeMap);
       } catch (err) {
         console.error('Failed to load live trucks:', err);
@@ -680,8 +734,76 @@ const LiveMap = () => {
         setLoading(false);
       }
     };
-    fetchData();
+
+    if (user) fetchData();
+  }, [user, fetchAllowedTruckIds, filterTrucksByRole]);
+
+  // WebSocket handler – respects allowed trucks
+  const handleTruckLocation = useCallback((data) => {
+    console.log('📡 WS RAW DATA RECEIVED:', data);
+    const incomingId = data.truckId?.toString();
+    if (!incomingId || !hasCoords(data.location)) {
+      console.warn('⚠️ Invalid WS payload:', data);
+      return;
+    }
+
+    // For manager: only process if the truck is in the allowed set
+    if (user?.role === 'shipment_manager') {
+      if (!allowedTruckIds || !allowedTruckIds.includes(incomingId)) {
+        return;
+      }
+    }
+
+    setUpdateCount(prev => prev + 1);
+    setLastUpdateTime(new Date().toLocaleTimeString());
+    setMarkerUpdateTrigger(prev => prev + 1);
+
+    setTrucks(prevTrucks => {
+      const truckExists = prevTrucks.some(truck => getTruckId(truck) === incomingId);
+      if (!truckExists) return prevTrucks;
+      return prevTrucks.map(truck => {
+        if (getTruckId(truck) !== incomingId) return truck;
+        return {
+          ...truck,
+          currentLocation: { lat: Number(data.location.lat), lng: Number(data.location.lng) },
+          currentSpeed: Number(data.speed ?? 0),
+          status: data.status ?? truck.status,
+          lastUpdate: data.timestamp,
+          lastTelemetryAt: data.timestamp,
+        };
+      });
+    });
+
+    setRoutes(prevRoutes => {
+      const newPoint = [data.location.lat, data.location.lng];
+      const existing = prevRoutes[incomingId] || [];
+      const last = existing[existing.length - 1];
+      if (last && last[0] === newPoint[0] && last[1] === newPoint[1]) return prevRoutes;
+      return { ...prevRoutes, [incomingId]: [...existing, newPoint].slice(-500) };
+    });
+
+    if (selectedTruck && getTruckId(selectedTruck) === incomingId) {
+      setSelectedTruck(prev => prev ? {
+        ...prev,
+        currentLocation: { lat: Number(data.location.lat), lng: Number(data.location.lng) },
+        currentSpeed: Number(data.speed ?? 0),
+        status: data.status ?? prev.status,
+        lastUpdate: data.timestamp,
+      } : prev);
+    }
+  }, [user, allowedTruckIds, selectedTruck]);
+
+  // WebSocket connection
+  useEffect(() => {
+    if (wsInitialized.current) return;
+    wsInitialized.current = true;
+    webSocketService.connect();
   }, []);
+
+  useEffect(() => {
+    webSocketService.on('truck_location', handleTruckLocation);
+    return () => webSocketService.off('truck_location', handleTruckLocation);
+  }, [handleTruckLocation]);
 
   const handleSelectTruck = useCallback((truck) => {
     setSelectedTruck(truck);
@@ -694,10 +816,9 @@ const LiveMap = () => {
   }, []);
 
   const initialMarkers = useMemo(() =>
-    trucks
-      .map(t => getLocationFromTruck(t))
-      .filter(hasCoords)
-    , [trucks]);
+    trucks.map(t => getLocationFromTruck(t)).filter(hasCoords),
+    [trucks]
+  );
 
   const currentStyle = MAP_STYLES[currentMapStyle] || MAP_STYLES.light;
 
@@ -713,89 +834,35 @@ const LiveMap = () => {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden flex-col md:flex-row relative z-0">
+      {!isMobile && (
+        <DesktopSidebar
+          trucks={trucks}
+          selectedTruck={selectedTruck}
+          onSelectTruck={handleSelectTruck}
+          onCloseSelectedTruck={() => setSelectedTruck(null)}
+          updateCount={updateCount}
+          lastUpdateTime={lastUpdateTime}
+          showRoutePoints={showRoutePoints}
+          onToggleRoutePoints={() => setShowRoutePoints(v => !v)}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+        />
+      )}
 
-      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
-      <div className={`
-        bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 flex-shrink-0
-        transition-all duration-300
-        ${sidebarOpen ? 'w-96' : 'w-12'}
-      `}>
-        {sidebarOpen ? (
-          <>
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-3 py-3 z-10 flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-gray-900">Fleet Status</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {trucks.length} trucks ·{' '}
-                  {trucks.filter(t => getLocationFromTruck(t)).length} with GPS ·{' '}
-                  {trucks.filter(t => getSpeedFromTruck(t) > 0).length} moving
-                </p>
-                {updateCount > 0 && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Updates: {updateCount} | Last: {lastUpdateTime}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <ChevronRightIcon className="h-4 w-4 text-gray-400" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
-              {selectedTruck ? (
-                <TruckDetailsPanel
-                  truck={selectedTruck}
-                  onClose={() => setSelectedTruck(null)}
-                />
-              ) : (
-                <FleetSummaryCard trucks={trucks} onSelectTruck={handleSelectTruck} />
-              )}
-            </div>
-          </>
-        ) : (
-          /* Collapsed sidebar */
-          <div className="flex flex-col items-center py-4 gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ChevronRightIcon className="h-5 w-5 text-gray-500 rotate-180" />
-            </button>
-            <div className="text-center">
-              <div className="text-xs font-bold text-gray-700">{trucks.length}</div>
-              <div className="text-xs text-gray-400">Trucks</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs font-bold text-green-600">
-                {trucks.filter(t => getSpeedFromTruck(t) > 0).length}
-              </div>
-              <div className="text-xs text-gray-400">Moving</div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Map ───────────────────────────────────────────────────────────── */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative z-0" style={{ minHeight: 0 }}>
         <MapStyleSwitcher
           currentStyle={currentMapStyle}
           onStyleChange={handleStyleChange}
-          className="absolute top-3 right-3 z-[400]"
+          className="absolute top-3 right-3 z-20"
         />
 
         <MapContainer
           key={mapKey}
           center={[36.8065, 10.1815]}
           zoom={7}
-          style={{ height: '100%', width: '100%' }}
-          className={currentStyle.className}
-          whenReady={() => console.log('Map ready!')}
+          style={{ height: '100%', width: '100%', zIndex: 0 }}
+          className={`${currentStyle.className} z-0`}
         >
           <TileLayer
             url={currentStyle.url}
@@ -804,38 +871,24 @@ const LiveMap = () => {
             {...(currentStyle.subdomains ? { subdomains: currentStyle.subdomains } : {})}
           />
 
-          {/* One-time pan to selected truck */}
           <PanToTruck truck={selectedTruck} />
-
-          {/* Route trails */}
           <RouteLines routes={routes} mapStyle={currentMapStyle} />
-<RoutePointsMarkers routes={routes} visible={showRoutePoints} />
-          {/* Truck markers */}
+          <RoutePointsMarkers routes={routes} visible={showRoutePoints} />
+
           {trucks.map(truck => {
             const loc = getLocationFromTruck(truck);
             const isSelected = getTruckId(truck) === getTruckId(selectedTruck);
             if (!hasCoords(loc)) return null;
-            
             const truckId = getTruckId(truck);
             const markerKey = `${truckId}-${loc.lat.toFixed(8)}-${loc.lng.toFixed(8)}-${markerUpdateTrigger}`;
-            
             return (
               <Marker
                 key={markerKey}
                 position={[loc.lat, loc.lng]}
                 icon={createTruckIcon(truck, isSelected)}
-                ref={(ref) => {
-                  if (ref && truckId) {
-                    markerRefs.current[truckId] = ref;
-                  }
-                }}
+                ref={(ref) => { if (ref && truckId) markerRefs.current[truckId] = ref; }}
                 zIndexOffset={isSelected ? 1000 : 0}
-                eventHandlers={{
-                  click: () => {
-                    handleSelectTruck(truck);
-                    userInteracted.current = false;
-                  }
-                }}
+                eventHandlers={{ click: () => { handleSelectTruck(truck); userInteracted.current = false; } }}
               >
                 <Popup>
                   <div className="space-y-1 text-sm min-w-[160px]">
@@ -865,13 +918,23 @@ const LiveMap = () => {
             );
           })}
 
-          {/* Shipment origin/destination pins */}
           <ShipmentMarkers trucks={trucks} />
-
-          {/* Fit map to all trucks on first load */}
           <FitBounds markers={initialMarkers} done={fitBoundsDone} />
         </MapContainer>
       </div>
+
+      {isMobile && (
+        <MobileBottomSheet
+          trucks={trucks}
+          selectedTruck={selectedTruck}
+          onSelectTruck={handleSelectTruck}
+          onCloseSelectedTruck={() => setSelectedTruck(null)}
+          updateCount={updateCount}
+          lastUpdateTime={lastUpdateTime}
+          showRoutePoints={showRoutePoints}
+          onToggleRoutePoints={() => setShowRoutePoints(v => !v)}
+        />
+      )}
     </div>
   );
 };

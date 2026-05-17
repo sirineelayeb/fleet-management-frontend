@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { customerService } from '../services/customerService';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, ArchiveBoxIcon, ArrowPathIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, ArchiveBoxIcon, ArrowPathIcon, FunnelIcon, MagnifyingGlassIcon, XMarkIcon, UsersIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import StatCard from '../components/Cards/StatCard';
 import CustomerFormModal from '../components/Customers/CustomerFormModal';
 import CustomerDetailsModal from '../components/Customers/CustomerDetailsModal';
 import Pagination from '../components/Common/Pagination';
@@ -10,28 +11,42 @@ import { useAuth } from '../context/AuthContext';
 
 const Customers = () => {
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isShipmentManager } = useAuth();
+  
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  // For shipment managers, always show only active customers; cannot toggle
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const { data: statsData } = useQuery({
+    queryKey: ['customer-stats'],
+    queryFn: () => customerService.getStats(),
+    staleTime: 30000,
+  });
+
+console.log('statsData:', statsData); // add this
+  // Query – always force `isActive: 'true'` for shipment managers
+  const queryParams = {
+    page,
+    limit,
+    isActive: (isAdmin ? (showActiveOnly ? 'true' : 'false') : 'true'),
+    search: searchTerm
+  };
 
   const { data: customersData, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['customers', page, limit, showActiveOnly, searchTerm],
-    queryFn: () => customerService.getAll({ 
-      page, 
-      limit, 
-      isActive: showActiveOnly ? 'true' : 'false', 
-      search: searchTerm 
-    }),
+    queryKey: ['customers', queryParams],
+    queryFn: () => customerService.getAll(queryParams),
     keepPreviousData: true,
   });
 
   const customers = customersData?.data || [];
+  const totalCount    = statsData?.data?.total    ?? 0;
+  const activeCount   = statsData?.data?.active   ?? 0;
+  const archivedCount = statsData?.data?.inactive ?? 0;;
   const pagination = customersData?.pagination || { 
     total: 0, 
     page: 1, 
@@ -54,6 +69,7 @@ const Customers = () => {
     mutationFn: customerService.archive,
     onSuccess: () => {
       queryClient.invalidateQueries(['customers']);
+      queryClient.invalidateQueries(['customer-stats']); // add this
       toast.success('Customer archived successfully');
     },
   });
@@ -62,6 +78,7 @@ const Customers = () => {
     mutationFn: customerService.restore,
     onSuccess: () => {
       queryClient.invalidateQueries(['customers']);
+      queryClient.invalidateQueries(['customer-stats']); // add this
       toast.success('Customer restored successfully');
     },
   });
@@ -94,7 +111,7 @@ const Customers = () => {
   };
 
   const clearFilters = () => {
-    setShowActiveOnly(true);
+    if (isAdmin) setShowActiveOnly(true);
     setSearchInput('');
     setSearchTerm('');
     setPage(1);
@@ -111,26 +128,27 @@ const Customers = () => {
     setPage(1);
   };
 
-  const hasActiveFilters = !showActiveOnly || searchTerm;
+  // For managers: there is no active/archived toggle, so filters are only search
+  const hasActiveFilters = isAdmin ? (!showActiveOnly || searchTerm) : (searchTerm !== '');
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
-              <UsersIcon className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
-              Loading Customers...
-            </p>
-          </div>
-          );
-        } 
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
+          <UsersIcon className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">
+          Loading Customers...
+        </p>
+      </div>
+    );
+  }
 
   if (error) {
     console.error('Error loading customers:', error);
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-red-600">Error loading customers: {error.message}</div>
+        <div className="text-rose-600">Error loading customers: {error.message}</div>
       </div>
     );
   }
@@ -143,53 +161,60 @@ const Customers = () => {
           <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
           <p className="text-gray-600 mt-1">Manage customers and track their shipments</p>
         </div>
-        <button
-          onClick={() => { setEditingCustomer(null); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="h-5 w-5" />
-          Add Customer
-        </button>
+        {/* Only admins can add customers (optional – adjust if managers can add) */}
+        {isAdmin && (
+          <button
+            onClick={() => { setEditingCustomer(null); setShowForm(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Add Customer
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+       <StatCard title="Total Customers" value={totalCount}    icon={UsersIcon}       color="blue" subtitle="All customers" />
+      <StatCard title="Active"          value={activeCount}   icon={CheckCircleIcon} color="teal" subtitle="Current customers" />
+      <StatCard title="Archived"        value={archivedCount} icon={ArchiveBoxIcon}  color="gray" subtitle="Inactive customers" />
       </div>
 
       {/* Search and Filter Bar */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
         <div className="flex gap-4 flex-wrap">
-          {/* Search Input */}
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
               placeholder="Search by name, phone, or email..."
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyPress={handleKeyPress}
             />
           </div>
-          
-          {/* Status Filter */}
-          <select
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            value={showActiveOnly ? 'active' : 'archived'}
-            onChange={(e) => {
-              setShowActiveOnly(e.target.value === 'active');
-              setPage(1);
-            }}
-          >
-            <option value="active">Current Customers</option>
-            <option value="archived">Archived Customers</option>
-          </select>
-          
-          {/* Search Button */}
+
+          {/* Status Filter – visible only for admins */}
+          {isAdmin && (
+            <select
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              value={showActiveOnly ? 'active' : 'archived'}
+              onChange={(e) => {
+                setShowActiveOnly(e.target.value === 'active');
+                setPage(1);
+              }}
+            >
+              <option value="active">Current Customers</option>
+              <option value="archived">Archived Customers</option>
+            </select>
+          )}
+
           <button 
             onClick={handleSearch} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
           >
             <MagnifyingGlassIcon className="h-5 w-5" />
             Search
           </button>
-          
-          {/* Clear Filters Button */}
+
           {hasActiveFilters && (
             <button 
               onClick={clearFilters} 
@@ -201,134 +226,119 @@ const Customers = () => {
         </div>
       </div>
 
-      {/* Info Banner */}
-      {/* {hasActiveFilters && (
-        <div className="mb-4 px-4 py-2 bg-blue-50 rounded-lg text-sm text-blue-700">
-          {!showActiveOnly && 'Showing archived customers'}
-          {searchTerm && ` • Search: "${searchTerm}"`}
-          {customers.length === 0 && ' • No customers found'}
-        </div>
-      )} */}
-
       {/* Customers Table */}
-       {isFetching ? (
+      {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading customers...</p>
           </div>
         </div>
       ) : (
         <>
-      <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {customers.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                    No {showActiveOnly ? 'active' : 'archived'} customers found
-                    {searchTerm && ` matching "${searchTerm}"`}
-                  </td>
-                </tr>
-              ) : (
-                customers.map((customer) => (
-                  <tr key={customer._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.phone || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {customer.email || '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <div className="max-w-xs truncate">{customer.address || '—'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        customer.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {customer.isActive ? 'Active' : 'Archived'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                      <button
-                        onClick={() => setSelectedCustomer(customer)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                        title="View Details"
-                      >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => { setEditingCustomer(customer); setShowForm(true); }}
-                        className="text-green-600 hover:text-green-800 transition-colors"
-                        title="Edit"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      {customer.isActive ? (
-                        <button
-                          onClick={() => handleArchive(customer._id)}
-                          className="text-amber-600 hover:text-amber-800 transition-colors"
-                          title="Archive"
-                        >
-                          <ArchiveBoxIcon className="h-5 w-5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleRestore(customer._id)}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                          title="Restore"
-                        >
-                          <ArrowPathIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      {/* {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(customer._id, customer.name)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          title="Delete"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      )} */}
-                    </td>
+          <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {customers.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                        No {isAdmin && !showActiveOnly ? 'archived' : 'active'} customers found
+                        {searchTerm && ` matching "${searchTerm}"`}
+                      </td>
+                    </tr>
+                  ) : (
+                    customers.map((customer) => (
+                      <tr key={customer._id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {customer.phone || '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {customer.email || '—'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <div className="max-w-xs truncate">{customer.address || '—'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            customer.isActive ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {customer.isActive ? 'Active' : 'Archived'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                          <button
+                            onClick={() => setSelectedCustomer(customer)}
+                            className="text-teal-600 hover:text-teal-800 transition-colors"
+                            title="View Details"
+                          >
+                            <EyeIcon className="h-5 w-5" />
+                          </button>
+                          {/* Edit allowed for both admin and manager (optional) */}
+                          <button
+                            onClick={() => { setEditingCustomer(customer); setShowForm(true); }}
+                            className="text-teal-600 hover:text-teal-800 transition-colors"
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
 
-      {/* Pagination Component */}
-      {pagination.totalPages > 0 && (
-        <Pagination
-          currentPage={pagination.page || page}
-          totalPages={pagination.totalPages || 1}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          pageSize={limit}
-          pageSizeOptions={[5, 10, 25, 50, 100]}
-          showFirstLast={true}
-          siblingCount={1}
-          showPageSizeSelector={true}
-          totalItems={pagination.total || 0}
-        />
-      )}
-       </>
+                          {/* Archive / Restore – only for admins */}
+                          {isAdmin && (customer.isActive ? (
+                            <button
+                              onClick={() => handleArchive(customer._id)}
+                              className="text-amber-600 hover:text-amber-800 transition-colors"
+                              title="Archive"
+                            >
+                              <ArchiveBoxIcon className="h-5 w-5" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleRestore(customer._id)}
+                              className="text-teal-600 hover:text-teal-800 transition-colors"
+                              title="Restore"
+                            >
+                              <ArrowPathIcon className="h-5 w-5" />
+                            </button>
+                          ))}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {pagination.totalPages > 0 && (
+            <Pagination
+              currentPage={pagination.page || page}
+              totalPages={pagination.totalPages || 1}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              pageSize={limit}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
+              showFirstLast={true}
+              siblingCount={1}
+              showPageSizeSelector={true}
+              totalItems={pagination.total || 0}
+            />
+          )}
+        </>
       )}
 
       {/* Modals */}

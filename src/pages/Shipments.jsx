@@ -1,3 +1,4 @@
+// frontend/src/pages/Shipments.jsx
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -19,26 +20,46 @@ import {
   XCircleIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
+  FunnelIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { semantic } from '../constants/colors';
 
 const PAGE_SIZE = 50;
 
+// Status configuration using brand colors
 const STATUS_COLUMNS = [
-  { status: 'pending',     label: 'Pending',     dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 ring-amber-200'       },
-  { status: 'assigned',    label: 'Assigned',    dot: 'bg-blue-400',    badge: 'bg-blue-50 text-blue-700 ring-blue-200'          },
-  { status: 'in_progress', label: 'In Progress', dot: 'bg-sky-400',     badge: 'bg-sky-50 text-sky-700 ring-sky-200'             },
-  { status: 'completed',   label: 'Completed',   dot: 'bg-emerald-400', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-  { status: 'cancelled',   label: 'Cancelled',   dot: 'bg-rose-400',    badge: 'bg-rose-50 text-rose-700 ring-rose-200'          },
+  { status: 'pending',     label: 'Pending',     color: 'warning' },
+  { status: 'assigned',    label: 'Assigned',    color: 'info'    },
+  { status: 'in_progress', label: 'In Progress', color: 'success'  },
+  { status: 'completed',   label: 'Completed',   color: 'success'  },
+  { status: 'cancelled',   label: 'Cancelled',   color: 'danger'   },
 ];
 
 const STAT_CONFIG = [
-  { key: 'total',     label: 'Total',     icon: TruckIcon,       color: 'text-violet-600', bg: 'bg-violet-50' },
-  { key: 'active',    label: 'Active',    icon: ClockIcon,       color: 'text-blue-600',   bg: 'bg-blue-50'   },
-  { key: 'completed', label: 'Completed', icon: CheckCircleIcon, color: 'text-emerald-600',bg: 'bg-emerald-50'},
-  { key: 'cancelled', label: 'Cancelled', icon: XCircleIcon,     color: 'text-rose-600',   bg: 'bg-rose-50'   },
+  { key: 'total',     label: 'Total',     icon: TruckIcon,       color: 'blue'   },
+  { key: 'active',    label: 'Active',    icon: ClockIcon,       color: 'teal'   },
+  { key: 'completed', label: 'Completed', icon: CheckCircleIcon, color: 'teal'   },
+  { key: 'cancelled', label: 'Cancelled', icon: XCircleIcon,     color: 'orange' },
 ];
+
+// Map status to color classes
+const getStatusColorClasses = (status, type = 'bg') => {
+  const colors = {
+    pending:     { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+    assigned:    { bg: 'bg-blue-50',  text: 'text-blue-700',  border: 'border-blue-200',  dot: 'bg-blue-500'  },
+    in_progress: { bg: 'bg-teal-50',  text: 'text-teal-700',  border: 'border-teal-200',  dot: 'bg-teal-500'  },
+    completed:   { bg: 'bg-green-50', text: 'text-green-700',  border: 'border-green-200', dot: 'bg-green-500'  },
+    cancelled:   { bg: 'bg-rose-50',  text: 'text-rose-700',   border: 'border-rose-200',  dot: 'bg-rose-500'  },
+  };
+  const c = colors[status] || colors.pending;
+  if (type === 'bg') return c.bg;
+  if (type === 'text') return c.text;
+  if (type === 'border') return c.border;
+  if (type === 'dot') return c.dot;
+  return '';
+};
 
 // ─── Helpers ─────────────────────────────────────────────────
 const matchesSearch = (shipment, query) => {
@@ -57,50 +78,171 @@ const matchesSearch = (shipment, query) => {
   ].some(field => field?.toLowerCase().includes(q));
 };
 
-// ─── Sub-components ───────────────────────────────────────────
-const StatCard = ({ label, value, icon: Icon, color, bg }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-    <div className={`${bg} ${color} w-10 h-10 rounded-lg flex items-center justify-center shrink-0`}>
-      <Icon className="w-5 h-5" />
-    </div>
-    <div>
-      <p className="text-xl font-bold text-gray-900 leading-none">{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
-    </div>
-  </div>
-);
-
-const KanbanColumn = ({ config, shipments, onAction, isAdmin }) => (
-  <div className="w-72 shrink-0 flex flex-col bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-    <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 bg-white">
-      <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${config.dot}`} />
-        <span className="text-sm font-semibold text-gray-700">{config.label}</span>
+// ─── Sub‑components ─────────────────────────────────────────
+const StatCard = ({ label, value, icon: Icon, color }) => {
+  const colorClasses = {
+    blue:   'bg-blue-50 text-blue-600',
+    teal:   'bg-teal-50 text-teal-600',
+    orange: 'bg-orange-50 text-orange-600',
+    green:  'bg-green-50 text-green-600',
+    gray:   'bg-gray-50 text-gray-600',
+  };
+  const iconColor = colorClasses[color] || colorClasses.gray;
+  
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3 hover:shadow-sm transition-shadow">
+      <div className={`rounded-lg p-2 flex items-center justify-center shrink-0 ${iconColor.split(' ')[0]}`}>
+        <Icon className={`w-5 h-5 ${iconColor.split(' ')[1]}`} />
       </div>
-      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ring-1 ${config.badge}`}>
-        {shipments.length}
-      </span>
+      <div>
+        <p className="text-xl font-bold text-gray-900 leading-none">{value}</p>
+        <p className="text-xs text-gray-500 mt-1">{label}</p>
+      </div>
     </div>
-    <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
-      {shipments.length === 0 ? (
-        <p className="text-center text-xs text-gray-400 py-8">No shipments</p>
-      ) : (
-        shipments.map(shipment => (
-          <ShipmentCard
-            key={shipment._id}
-            shipment={shipment}
-            isAdmin={isAdmin}
-            onViewDetails={onAction.handleViewDetails}
-            onAssign={() => onAction.openAssign(shipment)}
-            onAssignManager={() => onAction.openManager(shipment)}
-            onCancel={() => onAction.handleCancel(shipment._id)}
-            onArchive={() => onAction.handleArchive(shipment._id)}
-            onUnarchive={() => onAction.handleUnarchive(shipment._id)}
-            onEdit={() => onAction.handleEdit(shipment)}
-          />
-        ))
-      )}
+  );
+};
+
+const KanbanColumn = ({ config, shipments, onAction, isAdmin }) => {
+  const bgClass = getStatusColorClasses(config.status, 'bg');
+  const borderClass = getStatusColorClasses(config.status, 'border');
+  const dotClass = getStatusColorClasses(config.status, 'dot');
+  const textClass = getStatusColorClasses(config.status, 'text');
+
+  return (
+    <div className="w-72 shrink-0 flex flex-col bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+      <div className={`flex items-center justify-between px-3 py-2.5 border-b ${borderClass} bg-white`}>
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+          <span className="text-sm font-semibold text-gray-700">{config.label}</span>
+        </div>
+        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${bgClass} ${textClass}`}>
+          {shipments.length}
+        </span>
+      </div>
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
+        {shipments.length === 0 ? (
+          <p className="text-center text-xs text-gray-400 py-8">No shipments</p>
+        ) : (
+          shipments.map(shipment => (
+            <ShipmentCard
+              key={shipment._id}
+              shipment={shipment}
+              isAdmin={isAdmin}
+              onViewDetails={onAction.handleViewDetails}
+              onAssign={() => onAction.openAssign(shipment)}
+              onAssignManager={() => onAction.openManager(shipment)}
+              onCancel={() => onAction.handleCancel(shipment._id)}
+              onArchive={() => onAction.handleArchive(shipment._id)}
+              onUnarchive={() => onAction.handleUnarchive(shipment._id)}
+              onEdit={() => onAction.handleEdit(shipment)}
+            />
+          ))
+        )}
+      </div>
     </div>
+  );
+};
+
+// Status Filter Tabs Component
+const StatusFilterTabs = ({ statusFilter, setStatusFilter, counts }) => {
+  const tabs = [
+    { id: 'all', label: 'All', count: counts.total },
+    ...STATUS_COLUMNS.map(col => ({
+      id: col.status,
+      label: col.label,
+      count: counts[col.status],
+      dotColor: getStatusColorClasses(col.status, 'dot'),
+      bgColor: getStatusColorClasses(col.status, 'bg'),
+      textColor: getStatusColorClasses(col.status, 'text'),
+    })),
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {tabs.map((tab) => {
+        const isActive = statusFilter === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setStatusFilter(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              isActive
+                ? tab.id === 'all'
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : `${tab.bgColor} ${tab.textColor} ring-1 ring-inset ring-current/20`
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {tab.id !== 'all' && <span className={`w-1.5 h-1.5 rounded-full ${tab.dotColor}`} />}
+            <span>{tab.label}</span>
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                isActive
+                  ? tab.id === 'all'
+                    ? 'bg-white/20 text-white'
+                    : `${tab.bgColor} ${tab.textColor} ring-1 ring-inset ring-current/20`
+                  : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {tab.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// Archive Filter Component
+const ArchiveFilter = ({ archivedFilter, setArchivedFilter, setStatusFilter }) => {
+  const options = [
+    { value: 'current', label: 'Current Shipments', description: 'Active shipments only' },
+    { value: 'archived', label: 'Archived Shipments', description: 'Completed & cancelled shipments' },
+    { value: 'all', label: 'All Shipments', description: 'Show everything' },
+  ];
+
+  const handleChange = (value) => {
+    setArchivedFilter(value);
+    setStatusFilter('all');
+  };
+
+  return (
+    <div className="relative">
+      <select
+        value={archivedFilter}
+        onChange={(e) => handleChange(e.target.value)}
+        className="text-sm border border-gray-200 rounded-lg px-3 py-2 pr-8 bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent appearance-none cursor-pointer"
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <FunnelIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+    </div>
+  );
+};
+
+// Search Bar Component
+const SearchBar = ({ searchQuery, setSearchQuery }) => (
+  <div className="relative flex-1 max-w-md">
+    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+    <input
+      type="text"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      placeholder="Search by ID, origin, destination, driver, truck..."
+      className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
+    />
+    {searchQuery && (
+      <button
+        onClick={() => setSearchQuery('')}
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <XMarkIcon className="w-4 h-4" />
+      </button>
+    )}
   </div>
 );
 
@@ -111,9 +253,9 @@ const Shipments = () => {
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'admin';
 
-  const [statusFilter, setStatusFilter]       = useState('all');
-  const [searchQuery, setSearchQuery]         = useState('');
-  const [archivedFilter, setArchivedFilter]   = useState('current'); // 'current' | 'archived' | 'all'
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+const [archivedFilter, setArchivedFilter] = useState('current');
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [detailShipment, setDetailShipment]   = useState(null);
   const [editingShipment, setEditingShipment] = useState(null);
@@ -121,7 +263,6 @@ const Shipments = () => {
   const [showManagerModal, setShowManagerModal] = useState(false);
   const [showEditModal, setShowEditModal]     = useState(false);
 
-  // archived param: false = current, true = archived, undefined = all
   const archivedParam = archivedFilter === 'all' ? undefined : archivedFilter === 'archived';
 
   // ── Queries ──
@@ -177,7 +318,6 @@ const Shipments = () => {
   const archiveMutation   = useMutation({ mutationFn: (id) => shipmentService.archive(id),   onSuccess: () => { invalidate(); toast.success('Shipment archived');  }, onError: (e) => toast.error(e.response?.data?.message || 'Archive failed')  });
   const unarchiveMutation = useMutation({ mutationFn: (id) => shipmentService.unarchive(id), onSuccess: () => { invalidate(); toast.success('Shipment restored');  }, onError: (e) => toast.error(e.response?.data?.message || 'Restore failed')  });
   const assignMutation    = useMutation({ mutationFn: ({ shipmentId, truckId, driverId }) => shipmentService.assign(shipmentId, truckId, driverId), onSuccess: () => { invalidate(); toast.success('Shipment assigned'); closeAssign(); },  onError: (e) => toast.error(e.response?.data?.message || 'Assign failed')         });
-  const unassignMutation  = useMutation({ mutationFn: (id) => shipmentService.unassign(id),  onSuccess: () => { invalidate(); toast.success('Unassigned');         closeAssign(); },  onError: (e) => toast.error(e.response?.data?.message || 'Unassign failed')       });
   const assignManagerMutation   = useMutation({ mutationFn: ({ shipmentId, managerId }) => shipmentService.assignToManager(shipmentId, managerId), onSuccess: () => { invalidate(); toast.success('Manager assigned');   closeManager(); }, onError: (e) => toast.error(e.response?.data?.message || 'Assign manager failed')  });
   const unassignManagerMutation = useMutation({ mutationFn: (id) => shipmentService.unassignManager(id), onSuccess: () => { invalidate(); toast.success('Manager unassigned'); closeManager(); }, onError: (e) => toast.error(e.response?.data?.message || 'Unassign manager failed') });
   const cancelMutation  = useMutation({ mutationFn: ({ id }) => shipmentService.cancel(id), onSuccess: () => { invalidate(); toast.success('Shipment cancelled'); setDetailShipment(null); }, onError: (e) => toast.error(e.response?.data?.message || 'Cancel failed')  });
@@ -193,11 +333,6 @@ const Shipments = () => {
   const handleCancel = async (id) => {
     if (!window.confirm('Cancel this shipment? This will free the truck and driver.')) return;
     await cancelMutation.mutateAsync({ id });
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Permanently delete this shipment?')) return;
-    await deleteMutation.mutateAsync(id);
   };
 
   const handleArchive = (id) => {
@@ -229,10 +364,10 @@ const Shipments = () => {
   if (isLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center">
           <TruckIcon className="w-6 h-6 text-white animate-pulse" />
         </div>
-        <p className="text-sm text-gray-400">Loading shipments…</p>
+        <p className="text-sm text-gray-400">Loading shipments...</p>
       </div>
     </div>
   );
@@ -244,7 +379,7 @@ const Shipments = () => {
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center shrink-0">
               <TruckIcon className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -263,7 +398,7 @@ const Shipments = () => {
             </button>
             <button
               onClick={() => navigate(createPath)}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
             >
               <PlusIcon className="w-4 h-4" />
               New Shipment
@@ -271,86 +406,44 @@ const Shipments = () => {
           </div>
         </div>
 
-        {/* ── Stats ── */}
+        {/* ── Stats Row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {STAT_CONFIG.map(({ key, label, icon, color, bg }) => (
-            <StatCard key={key} label={label} value={counts[key]} icon={icon} color={color} bg={bg} />
+          {STAT_CONFIG.map(({ key, label, icon, color }) => (
+            <StatCard key={key} label={label} value={counts[key]} icon={icon} color={color} />
           ))}
         </div>
 
-        {/* ── Search + Filters row ── */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
-          <div className="relative flex-1 max-w-sm">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by ID, origin, driver, truck…"
-              className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+        {/* ── Filters Row – Organized ── */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+          {/* Search + Archive Filter Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            <ArchiveFilter 
+              archivedFilter={archivedFilter} 
+              setArchivedFilter={setArchivedFilter} 
+              setStatusFilter={setStatusFilter}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-4 h-4" />
-              </button>
-            )}
           </div>
 
-          {/* Status tabs */}
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto flex-1">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shrink-0 ${
-                statusFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              All
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                {counts.total}
-              </span>
-            </button>
-            {STATUS_COLUMNS.map(col => (
-              <button
-                key={col.status}
-                onClick={() => setStatusFilter(col.status)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shrink-0 ${
-                  statusFilter === col.status ? `ring-1 ${col.badge}` : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${col.dot}`} />
-                {col.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${statusFilter === col.status ? col.badge : 'bg-gray-100 text-gray-500'}`}>
-                  {counts[col.status]}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* Archive filter */}
-          <select
-            value={archivedFilter}
-            onChange={(e) => { setArchivedFilter(e.target.value); setStatusFilter('all'); }}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white shrink-0"
-          >
-            <option value="current">Current</option>
-            <option value="archived">Archived</option>
-            <option value="all">All</option>
-          </select>
+          {/* Status Tabs */}
+          <StatusFilterTabs 
+            statusFilter={statusFilter} 
+            setStatusFilter={setStatusFilter} 
+            counts={counts}
+          />
         </div>
 
         {/* Search result hint */}
         {isSearching && (
-          <p className="text-sm text-gray-500">
-            Found <span className="font-semibold text-gray-800">{filtered.length}</span> result{filtered.length !== 1 ? 's' : ''} for{' '}
-            <span className="font-semibold text-blue-600">"{searchQuery}"</span>
-          </p>
+          <div className="bg-white rounded-lg border border-gray-200 px-4 py-2">
+            <p className="text-sm text-gray-600">
+              Found <span className="font-semibold text-gray-900">{filtered.length}</span> result{filtered.length !== 1 ? 's' : ''} for{' '}
+              <span className="font-semibold text-teal-600">"{searchQuery}"</span>
+            </p>
+          </div>
         )}
 
-        {/* ── Kanban / Grid ── */}
+        {/* ── Kanban / Grid View ── */}
         {statusFilter === 'all' && !isSearching ? (
           <div className="flex gap-3 overflow-x-auto pb-2">
             {STATUS_COLUMNS.map(config => (
@@ -365,24 +458,27 @@ const Shipments = () => {
           </div>
         ) : (
           <>
-            {!isSearching && (
-              <p className="text-sm text-gray-500">
-                Showing <span className="font-semibold text-gray-800">{filtered.length}</span>{' '}
-                {activeColConfig?.label.toLowerCase()} shipments
-              </p>
+            {!isSearching && statusFilter !== 'all' && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  Showing <span className="font-semibold text-gray-800">{filtered.length}</span>{' '}
+                  {activeColConfig?.label.toLowerCase()} shipments
+                </p>
+              </div>
             )}
+            
             {filtered.length === 0 ? (
-              <div className="bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center py-20 gap-1">
-                <MagnifyingGlassIcon className="w-8 h-8 text-gray-300 mb-1" />
-                <p className="text-sm font-medium text-gray-500">
+              <div className="bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center py-20 gap-2">
+                <MagnifyingGlassIcon className="w-12 h-12 text-gray-300 mb-2" />
+                <p className="text-base font-medium text-gray-500">
                   {isSearching ? 'No shipments match your search' : `No ${activeColConfig?.label.toLowerCase()} shipments`}
                 </p>
-                <p className="text-xs text-gray-400">
-                  {isSearching ? 'Try different keywords' : 'Try a different filter or create a new shipment'}
+                <p className="text-sm text-gray-400">
+                  {isSearching ? 'Try different keywords or clear the search' : 'Try a different filter or create a new shipment'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filtered.filter(s => s?._id).map(shipment => (
                   <ShipmentCard
                     key={shipment._id}
@@ -413,7 +509,6 @@ const Shipments = () => {
           onClose={closeAssign}
           onAssign={(shipmentId, truckId, driverId) => assignMutation.mutateAsync({ shipmentId, truckId, driverId })}
           onReassign={handleReassign}
-          onUnassign={(id) => unassignMutation.mutateAsync(id)}
         />
       )}
 

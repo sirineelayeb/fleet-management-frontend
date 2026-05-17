@@ -48,10 +48,10 @@ const Pagination = ({
     "flex items-center justify-center w-9 h-9 rounded-full text-sm font-medium transition-all duration-200";
 
   const activeBtn =
-    "bg-blue-600 text-white shadow-md scale-105";
+    "bg-teal-700 text-white shadow-md scale-105";
 
   const inactiveBtn =
-    "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
+    "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
 
   const navBtn =
     "flex items-center justify-center w-9 h-9 rounded-full text-gray-500 hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed";
@@ -66,11 +66,11 @@ const Pagination = ({
       {/* Left side - Items per page selector */}
       {showPageSizeSelector && onPageSizeChange && (
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Show</label>
+          <label className="text-sm text-gray-700">Show</label>
           <select
             value={pageSize}
             onChange={handlePageSizeChange}
-            className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
+            className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white cursor-pointer"
           >
             {pageSizeOptions.map(option => (
               <option key={option} value={option}>
@@ -78,13 +78,13 @@ const Pagination = ({
               </option>
             ))}
           </select>
-          <span className="text-sm text-gray-600">entries</span>
+          <span className="text-sm text-gray-700">entries</span>
         </div>
       )}
 
       {/* Center - Items info */}
       {totalItems > 0 && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-700">
           Showing <span className="font-semibold text-gray-900">{startItem}</span> to{' '}
           <span className="font-semibold text-gray-900">{endItem}</span> of{' '}
           <span className="font-semibold text-gray-900">{totalItems}</span> entries
@@ -94,7 +94,7 @@ const Pagination = ({
       {/* Right side - Pagination controls */}
       <div className="flex items-center gap-2">
         {/* Page info */}
-        <div className="text-sm text-gray-600 mr-2">
+        <div className="text-sm text-gray-700 mr-2">
           Page <span className="font-semibold text-gray-900">{currentPage}</span> of{' '}
           <span className="font-semibold text-gray-900">{totalPages || 1}</span>
         </div>

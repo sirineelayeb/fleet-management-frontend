@@ -68,7 +68,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-teal-500 focus:border-teal-500"
               placeholder="e.g., North Loading Bay"
             />
           </div>
@@ -79,7 +79,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows="3"
-              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-teal-500 focus:border-teal-500"
               placeholder="Optional description of the loading zone"
             />
           </div>
@@ -91,7 +91,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
             </label>
             
             {/* Current Location Display */}
-            <div className={`rounded-lg p-3 mb-2 ${formData.location.lat && formData.location.lng ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+            <div className={`rounded-lg p-3 mb-2 ${formData.location.lat && formData.location.lng ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50'}`}>
               <div className="flex justify-between items-center">
                 <div className="space-y-1">
                   {formData.location.lat && formData.location.lng ? (
@@ -115,7 +115,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
                 <button
                   type="button"
                   onClick={() => setShowMap(true)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700"
                 >
                   <MapPinIcon className="h-4 w-4" />
                   {formData.location.lat && formData.location.lng ? 'Change Location' : 'Select Location'}
@@ -136,7 +136,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
                       ...formData, 
                       location: { ...formData.location, placeName: e.target.value } 
                     })}
-                    className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+                    className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500"
                     placeholder="e.g., North Warehouse, Tunis"
                   />
                 </div>
@@ -151,7 +151,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
                         ...formData, 
                         location: { ...formData.location, lat: parseFloat(e.target.value) } 
                       })}
-                      className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+                      className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500"
                       placeholder="e.g., 36.8065"
                     />
                   </div>
@@ -165,7 +165,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
                         ...formData, 
                         location: { ...formData.location, lng: parseFloat(e.target.value) } 
                       })}
-                      className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+                      className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500"
                       placeholder="e.g., 10.1815"
                     />
                   </div>
@@ -180,7 +180,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
               type="number"
               value={formData.radiusMeters}
               onChange={(e) => setFormData({ ...formData, radiusMeters: parseInt(e.target.value) })}
-              className="mt-1 w-full px-3 py-2 border rounded-lg"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-teal-500 focus:border-teal-500"
               min="1"
             />
           </div>
@@ -190,7 +190,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="mt-1 w-full px-3 py-2 border rounded-lg"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -208,7 +208,7 @@ const LoadingZoneFormModal = ({ zone, onClose, onSuccess }) => {
             <button 
               type="submit" 
               disabled={mutation.isPending} 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50"
             >
               {mutation.isPending ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
             </button>

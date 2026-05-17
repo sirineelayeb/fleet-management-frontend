@@ -1,20 +1,31 @@
 // ============================================
+// BRAND COLORS — single source of truth
+// ============================================
+const BRAND = {
+  orange:    '#F29F67',
+  navy:      '#1E1E2C',
+  gold:      '#E0B50F',
+  teal:      '#34B1AA',
+  blue:      '#3B8FF3',
+  // Neutrals (not brand, but required for UI)
+  gray:      '#9CA3AF',
+  lightGray: '#F3F4F6',
+  white:     '#FFFFFF',
+  offWhite:  '#F7FAFC',
+};
+
+// ============================================
 // 1. PRIMARY COLOR SYSTEM
 // ============================================
 export const primary = {
-  // Core brand colors - Professional blue palette
-  navy: '#1E293B',
-  denim: '#2C3E66',
-  cobalt: '#2C5282',
-  ocean: '#3182CE',
-  sky: '#63B3ED',
-  
-  // Supporting neutral palette
-  slate: '#4A5568',
-  gray: '#718096',
-  mist: '#E2E8F0',
-  white: '#FFFFFF',
-  offWhite: '#F7FAFC'
+  navy:     BRAND.navy,
+  teal:     BRAND.teal,
+  blue:     BRAND.blue,
+  gold:     BRAND.gold,
+  orange:   BRAND.orange,
+  gray:     BRAND.gray,
+  white:    BRAND.white,
+  offWhite: BRAND.offWhite,
 };
 
 // ============================================
@@ -22,35 +33,35 @@ export const primary = {
 // ============================================
 export const semantic = {
   success: {
-    primary: '#059669',
-    light: '#D1FAE5',
-    dark: '#065F46',
-    accent: '#10B981'
+    primary: BRAND.teal,
+    light:   '#E8F8F7',
+    dark:    '#1A6B67',
+    accent:  BRAND.teal,
   },
   warning: {
-    primary: '#D97706',
-    light: '#FEF3C7',
-    dark: '#B45309',
-    accent: '#F59E0B'
+    primary: BRAND.gold,
+    light:   '#FBF5D0',
+    dark:    '#A07D09',
+    accent:  BRAND.gold,
   },
   danger: {
-    primary: '#DC2626',
-    light: '#FEE2E2',
-    dark: '#B91C1C',
-    accent: '#EF4444'
+    primary: BRAND.orange,
+    light:   '#FEF0E7',
+    dark:    '#C06A35',
+    accent:  BRAND.orange,
   },
   info: {
-    primary: '#3B82F6',
-    light: '#DBEAFE',
-    dark: '#1E40AF',
-    accent: '#60A5FA'
+    primary: BRAND.blue,
+    light:   '#E6F0FD',
+    dark:    '#1A5BB5',
+    accent:  BRAND.blue,
   },
   neutral: {
-    primary: '#6B7280',
-    light: '#F3F4F6',
-    dark: '#374151',
-    accent: '#9CA3AF'
-  }
+    primary: BRAND.gray,
+    light:   BRAND.lightGray,
+    dark:    '#374151',
+    accent:  BRAND.gray,
+  },
 };
 
 // ============================================
@@ -58,85 +69,105 @@ export const semantic = {
 // ============================================
 export const chartColors = {
   shipment: {
-    inTransit: semantic.info.primary,
-    pending: semantic.warning.primary,
-    delivered: semantic.success.primary,
-    cancelled: semantic.danger.primary
+    inTransit: BRAND.blue,
+    pending:   BRAND.gold,
+    delivered: BRAND.teal,
+    cancelled: BRAND.orange,
   },
   truck: {
-    onRoad: semantic.success.primary,
-    available: semantic.info.primary,
-    maintenance: semantic.warning.primary,
-    inactive: semantic.neutral.primary,
-    reserved: '#8B5CF6'
+    onRoad:      BRAND.teal,
+    available:   BRAND.blue,
+    maintenance: BRAND.orange,
+    inactive:    BRAND.gray,
+    reserved:    BRAND.gold,
   },
-   notification: {
-    high: '#F97316',      // Orange for high severity
-    medium: '#F59E0B',    // Yellow for medium severity  
-    low: '#3B82F6',       // Blue for low severity
-    critical: '#DC2626',  // Red for critical
-    info: '#10B981'       // Green for info
+  notification: {
+    high:     BRAND.orange,
+    medium:   BRAND.gold,
+    low:      BRAND.blue,
+    critical: BRAND.orange,
+    info:     BRAND.teal,
   },
   device: {
-    online: semantic.success.primary,
-    offline: semantic.neutral.primary,
-    lowBattery: semantic.warning.primary,
-    charging: '#8B5CF6',
-    error: semantic.danger.primary
+    online:     BRAND.teal,
+    offline:    BRAND.gray,
+    lowBattery: BRAND.gold,
+    charging:   BRAND.blue,
+    error:      BRAND.orange,
   },
   performance: {
-    high: '#10B981',
-    medium: '#F59E0B',
-    low: '#EF4444',
-    target: '#3B82F6'
-  }
+    high:   BRAND.teal,
+    medium: BRAND.gold,
+    low:    BRAND.orange,
+    target: BRAND.blue,
+  },
 };
 
 // ============================================
-// 4. STATUS BADGE STYLES (Tailwind classes)
+// 4. STATUS BADGE STYLES
+// Color logic:
+//   teal   → success states  (completed, delivered, active, available)
+//   blue   → in-progress     (in transit, in progress, busy, charging)
+//   yellow → pending states  (pending, assigned, on break, low battery)
+//   orange → warning/error   (cancelled, maintenance, unavailable, error)
+//   gray   → inactive states (inactive, off duty, offline, on hold)
 // ============================================
 export const statusBadges = {
   shipment: {
-    in_transit: 'bg-blue-50 text-blue-700 border border-blue-200',
-    pending: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-    delivered: 'bg-green-50 text-green-700 border border-green-200',
-    cancelled: 'bg-red-50 text-red-700 border border-red-200',
-    on_hold: 'bg-gray-50 text-gray-700 border border-gray-200'
+    in_transit:  'bg-blue-50 text-blue-700 border border-blue-200',
+    in_progress: 'bg-blue-50 text-blue-700 border border-blue-200',
+    pending:     'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    assigned:    'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    delivered:   'bg-teal-50 text-teal-700 border border-teal-200',
+    completed:   'bg-teal-50 text-teal-700 border border-teal-200',
+    cancelled:   'bg-orange-50 text-orange-700 border border-orange-200',
+    on_hold:     'bg-gray-50 text-gray-600 border border-gray-200',
   },
   alert: {
-    critical: 'bg-red-50 text-red-700 border border-red-200',
-    high: 'bg-orange-50 text-orange-700 border border-orange-200',
-    medium: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-    low: 'bg-blue-50 text-blue-700 border border-blue-200',
-    info: 'bg-green-50 text-green-700 border border-green-200'
+    critical: 'bg-orange-50 text-orange-700 border border-orange-200',
+    high:     'bg-orange-50 text-orange-700 border border-orange-200',
+    medium:   'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    low:      'bg-blue-50 text-blue-700 border border-blue-200',
+    info:     'bg-teal-50 text-teal-700 border border-teal-200',
   },
   truck: {
-    on_road: 'bg-green-100 text-green-800 border border-green-200',
-    available: 'bg-blue-100 text-blue-800 border border-blue-200',
-    maintenance: 'bg-orange-100 text-orange-800 border border-orange-200',
-    inactive: 'bg-gray-100 text-gray-800 border border-gray-200',
-    reserved: 'bg-purple-100 text-purple-800 border border-purple-200'
+    on_road:     'bg-teal-50 text-teal-700 border border-teal-200',
+    in_mission:  'bg-teal-50 text-teal-700 border border-teal-200',
+    available:   'bg-blue-50 text-blue-700 border border-blue-200',
+    maintenance: 'bg-orange-50 text-orange-700 border border-orange-200',
+    inactive:    'bg-gray-50 text-gray-600 border border-gray-200',
+    reserved:    'bg-yellow-50 text-yellow-700 border border-yellow-200',
   },
   driver: {
-    active: 'bg-green-100 text-green-800 border border-green-200',
-    on_break: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-    off_duty: 'bg-gray-100 text-gray-800 border border-gray-200',
-    unavailable: 'bg-red-100 text-red-800 border border-red-200'
-  }
+    active:      'bg-teal-50 text-teal-700 border border-teal-200',
+    available:   'bg-teal-50 text-teal-700 border border-teal-200',
+    busy:        'bg-blue-50 text-blue-700 border border-blue-200',
+    on_break:    'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    off_duty:    'bg-gray-50 text-gray-600 border border-gray-200',
+    offline:     'bg-gray-50 text-gray-600 border border-gray-200',
+    unavailable: 'bg-orange-50 text-orange-700 border border-orange-200',
+  },
+  device: {
+    active:     'bg-teal-50 text-teal-700 border border-teal-200',
+    inactive:   'bg-gray-50 text-gray-600 border border-gray-200',
+    lowBattery: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    charging:   'bg-blue-50 text-blue-700 border border-blue-200',
+    error:      'bg-orange-50 text-orange-700 border border-orange-200',
+  },
 };
 
 // ============================================
 // 5. ACTION BUTTON GRADIENTS
 // ============================================
 export const actionGradients = {
-  shipments: 'from-blue-600 to-blue-700',
-  fleet: 'from-purple-600 to-purple-700',
-  map: 'from-green-600 to-green-700',
-  alerts: 'from-red-600 to-red-700',
-  reports: 'from-indigo-600 to-indigo-700',
-  settings: 'from-gray-600 to-gray-700',
-  drivers: 'from-teal-600 to-teal-700',
-  analytics: 'from-pink-600 to-pink-700'
+  shipments: 'from-blue-400 to-blue-500',
+  fleet:     'from-teal-400 to-teal-500',
+  map:       'from-teal-500 to-teal-600',
+  alerts:    'from-orange-300 to-orange-400',
+  reports:   'from-blue-500 to-blue-600',
+  settings:  'from-gray-500 to-gray-600',
+  drivers:   'from-teal-400 to-teal-500',
+  analytics: 'from-yellow-400 to-yellow-500',
 };
 
 // ============================================
@@ -144,214 +175,210 @@ export const actionGradients = {
 // ============================================
 export const iconColors = {
   background: {
-    blue: 'bg-blue-100',
-    purple: 'bg-purple-100',
-    green: 'bg-green-100',
-    red: 'bg-red-100',
-    yellow: 'bg-yellow-100',
     orange: 'bg-orange-100',
-    indigo: 'bg-indigo-100',
-    teal: 'bg-teal-100',
-    pink: 'bg-pink-100',
-    gray: 'bg-gray-100'
+    navy:   'bg-gray-100',
+    gold:   'bg-yellow-100',
+    teal:   'bg-teal-100',
+    blue:   'bg-blue-100',
+    // Semantic aliases → nearest brand
+    green:  'bg-teal-100',
+    yellow: 'bg-yellow-100',
+    red:    'bg-orange-100',
+    gray:   'bg-gray-100',
+    // Legacy aliases
+    purple: 'bg-blue-100',
+    indigo: 'bg-blue-100',
+    pink:   'bg-orange-100',
   },
   text: {
-    blue: 'text-blue-600',
-    purple: 'text-purple-600',
-    green: 'text-green-600',
-    red: 'text-red-600',
+    orange: 'text-orange-500',
+    navy:   'text-gray-800',
+    gold:   'text-yellow-600',
+    teal:   'text-teal-600',
+    blue:   'text-blue-500',
+    // Semantic aliases → nearest brand
+    green:  'text-teal-600',
     yellow: 'text-yellow-600',
-    orange: 'text-orange-600',
-    indigo: 'text-indigo-600',
-    teal: 'text-teal-600',
-    pink: 'text-pink-600',
-    gray: 'text-gray-600'
-  }
+    red:    'text-orange-500',
+    gray:   'text-gray-500',
+    // Legacy aliases
+    purple: 'text-blue-500',
+    indigo: 'text-blue-500',
+    pink:   'text-orange-500',
+  },
 };
 
 // ============================================
 // 7. MAP MARKER COLORS
 // ============================================
 export const mapMarkers = {
-  on_road: '#10B981',
-  available: '#3B82F6',
-  maintenance: '#F59E0B',
-  inactive: '#9CA3AF',
-  emergency: '#EF4444',
-  stopped: '#6B7280',
-  speeding: '#F97316'
+  on_road:     BRAND.teal,
+  in_mission:  BRAND.teal,
+  available:   BRAND.blue,
+  maintenance: BRAND.gold,
+  inactive:    BRAND.gray,
+  emergency:   BRAND.orange,
+  stopped:     BRAND.gray,
+  speeding:    BRAND.orange,
 };
 
 // ============================================
 // 8. STAT CARD COLOR MAPPINGS
 // ============================================
 export const statCardColors = {
-  inTransit: 'blue',
-  delivered: 'green',
-  pending: 'yellow',
-  cancelled: 'red',
-  availableTrucks: 'green',
-  onRoadTrucks: 'blue',
-  fleetUtilization: 'purple',
-  liveTelemetry: 'indigo',
-  maintenanceDue: 'orange',
-  fuelEfficiency: 'teal',
-  activeDrivers: 'green',
-  onBreakDrivers: 'yellow',
-  totalDrivers: 'purple',
-  onTimeDelivery: 'green',
+  inTransit:            'blue',
+  inProgress:           'blue',
+  delivered:            'teal',
+  completed:            'teal',
+  pending:              'gold',
+  cancelled:            'orange',
+  availableTrucks:      'teal',
+  onRoadTrucks:         'blue',
+  fleetUtilization:     'blue',
+  liveTelemetry:        'blue',
+  maintenanceDue:       'orange',
+  fuelEfficiency:       'teal',
+  activeDrivers:        'teal',
+  onBreakDrivers:       'gold',
+  totalDrivers:         'navy',
+  onTimeDelivery:       'teal',
   customerSatisfaction: 'teal',
-  costPerMile: 'orange',
-  revenue: 'emerald',
-  activeAlerts: 'red',
-  criticalAlerts: 'red',
-  trucksInMaintenance: 'orange',
-  totalShipments: 'purple',
-  todaysDeliveries: 'green'
+  costPerMile:          'orange',
+  revenue:              'teal',
+  activeAlerts:         'orange',
+  criticalAlerts:       'orange',
+  trucksInMaintenance:  'orange',
+  totalShipments:       'blue',
+  todaysDeliveries:     'teal',
 };
 
 // ============================================
 // 9. BACKGROUND & SURFACE COLORS
 // ============================================
 export const surfaces = {
-  page: primary.offWhite,
-  card: primary.white,
-  cardHover: '#F9FAFB',
-  modal: primary.white,
-  dropdown: primary.white,
-  sidebar: primary.navy,
-  header: primary.white,
-  footer: primary.white,
+  page:      BRAND.offWhite,
+  card:      BRAND.white,
+  cardHover: BRAND.lightGray,
+  modal:     BRAND.white,
+  dropdown:  BRAND.white,
+  sidebar:   BRAND.navy,
+  header:    BRAND.white,
+  footer:    BRAND.white,
   dark: {
-    page: '#0F172A',
-    card: '#1E293B',
-    sidebar: '#0F172A',
-    header: '#1E293B'
-  }
+    page:    '#0F0F18',
+    card:    BRAND.navy,
+    sidebar: '#0F0F18',
+    header:  BRAND.navy,
+  },
 };
 
 // ============================================
 // 10. TEXT COLORS
 // ============================================
 export const textColors = {
-  primary: primary.navy,
-  secondary: primary.slate,
-  tertiary: primary.gray,
-  disabled: '#CBD5E0',
-  success: semantic.success.primary,
-  warning: semantic.warning.primary,
-  danger: semantic.danger.primary,
-  info: semantic.info.primary,
+  primary:   BRAND.navy,
+  secondary: '#4A5568',
+  tertiary:  BRAND.gray,
+  disabled:  '#CBD5E0',
+  success:   BRAND.teal,
+  warning:   BRAND.gold,
+  danger:    BRAND.orange,
+  info:      BRAND.blue,
   light: {
-    primary: '#F7FAFC',
+    primary:   BRAND.white,
     secondary: '#E2E8F0',
-    tertiary: '#CBD5E0'
-  }
+    tertiary:  '#CBD5E0',
+  },
 };
 
 // ============================================
 // 11. BORDER COLORS
 // ============================================
 export const borders = {
-  light: '#E2E8F0',
-  medium: '#CBD5E0',
-  dark: '#A0AEC0',
-  focus: semantic.info.primary,
-  error: semantic.danger.primary,
-  success: semantic.success.primary
+  light:   '#E2E8F0',
+  medium:  '#CBD5E0',
+  dark:    '#A0AEC0',
+  focus:   BRAND.blue,
+  error:   BRAND.orange,
+  success: BRAND.teal,
+  warning: BRAND.gold,
 };
 
 // ============================================
 // 12. HELPER FUNCTIONS
 // ============================================
 
-// Get status badge with optional size variant
 export const getStatusBadge = (status, type = 'shipment', size = 'md') => {
-  const baseClass = statusBadges[type]?.[status] || 'bg-gray-100 text-gray-700 border border-gray-200';
+  const baseClass = statusBadges[type]?.[status] || 'bg-gray-50 text-gray-600 border border-gray-200';
   const sizeClasses = {
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-0.5 text-sm',
-    lg: 'px-3 py-1 text-base'
+    lg: 'px-3 py-1 text-base',
   };
   return `${baseClass} rounded-full font-medium ${sizeClasses[size]}`;
 };
 
-// Get status text with proper formatting
 export const getStatusText = (status) => {
   const texts = {
-    'in_transit': 'In Transit',
-    'pending': 'Pending',
-    'delivered': 'Delivered',
-    'cancelled': 'Cancelled',
-    'on_hold': 'On Hold',
-    'on_road': 'On Road',
-    'available': 'Available',
-    'maintenance': 'Maintenance',
-    'inactive': 'Inactive',
-    'reserved': 'Reserved',
-    'active': 'Active',
-    'on_break': 'On Break',
-    'off_duty': 'Off Duty',
-    'unavailable': 'Unavailable'
+    in_transit:  'In Transit',
+    in_progress: 'In Progress',
+    pending:     'Pending',
+    assigned:    'Assigned',
+    delivered:   'Delivered',
+    completed:   'Completed',
+    cancelled:   'Cancelled',
+    on_hold:     'On Hold',
+    on_road:     'On Road',
+    in_mission:  'In Mission',
+    available:   'Available',
+    maintenance: 'Maintenance',
+    inactive:    'Inactive',
+    reserved:    'Reserved',
+    active:      'Active',
+    busy:        'Busy',
+    on_break:    'On Break',
+    off_duty:    'Off Duty',
+    offline:     'Offline',
+    unavailable: 'Unavailable',
   };
   return texts[status] || status?.replace(/_/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown';
 };
 
-// Get alert badge with severity level
 export const getAlertBadge = (severity) => {
   const badges = {
-    critical: 'bg-red-50 text-red-700 border border-red-200',
-    high: 'bg-orange-50 text-orange-700 border border-orange-200',
-    medium: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-    low: 'bg-blue-50 text-blue-700 border border-blue-200',
-    info: 'bg-green-50 text-green-700 border border-green-200'
+    critical: 'bg-orange-50 text-orange-700 border border-orange-200',
+    high:     'bg-orange-50 text-orange-700 border border-orange-200',
+    medium:   'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    low:      'bg-blue-50 text-blue-700 border border-blue-200',
+    info:     'bg-teal-50 text-teal-700 border border-teal-200',
   };
-  return badges[severity] || 'bg-gray-50 text-gray-700 border border-gray-200';
+  return badges[severity] || 'bg-gray-50 text-gray-600 border border-gray-200';
 };
 
-// Get marker color for map
-export const getMarkerColor = (status) => {
-  return mapMarkers[status] || mapMarkers.inactive;
-};
+export const getMarkerColor = (status) => mapMarkers[status] || mapMarkers.inactive;
 
-// Get stat card color
 export const getStatCardColor = (statKey, priority = 'normal') => {
-  const baseColor = statCardColors[statKey] || 'blue';
-  
-  if (priority === 'high') return 'red';
-  if (priority === 'warning') return 'yellow';
-  if (priority === 'success') return 'green';
-  
-  return baseColor;
+  if (priority === 'high')    return 'orange';
+  if (priority === 'warning') return 'gold';
+  if (priority === 'success') return 'teal';
+  return statCardColors[statKey] || 'blue';
 };
 
-// Get icon background and text colors
-export const getIconColors = (color) => {
-  return {
-    bg: iconColors.background[color] || 'bg-gray-100',
-    text: iconColors.text[color] || 'text-gray-600'
-  };
-};
+export const getIconColors = (color) => ({
+  bg:   iconColors.background[color] || 'bg-gray-100',
+  text: iconColors.text[color]       || 'text-gray-500',
+});
 
-// Get gradient for actions
-export const getActionGradient = (action) => {
-  return actionGradients[action] || 'from-gray-600 to-gray-700';
-};
+export const getActionGradient = (action) => actionGradients[action] || 'from-gray-500 to-gray-600';
 
-// Get chart color by category and status
-export const getChartColor = (category, status) => {
-  if (chartColors[category] && chartColors[category][status]) {
-    return chartColors[category][status];
-  }
-  return semantic.info.primary;
-};
+export const getChartColor = (category, status) =>
+  chartColors[category]?.[status] || BRAND.blue;
 
-// Color contrast checker helper
 export const isAccessible = (hexColor) => {
   const rgb = parseInt(hexColor.slice(1), 16);
   const r = (rgb >> 16) & 0xff;
-  const g = (rgb >> 8) & 0xff;
-  const b = (rgb >> 0) & 0xff;
+  const g = (rgb >> 8)  & 0xff;
+  const b = (rgb >> 0)  & 0xff;
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.5 ? 'light' : 'dark';
 };
@@ -360,92 +387,102 @@ export const isAccessible = (hexColor) => {
 // 13. BACKWARD COMPATIBILITY EXPORTS
 // ============================================
 
-// For backward compatibility with existing code that expects COLORS export
 export const COLORS = {
   PRIMARY: {
-    BLUE: semantic.info.primary,
-    GREEN: semantic.success.primary,
-    ORANGE: semantic.warning.primary,
-    RED: semantic.danger.primary,
-    PURPLE: '#8B5CF6',
-    INDIGO: '#6366F1',
-    YELLOW: '#F59E0B',
-    LIGHT_BLUE: '#82C3D9'
+    BLUE:       BRAND.blue,
+    GREEN:      BRAND.teal,
+    ORANGE:     BRAND.orange,
+    RED:        BRAND.orange,   // no red in brand palette
+    PURPLE:     BRAND.blue,     // no purple in brand palette
+    INDIGO:     BRAND.blue,     // no indigo in brand palette
+    YELLOW:     BRAND.gold,
+    LIGHT_BLUE: BRAND.blue,
   },
   SEMANTIC: {
-    SUCCESS: semantic.success.primary,
-    WARNING: semantic.warning.primary,
-    ERROR: semantic.danger.primary,
-    INFO: semantic.info.primary,
-    NEUTRAL: semantic.neutral.primary
+    SUCCESS: BRAND.teal,
+    WARNING: BRAND.gold,
+    ERROR:   BRAND.orange,
+    INFO:    BRAND.blue,
+    NEUTRAL: BRAND.gray,
   },
   chart: {
     shipment: chartColors.shipment,
-    truck: chartColors.truck,
-    alert: chartColors.alert,
-    device: chartColors.device
-  }
+    truck:    chartColors.truck,
+    alert:    chartColors.notification,
+    device:   chartColors.device,
+  },
 };
 
-// Backward compatibility for iconTextColors
 export const iconTextColors = {
-  blue: 'text-blue-500',
-  purple: 'text-purple-500',
-  green: 'text-green-500',
-  red: 'text-red-500',
-  yellow: 'text-yellow-500',
   orange: 'text-orange-500',
-  indigo: 'text-indigo-500',
-  teal: 'text-teal-500',
-  pink: 'text-pink-500',
-  gray: 'text-gray-500'
+  navy:   'text-gray-800',
+  gold:   'text-yellow-600',
+  teal:   'text-teal-600',
+  blue:   'text-blue-500',
+  green:  'text-teal-600',
+  yellow: 'text-yellow-600',
+  red:    'text-orange-500',
+  gray:   'text-gray-500',
+  // Legacy aliases
+  purple: 'text-blue-500',
+  indigo: 'text-blue-500',
+  pink:   'text-orange-500',
 };
 
-// Backward compatibility for statusColors
 export const statusColors = {
   shipment: {
-    in_transit: 'bg-blue-100 text-blue-800',
-    pending: 'bg-yellow-100 text-yellow-800',
-    delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800'
+    in_transit:  'bg-blue-100 text-blue-800',
+    in_progress: 'bg-blue-100 text-blue-800',
+    pending:     'bg-yellow-100 text-yellow-800',
+    assigned:    'bg-yellow-100 text-yellow-800',
+    delivered:   'bg-teal-100 text-teal-800',
+    completed:   'bg-teal-100 text-teal-800',
+    cancelled:   'bg-orange-100 text-orange-800',
+    on_hold:     'bg-gray-100 text-gray-700',
   },
   alert: {
-    high: 'bg-red-100 text-red-800',
-    medium: 'bg-yellow-100 text-yellow-800',
-    low: 'bg-blue-100 text-blue-800'
+    critical: 'bg-orange-100 text-orange-800',
+    high:     'bg-orange-100 text-orange-800',
+    medium:   'bg-yellow-100 text-yellow-800',
+    low:      'bg-blue-100 text-blue-800',
+    info:     'bg-teal-100 text-teal-800',
   },
   truck: {
-    on_road: 'bg-green-500',
-    available: 'bg-blue-500',
-    maintenance: 'bg-orange-500',
-    inactive: 'bg-gray-500'
-  }
+    on_road:     BRAND.teal,
+    in_mission:  BRAND.teal,
+    available:   BRAND.blue,
+    maintenance: BRAND.orange,
+    inactive:    BRAND.gray,
+    reserved:    BRAND.gold,
+  },
 };
 
-// Backward compatibility for actionGradientsLegacy
 export const actionGradientsLegacy = {
-  shipments: 'from-blue-500 to-blue-600',
-  fleet: 'from-purple-500 to-purple-600',
-  map: 'from-green-500 to-green-600',
-  alerts: 'from-red-500 to-red-600'
+  shipments: 'from-blue-400 to-blue-500',
+  fleet:     'from-teal-400 to-teal-500',
+  map:       'from-teal-400 to-teal-500',
+  alerts:    'from-orange-300 to-orange-400',
 };
 
-// Legacy getStatusBadge for backward compatibility
 export const getStatusBadgeLegacy = (status, type = 'shipment') => {
   const legacyColors = {
     shipment: {
-      in_transit: 'bg-blue-100 text-blue-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      delivered: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800'
+      in_transit:  'bg-blue-100 text-blue-800',
+      in_progress: 'bg-blue-100 text-blue-800',
+      pending:     'bg-yellow-100 text-yellow-800',
+      assigned:    'bg-yellow-100 text-yellow-800',
+      delivered:   'bg-teal-100 text-teal-800',
+      completed:   'bg-teal-100 text-teal-800',
+      cancelled:   'bg-orange-100 text-orange-800',
     },
     alert: {
-      high: 'bg-red-100 text-red-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      low: 'bg-blue-100 text-blue-800'
-    }
+      critical: 'bg-orange-100 text-orange-800',
+      high:     'bg-orange-100 text-orange-800',
+      medium:   'bg-yellow-100 text-yellow-800',
+      low:      'bg-blue-100 text-blue-800',
+    },
   };
-  return legacyColors[type]?.[status] || 'bg-gray-100 text-gray-800';
+  return legacyColors[type]?.[status] || 'bg-gray-100 text-gray-700';
 };
 
 // ============================================
@@ -466,7 +503,6 @@ export default {
   textColors,
   borders,
   COLORS,
-  // Helper functions
   getStatusBadge,
   getStatusText,
   getAlertBadge,
@@ -476,7 +512,6 @@ export default {
   getActionGradient,
   getChartColor,
   isAccessible,
-  // Legacy helpers
   getStatusBadgeLegacy,
-  actionGradientsLegacy
+  actionGradientsLegacy,
 };

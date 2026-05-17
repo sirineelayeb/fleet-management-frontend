@@ -154,31 +154,31 @@ const Users = () => {
 
   // Tab configuration
   const tabs = [
-    { id: 'all', label: 'All Users', icon: UsersIcon, count: totalCount, color: 'blue' },
+    { id: 'all', label: 'All Users', icon: UsersIcon, count: totalCount, color: 'teal' },
     { id: 'admins', label: 'Administrators', icon: ShieldCheckIcon, count: adminCount, color: 'red' },
-    { id: 'shipment_managers', label: 'Shipment Managers', icon: UserIcon, count: shipmentManagerCount, color: 'green' },
+    { id: 'shipment_managers', label: 'Shipment Managers', icon: UserIcon, count: shipmentManagerCount, color: 'teal' },
   ];
 
   if (isLoading || statsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
-              <UserIcon className="h-8 w-8 text-white" />
-            </div>
-            <p className="text-gray-500 text-sm font-medium animate-pulse">
-              Loading Users...
-            </p>
-          </div>
-          );
-        } 
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
+          <UserIcon className="h-8 w-8 text-white" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium animate-pulse">
+          Loading Users...
+        </p>
+      </div>
+    );
+  } 
   
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-        <p className="text-red-600">Error: {error.message}</p>
+      <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 text-center">
+        <p className="text-rose-800">Error: {error.message}</p>
         <button 
           onClick={() => window.location.reload()} 
-          className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg"
+          className="mt-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
         >
           Retry
         </button>
@@ -196,7 +196,7 @@ const Users = () => {
         </div>
         <button
           onClick={() => { setEditingUser(null); resetForm(); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-teal-700 transition-colors"
         >
           <PlusIcon className="h-5 w-5" />
           Add New User
@@ -212,11 +212,16 @@ const Users = () => {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            const colorClasses = {
-              blue: isActive ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              red: isActive ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              green: isActive ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-            };
+            let colorClasses = '';
+            if (tab.color === 'teal') {
+              colorClasses = isActive 
+                ? 'border-teal-500 text-teal-700' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+            } else {
+              colorClasses = isActive 
+                ? 'border-rose-500 text-rose-700' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+            }
             
             return (
               <button
@@ -227,14 +232,14 @@ const Users = () => {
                 }}
                 className={`
                   flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors
-                  ${colorClasses[tab.color]}
+                  ${colorClasses}
                 `}
               >
                 <Icon className="h-5 w-5" />
                 <span>{tab.label}</span>
                 <span className={`
                   ml-1 px-2 py-0.5 text-xs rounded-full
-                  ${isActive ? 'bg-gray-100 text-gray-900' : 'bg-gray-100 text-gray-600'}
+                  ${isActive ? 'bg-gray-100 text-gray-900' : 'bg-gray-100 text-gray-700'}
                 `}>
                   {tab.count}
                 </span>
@@ -285,7 +290,7 @@ const Users = () => {
           </p>
           <button
             onClick={() => { setEditingUser(null); resetForm(); setIsModalOpen(true); }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto hover:bg-blue-700"
+            className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto hover:bg-teal-700"
           >
             <PlusIcon className="h-5 w-5" />
             Add New User

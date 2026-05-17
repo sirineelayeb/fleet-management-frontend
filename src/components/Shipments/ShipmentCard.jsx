@@ -36,24 +36,24 @@ const formatDuration = (hours) => {
 };
 
 const getTypeIcon = (type) => {
-  switch (type) { case 'refrigerated': return '❄️'; case 'fragile': return '🔔'; default: return '📦'; }
+  switch (type) { case 'refrigerated': return ''; case 'fragile': return ''; default: return ''; }
 };
 
 const getTypeColor = (type) => {
   switch (type) {
-    case 'refrigerated': return 'bg-cyan-100 text-cyan-700 border border-cyan-200';
-    case 'fragile': return 'bg-amber-100 text-amber-700 border border-amber-200';
-    default: return 'bg-blue-100 text-blue-700 border border-blue-200';
+case 'refrigerated': return 'bg-teal-100 text-teal-700 border border-teal-200';
+case 'fragile':      return 'bg-yellow-100 text-yellow-700 border border-yellow-200';
+default:             return 'bg-blue-100 text-blue-700 border border-blue-200';
   }
 };
 
 const getStatusAccent = (status) => {
   switch (status) {
-    case 'pending':     return 'border-l-amber-400';
+    case 'pending':     return 'border-l-yellow-400';
     case 'assigned':    return 'border-l-blue-400';
-    case 'in_progress': return 'border-l-sky-400';
-    case 'completed':   return 'border-l-emerald-400';
-    case 'cancelled':   return 'border-l-rose-400';
+    case 'in_progress': return 'border-l-blue-400';
+    case 'completed':   return 'border-l-teal-400';
+    case 'cancelled':   return 'border-l-orange-400';
     default:            return 'border-l-gray-300';
   }
 };
@@ -68,8 +68,8 @@ const StatusHeader = ({ shipmentId, status, statusText, isPriority, onViewDetail
       </span>
       <span className={getStatusBadge(status, 'shipment', 'sm')}>{statusText}</span>
       {isPriority && (
-        <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full border border-red-200 flex-shrink-0">
-          🚨 Priority
+        <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full border border-orange-200 flex-shrink-0">
+          Priority
         </span>
       )}
     </div>
@@ -120,18 +120,18 @@ const AssignmentBadge = ({ truck, driver }) => (
 const DurationBadge = ({ estimatedDuration, isUrgent, daysUntilDelivery, isOverdue }) => (
   <div className="flex items-center justify-between text-xs">
     <div className="flex items-center gap-1.5 text-gray-500">
-      <ClockIcon className="h-3.5 w-3.5 text-blue-400" />
+      <ClockIcon className="h-3.5 w-3.5 text-teal-400" />
       <span>Est. duration:</span>
       <span className="font-semibold text-gray-700">{estimatedDuration}</span>
     </div>
     {isUrgent && (
       <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-        ⚡ {daysUntilDelivery}d left
+        {daysUntilDelivery}d left
       </span>
     )}
     {isOverdue && (
-      <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
-        🔴 {Math.abs(daysUntilDelivery)}d overdue
+      <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+        {Math.abs(daysUntilDelivery)}d overdue
       </span>
     )}
   </div>
@@ -147,12 +147,12 @@ const Tags = ({ shipmentType, weightKg, customer, assignedTo }) => (
       {weightKg || 0}kg
     </span>
     {customer && (
-      <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
-        👤 {customer.name}
+      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
+        {customer.name}
       </span>
     )}
     {assignedTo && typeof assignedTo === 'object' && (
-      <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1">
+      <span className="text-xs bg-blue-50 text-blue-700  px-2 py-0.5 rounded-full border  border-blue-200 flex items-center gap-1">
         <UserGroupIcon className="h-3 w-3" />
         {assignedTo.name?.split(' ')[0]}
       </span>
@@ -186,14 +186,14 @@ const ActionButtons = ({
   return (
     <div className="flex items-center gap-0.5">
       {onEdit &&
-        btn('Edit shipment', () => onEdit(shipment), 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50', <PencilIcon className="h-4 w-4" />)}
+        btn('Edit shipment', () => onEdit(shipment), 'text-gray-400 hover:text-teal-600 hover:bg-teal-50', <PencilIcon className="h-4 w-4" />)}
       {/* Archive / Restore – only show archive for completed/cancelled */}
       {shipment.isArchived ? (
         onUnarchive && (
           <button
             title="Restore shipment"
             onClick={(e) => { e.stopPropagation(); onUnarchive(shipmentId); }}
-            className="text-gray-400 hover:text-green-600 hover:bg-green-50 p-1.5 rounded-lg transition-all"
+            className="text-gray-400 hover:text-teal-600 hover:bg-teal-50 p-1.5 rounded-lg transition-all"
           >
             <ArrowUturnLeftIcon className="h-4 w-4" />
           </button>
@@ -210,14 +210,14 @@ const ActionButtons = ({
         )
       )}
 
-      {/* ✅ Single button handles both assign and reassign — modal detects mode from shipment.status */}
+      {/* Single button handles both assign and reassign — modal detects mode from shipment.status */}
       {['pending', 'assigned', 'in_progress'].includes(status) && onAssign &&
         btn(
           status === 'pending' ? 'Assign driver' : 'Reassign',
           () => onAssign(shipment),
           status === 'pending'
             ? 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-            : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50',
+            : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50',
           status === 'pending'
             ? <UserPlusIcon className="h-4 w-4" />
             : <ArrowPathIcon className="h-4 w-4" />
@@ -227,16 +227,16 @@ const ActionButtons = ({
         btn('Cancel shipment', () => onCancel(shipmentId), 'text-gray-400 hover:text-amber-600 hover:bg-amber-50', <XCircleIcon className="h-4 w-4" />)}
 
       {isAdmin && onAssignManager &&
-        btn('Assign manager', () => onAssignManager(shipment), 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50', <UserGroupIcon className="h-4 w-4" />)}
+        btn('Assign manager', () => onAssignManager(shipment), 'text-gray-400 hover:text-blue-600 hover:bg-blue-50', <UserGroupIcon className="h-4 w-4" />)}
     </div>
   );
 };
 
 const StatusBadgeInline = ({ status }) => {
   const config = {
-    in_progress: { text: 'In Transit',  Icon: TruckIcon,        color: 'bg-sky-50 text-sky-700 border-sky-200' },
-    completed:   { text: 'Completed',   Icon: CheckCircleIcon,  color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    cancelled:   { text: 'Cancelled',   Icon: XCircleIcon,      color: 'bg-rose-50 text-rose-700 border-rose-200' },
+    in_progress: { text: 'In Transit',  Icon: TruckIcon,       color: 'bg-blue-50 text-blue-700 border-blue-200'     },
+    completed:   { text: 'Completed',   Icon: CheckCircleIcon, color: 'bg-teal-50 text-teal-700 border-teal-200'     },
+    cancelled:   { text: 'Cancelled',   Icon: XCircleIcon,     color: 'bg-orange-50 text-orange-700 border-orange-200' },
   };
   const item = config[status];
   if (!item) return null;
@@ -301,7 +301,7 @@ const ShipmentCard = ({
             {shipment.description || 'No description'}
           </p>
           {shipment.goods && (
-            <p className="text-xs text-gray-400 mt-0.5">📦 {shipment.goods}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{shipment.goods}</p>
           )}
         </div>
 

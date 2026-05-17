@@ -1,11 +1,11 @@
-// frontend/src/components/Cards/StatCard.jsx
 import React from 'react';
+import { semantic } from '../../constants/colors'; 
 
 const StatCard = ({ 
   title, 
   value, 
   icon: Icon, 
-  color = 'pink', 
+  color = 'blue', 
   subtitle, 
   trend, 
   alert,
@@ -14,46 +14,23 @@ const StatCard = ({
   suffix = '',
   prefix = ''
 }) => {
-  // Color configurations
-  const colorConfig = {
-    pink: {
-      bg: 'bg-gradient-to-br from-pink-100 to-pink-200',
-      text: 'text-pink-700',
-      ring: 'ring-pink-400/60'
-    },
-    green: {
-      bg: 'bg-gradient-to-br from-emerald-100 to-emerald-200',
-      text: 'text-emerald-700',
-      ring: 'ring-emerald-400/60'
-    },
-    yellow: {
-      bg: 'bg-gradient-to-br from-amber-100 to-orange-200',
-      text: 'text-orange-700',
-      ring: 'ring-orange-400/60'
-    },
-    red: {
-      bg: 'bg-gradient-to-br from-rose-100 to-red-200',
-      text: 'text-red-700',
-      ring: 'ring-red-400/60'
-    },
-    purple: {
-      bg: 'bg-gradient-to-br from-violet-100 to-purple-200',
-      text: 'text-purple-700',
-      ring: 'ring-purple-400/60'
-    },
-    blue: {
-      bg: 'bg-gradient-to-br from-blue-100 to-blue-200',
-      text: 'text-blue-700',
-      ring: 'ring-blue-400/60'
-    },
-    indigo: {
-      bg: 'bg-gradient-to-br from-indigo-100 to-indigo-200',
-      text: 'text-indigo-700',
-      ring: 'ring-indigo-400/60'
-    },
+  // Map your Tailwind color names to brand colors (using semantic light backgrounds)
+  const brandMap = {
+    // Legacy names mapped to your brand
+    pink:    { bg: semantic.info.light,     icon: semantic.info.primary },     // blue brand
+    purple:  { bg: semantic.info.light,     icon: semantic.info.primary },     // blue brand
+    red:     { bg: semantic.danger.light,   icon: semantic.danger.primary },   // orange brand
+    green:   { bg: semantic.success.light,  icon: semantic.success.primary },  // teal brand
+    yellow:  { bg: semantic.warning.light,  icon: semantic.warning.primary },  // gold brand
+    blue:    { bg: semantic.info.light,     icon: semantic.info.primary },     // blue brand
+    indigo:  { bg: semantic.info.light,     icon: semantic.info.primary },     // blue brand
+    orange:  { bg: semantic.danger.light,   icon: semantic.danger.primary },   // orange brand
+    teal:    { bg: semantic.success.light,  icon: semantic.success.primary },  // teal brand
+    gold:    { bg: semantic.warning.light,  icon: semantic.warning.primary },  // gold brand
+    navy:    { bg: '#E2E8F0',               icon: '#1E1E2C' },                  // fallback for navy
   };
 
-  const selectedColor = colorConfig[color] || colorConfig.pink;
+  const selected = brandMap[color] || brandMap.blue;
 
   // Format trend display
   const getTrendIcon = () => {
@@ -69,10 +46,9 @@ const StatCard = ({
       : 'bg-red-100 text-red-600';
   };
 
-  // Format value with prefix/suffix
   const formattedValue = `${prefix}${value}${suffix}`;
 
-  // Loading skeleton
+  // Loading skeleton (unchanged)
   if (loading) {
     return (
       <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-md p-6 border border-gray-100 animate-pulse">
@@ -92,10 +68,10 @@ const StatCard = ({
   return (
     <div
       className={`
-        bg-white/80 backdrop-blur-md rounded-2xl shadow-md p-6 
+        bg-white rounded-2xl shadow-md p-6 
         transition-all duration-300 hover:shadow-xl hover:-translate-y-1 
-        border border-gray-100
-        ${alert ? `ring-2 ${selectedColor.ring}` : ''}
+        border border-gray-200
+        ${alert ? 'ring-2 ring-red-400/60' : ''}
         ${onClick ? 'cursor-pointer active:scale-95' : ''}
       `}
       onClick={onClick}
@@ -104,11 +80,13 @@ const StatCard = ({
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
       <div className="flex items-center justify-between">
-        
-        {/* Left Section */}
         <div className="flex items-center">
-          <div className={`p-3 rounded-xl shadow-sm ${selectedColor.bg}`}>
-            <Icon className={`h-6 w-6 ${selectedColor.text}`} />
+          {/* Icon circle – uses your brand colors */}
+          <div 
+            className="p-3 rounded-xl shadow-sm" 
+            style={{ backgroundColor: selected.bg }}
+          >
+            <Icon className="h-6 w-6" style={{ color: selected.icon }} />
           </div>
 
           <div className="ml-4">
@@ -125,7 +103,6 @@ const StatCard = ({
                 </span>
               )}
             </div>
-
             {subtitle && (
               <p className="text-xs text-gray-400 mt-1">
                 {subtitle}

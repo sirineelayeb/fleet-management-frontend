@@ -3,11 +3,11 @@ import ShipmentCard from './ShipmentCard';
 import toast from 'react-hot-toast';
 
 const COLUMNS = [
-  { id: 'pending',     title: 'Pending',     icon: '⏳', bg: 'bg-amber-50',   border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-800',   accent: 'bg-amber-400'   },
-  { id: 'assigned',    title: 'Assigned',    icon: '📋', bg: 'bg-blue-50',    border: 'border-blue-200',    badge: 'bg-blue-100 text-blue-800',     accent: 'bg-blue-400'    },
-  { id: 'in_progress', title: 'In Progress', icon: '🚚', bg: 'bg-sky-50',     border: 'border-sky-200',     badge: 'bg-sky-100 text-sky-800',       accent: 'bg-sky-400'     },
-  { id: 'completed',   title: 'Completed',   icon: '✅', bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', accent: 'bg-emerald-400' },
-  { id: 'cancelled',   title: 'Cancelled',   icon: '❌', bg: 'bg-rose-50',    border: 'border-rose-200',    badge: 'bg-rose-100 text-rose-800',     accent: 'bg-rose-400'    },
+  { id: 'pending',     title: 'Pending',     icon: '', bg: 'bg-amber-50',   border: 'border-amber-200',   badge: 'bg-amber-100 text-amber-800',   accent: 'bg-amber-400'   },
+  { id: 'assigned',    title: 'Assigned',    icon: '', bg: 'bg-blue-50',    border: 'border-blue-200',    badge: 'bg-blue-100 text-blue-800',     accent: 'bg-blue-400'    },
+  { id: 'in_progress', title: 'In Progress', icon: '', bg: 'bg-sky-50',     border: 'border-sky-200',     badge: 'bg-sky-100 text-sky-800',       accent: 'bg-sky-400'     },
+  { id: 'completed',   title: 'Completed',   icon: '', bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-800', accent: 'bg-emerald-400' },
+  { id: 'cancelled',   title: 'Cancelled',   icon: '', bg: 'bg-rose-50',    border: 'border-rose-200',    badge: 'bg-rose-100 text-rose-800',     accent: 'bg-rose-400'    },
 ];
 
 const EMPTY_MESSAGES = {

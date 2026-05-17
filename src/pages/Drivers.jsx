@@ -14,11 +14,13 @@ import {
   ArrowUpTrayIcon, XMarkIcon, XCircleIcon, DocumentTextIcon,
   MagnifyingGlassIcon, IdentificationIcon, UserGroupIcon,
   CheckCircleIcon, ClockIcon, EnvelopeIcon,
-  ArchiveBoxArrowDownIcon, ArrowUturnLeftIcon  // NEW
+  ArchiveBoxArrowDownIcon, ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import PhoneInputField from '../components/Common/PhoneInputField';
-import { isValidPhoneNumber } from 'react-phone-number-input';  
+import { isValidPhoneNumber } from 'react-phone-number-input';
+import { useAuth } from '../context/AuthContext'; 
+import { statusBadges } from '../constants/colors';
 
 // ============================================
 // CONSTANTS & HELPERS
@@ -43,7 +45,7 @@ const resolvePhotoUrl = (url) => {
   return url;
 };
 
-// Status select component
+// Status select component — uses brand driver status colors
 const StatusSelect = ({ status, onStatusChange, driverId, isUpdating }) => {
   const handleChange = (e) => {
     const newStatus = e.target.value;
@@ -52,10 +54,10 @@ const StatusSelect = ({ status, onStatusChange, driverId, isUpdating }) => {
 
   const getStatusStyle = (value) => {
     switch (value) {
-      case 'available': return 'bg-green-100 text-green-700';
-      case 'busy': return 'bg-yellow-100 text-yellow-700';
-      case 'off_duty': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'available': return 'bg-teal-100 text-teal-700';
+      case 'busy':      return 'bg-blue-100 text-blue-700';
+      case 'off_duty':  return 'bg-gray-100 text-gray-600';
+      default:          return 'bg-gray-100 text-gray-600';
     }
   };
 
@@ -65,18 +67,18 @@ const StatusSelect = ({ status, onStatusChange, driverId, isUpdating }) => {
         value={status}
         onChange={handleChange}
         disabled={isUpdating}
-        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 ${getStatusStyle(status)}`}
+        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-400 ${getStatusStyle(status)}`}
       >
         <option value="available">Available</option>
         <option value="busy">Busy</option>
         <option value="off_duty">Off Duty</option>
       </select>
-      {isUpdating && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>}
+      {isUpdating && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500"></div>}
     </div>
   );
 };
 
-// DriverAvatar (unchanged)
+// DriverAvatar
 const DriverAvatar = ({ driver, size = 'md' }) => {
   const [imgError, setImgError] = useState(false);
   const sizeClass = size === 'lg' ? 'h-20 w-20 text-xl' : 'h-10 w-10 text-sm';
@@ -94,7 +96,7 @@ const DriverAvatar = ({ driver, size = 'md' }) => {
   }
 
   const initials = driver.name?.charAt(0)?.toUpperCase() || '?';
-  const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-indigo-500'];
+  const colors = ['bg-teal-500', 'bg-blue-500', 'bg-yellow-500', 'bg-orange-400', 'bg-teal-600', 'bg-blue-600'];
   const color = colors[(driver.name?.charCodeAt(0) ?? 0) % colors.length];
 
   return (
@@ -104,7 +106,7 @@ const DriverAvatar = ({ driver, size = 'md' }) => {
   );
 };
 
-// PhotoPicker (unchanged)
+// PhotoPicker
 const PhotoPicker = ({ preview, existingUrl, onSelect, onRemove, onDeleteExisting }) => {
   const inputRef = useRef(null);
   const resolvedExisting = resolvePhotoUrl(existingUrl);
@@ -114,15 +116,15 @@ const PhotoPicker = ({ preview, existingUrl, onSelect, onRemove, onDeleteExistin
       <div className="relative flex-shrink-0">
         {preview ? (
           <>
-            <img src={preview} alt="preview" className="h-20 w-20 rounded-full object-cover border-2 border-blue-400" />
-            <button type="button" onClick={onRemove} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+            <img src={preview} alt="preview" className="h-20 w-20 rounded-full object-cover border-2 border-teal-400" />
+            <button type="button" onClick={onRemove} className="absolute -top-1 -right-1 bg-orange-500 text-white rounded-full p-0.5 hover:bg-orange-600">
               <XMarkIcon className="h-3.5 w-3.5" />
             </button>
           </>
         ) : resolvedExisting ? (
           <>
             <img src={resolvedExisting} alt="current" className="h-20 w-20 rounded-full object-cover border-2 border-gray-300" />
-            <button type="button" onClick={onDeleteExisting} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+            <button type="button" onClick={onDeleteExisting} className="absolute -top-1 -right-1 bg-orange-500 text-white rounded-full p-0.5 hover:bg-orange-600">
               <XMarkIcon className="h-3.5 w-3.5" />
             </button>
           </>
@@ -148,6 +150,8 @@ const PhotoPicker = ({ preview, existingUrl, onSelect, onRemove, onDeleteExistin
 // MAIN COMPONENT
 // ============================================
 const Drivers = () => {
+  const { user } = useAuth(); 
+  const basePath = user?.role === 'admin' ? '/dashboard' : '/shipment_manager';
   const queryClient = useQueryClient();
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -156,35 +160,31 @@ const Drivers = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
-  
-  // New: archive filter state
-  const [filters, setFilters] = useState({ status: '', search: '', archived: false });  // default: current drivers
+
+  const [filters, setFilters] = useState({ status: '', search: '', archived: false });
   const [searchInput, setSearchInput] = useState('');
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
-  // Assign truck modal state (unchanged)
   const [showAssignTruckModal, setShowAssignTruckModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [selectedTruckId, setSelectedTruckId] = useState('');
 
-  // Queries with pagination and archive filter
-  const { 
-    data: driversData, 
-    isLoading, 
+  const {
+    data: driversData,
+    isLoading,
     isFetching,
-    error: driversError 
+    error: driversError
   } = useQuery({
     queryKey: ['drivers', page, limit, filters.status, filters.search, filters.archived],
     queryFn: () => {
       const params = {
-        page, 
+        page,
         limit,
         status: filters.status || undefined,
         search: filters.search || undefined
       };
-      // Send archived flag only if defined (true/false)
       if (filters.archived !== undefined) {
-        params.archived = filters.archived;   // backend will use isActive accordingly
+        params.archived = filters.archived;
       }
       return driverService.getAll(params);
     },
@@ -201,20 +201,17 @@ const Drivers = () => {
   const pagination = driversData?.pagination || { total: 0, page: 1, pages: 1 };
   const trucks = trucksResponse?.data || [];
 
-  // Filter available trucks (available status and no driver assigned)
   const availableTrucks = trucks.filter(t => t.status === 'available' && !t.driver);
 
-  // Stats (based on current page data)
   const stats = {
-    total: pagination.total || 0,
-    available: drivers.filter(d => d.status === 'available').length,
-    busy: drivers.filter(d => d.status === 'busy').length,
-    offDuty: drivers.filter(d => d.status === 'off_duty').length,
-    assigned: drivers.filter(d => d.assignedTruck).length,
+    total:      pagination.total || 0,
+    available:  drivers.filter(d => d.status === 'available').length,
+    busy:       drivers.filter(d => d.status === 'busy').length,
+    offDuty:    drivers.filter(d => d.status === 'off_duty').length,
+    assigned:   drivers.filter(d => d.assignedTruck).length,
     unassigned: drivers.filter(d => !d.assignedTruck && d.status !== 'off_duty').length,
   };
 
-  // Search handlers with archive filter
   const handleSearch = () => {
     setFilters(prev => ({ ...prev, search: searchInput }));
     setPage(1);
@@ -228,7 +225,7 @@ const Drivers = () => {
     let archivedValue;
     if (value === 'all') archivedValue = undefined;
     else if (value === 'archived') archivedValue = true;
-    else archivedValue = false;   // current drivers
+    else archivedValue = false;
     setFilters(prev => ({ ...prev, archived: archivedValue }));
     setPage(1);
   };
@@ -238,7 +235,7 @@ const Drivers = () => {
     setPage(1);
   };
 
-  // Mutations – replaced delete with archive/unarchive
+  // Mutations
   const createMutation = useMutation({
     mutationFn: (data) => driverService.create(data),
     onSuccess: () => {
@@ -257,7 +254,6 @@ const Drivers = () => {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to update driver'),
   });
 
-  // NEW: archive and unarchive mutations
   const archiveMutation = useMutation({
     mutationFn: (id) => driverService.archive(id),
     onSuccess: () => {
@@ -275,8 +271,6 @@ const Drivers = () => {
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to restore driver'),
   });
-
-  // DELETE mutation removed – no permanent delete
 
   const uploadPhotoMutation = useMutation({
     mutationFn: ({ id, file }) => driverService.uploadPhoto(id, file),
@@ -362,18 +356,9 @@ const Drivers = () => {
   };
 
   const handleAssignTruck = async () => {
-    if (!selectedTruckId) {
-      toast.error('Please select a truck');
-      return;
-    }
-    if (!selectedDriver?._id) {
-      toast.error('Invalid driver selected');
-      return;
-    }
-    await assignTruckMutation.mutateAsync({
-      truckId: selectedTruckId,
-      driverId: selectedDriver._id,
-    });
+    if (!selectedTruckId) { toast.error('Please select a truck'); return; }
+    if (!selectedDriver?._id) { toast.error('Invalid driver selected'); return; }
+    await assignTruckMutation.mutateAsync({ truckId: selectedTruckId, driverId: selectedDriver._id });
   };
 
   const handleUnassignTruck = async (driver) => {
@@ -389,7 +374,6 @@ const Drivers = () => {
     updateStatusMutation.mutate({ id: driverId, status: newStatus });
   };
 
-  // Archive / Unarchive handlers
   const handleArchive = (id) => {
     if (window.confirm('Archive this driver?')) archiveMutation.mutate(id);
   };
@@ -397,7 +381,6 @@ const Drivers = () => {
     if (window.confirm('Restore this driver?')) unarchiveMutation.mutate(id);
   };
 
-  // Photo helpers
   const clearPhoto = () => {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoFile(null);
@@ -409,10 +392,9 @@ const Drivers = () => {
     setPhotoPreview(URL.createObjectURL(file));
   };
 
-  // Submit (create / edit driver)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.cin.trim()) return toast.error('CIN is required');
     if (!formData.name.trim()) return toast.error('Driver name is required');
     if (!formData.licenseNumber.trim()) return toast.error('License number is required');
@@ -431,7 +413,6 @@ const Drivers = () => {
 
     try {
       let driverId;
-
       if (editingDriver) {
         await updateMutation.mutateAsync({ id: editingDriver._id, data: submitData });
         driverId = editingDriver._id;
@@ -453,11 +434,10 @@ const Drivers = () => {
     }
   };
 
-  // Loading / error states
   if (isLoading && !driversData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
           <UserIcon className="h-8 w-8 text-white" />
         </div>
         <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Drivers...</p>
@@ -467,9 +447,9 @@ const Drivers = () => {
 
   if (driversError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-        <p className="text-red-600">Error loading drivers: {driversError.message}</p>
-        <button onClick={() => window.location.reload()} className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+        <p className="text-orange-600">Error loading drivers: {driversError.message}</p>
+        <button onClick={() => window.location.reload()} className="mt-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
           Retry
         </button>
       </div>
@@ -488,78 +468,66 @@ const Drivers = () => {
         </div>
         <button
           onClick={() => { setEditingDriver(null); setFormData(EMPTY_FORM); clearPhoto(); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+          className="bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-teal-700"
         >
           <PlusIcon className="h-5 w-5" />
           Add New Driver
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
-        <StatCard title="Total Drivers" value={stats.total} icon={UserGroupIcon} color="purple" subtitle="Total workforce" />
-        <StatCard title="Available" value={stats.available} icon={CheckCircleIcon} color="green" subtitle="Ready for assignments" />
-        <StatCard title="Busy" value={stats.busy} icon={ClockIcon} color="yellow" subtitle="Currently on duty" />
-        <StatCard title="Off Duty" value={stats.offDuty} icon={CalendarIcon} color="gray" subtitle="Not available" />
-        <StatCard title="Assigned to Truck" value={stats.assigned} icon={TruckIcon} color="blue" subtitle="With vehicle assigned" />
-        <StatCard title="Unassigned" value={stats.unassigned} icon={UserIcon} color="orange" subtitle="Without vehicle" />
+      {/* Stats Cards — brand color aliases */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <StatCard title="Total Drivers"  value={stats.total}     icon={UserGroupIcon}   color="blue" subtitle="Total workforce" />
+        <StatCard title="Available"      value={stats.available} icon={CheckCircleIcon} color="teal" subtitle="Ready for assignments" />
+        <StatCard title="Busy"           value={stats.busy}      icon={ClockIcon}       color="blue" subtitle="Currently on duty" />
       </div>
 
-      {/* Search & Filter Bar – added archive filter dropdown */}
+      {/* Search & Filter Bar */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
-        <div className="flex gap-4 flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Search by name, CIN, license, phone, or email..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-              <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-                <MagnifyingGlassIcon className="h-5 w-5" />
-                Search
-              </button>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filters.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="available">Available</option>
-              <option value="busy">Busy</option>
-              <option value="off_duty">Off Duty</option>
-            </select>
+        <div className="flex gap-4 flex-wrap min-w-0">
+          <div className="flex-1 min-w-[220px]">
+            <input
+              type="text"
+              placeholder="Search by name, CIN, license, phone, or email..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
           </div>
 
-          {/* NEW: Archive filter dropdown */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Archive</label>
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'current'}
-              onChange={(e) => handleArchiveFilter(e.target.value)}
-            >
-              <option value="all">All Drivers</option>
-              <option value="current">Current Drivers</option>
-              <option value="archived">Archived Drivers</option>
-            </select>
-          </div>
-          
+          <select
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            value={filters.status}
+            onChange={(e) => handleStatusChange(e.target.value)}
+          >
+            <option value="">All Status</option>
+            <option value="available">Available</option>
+            <option value="busy">Busy</option>
+            <option value="off_duty">Off Duty</option>
+          </select>
+
+          <select
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'current'}
+            onChange={(e) => handleArchiveFilter(e.target.value)}
+          >
+            <option value="all">All Drivers</option>
+            <option value="current">Current Drivers</option>
+            <option value="archived">Archived Drivers</option>
+          </select>
+
+          <button
+            onClick={handleSearch}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center justify-center"
+          >
+            <MagnifyingGlassIcon className="h-5 w-5" />
+          </button>
+
           {(filters.status || filters.search || filters.archived !== false) && (
-            <div className="flex items-end">
-              <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
-                Clear Filters
-              </button>
-            </div>
+            <button onClick={clearFilters} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+              Clear
+            </button>
           )}
         </div>
       </div>
@@ -568,7 +536,7 @@ const Drivers = () => {
       {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
             <p className="text-sm text-gray-400 font-medium">Loading drivers...</p>
           </div>
         </div>
@@ -579,7 +547,7 @@ const Drivers = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Driver', 'CIN', 'License', 'Phone', 'Email', 'Assigned Truck', 'Status', 'Actions'].map(h => (
+                    {['Driver', 'CIN', 'Phone', 'Email', 'Assigned Truck', 'Status', 'Actions'].map(h => (
                       <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -587,28 +555,44 @@ const Drivers = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {drivers.map((driver) => (
                     <tr key={driver._id} className="hover:bg-gray-50 transition-colors">
+                      {/* Driver column – clickable photo + name */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
+                        <Link
+                          to={`${basePath}/driver-profile/${driver._id}`}
+                          className="flex items-center gap-3 group"
+                        >
                           <DriverAvatar driver={driver} size="md" />
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{driver.name}</div>
+                            <div className="text-sm font-medium text-gray-900 group-hover:text-teal-600 transition-colors">
+                              {driver.name}
+                            </div>
                             <div className="text-xs text-gray-500">Score: {driver.score ?? 100}</div>
                           </div>
-                        </div>
+                        </Link>
                       </td>
+
+                      {/* CIN */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.cin || '—'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.licenseNumber}</td>
+
+                      {/* License */}
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.licenseNumber}</td> */}
+
+                      {/* Phone */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.phone}</td>
+
+                      {/* Email */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {driver.email ? (
                           <div className="flex items-center gap-1">
                             <EnvelopeIcon className="h-3 w-3 text-gray-400" />
-                            <span className="text-sm">{driver.email}</span>
+                            <span>{driver.email}</span>
                           </div>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
+
+                      {/* Assigned Truck – interactive */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {driver.assignedTruck ? (
                           <div className="flex items-center justify-between gap-2">
@@ -623,17 +607,26 @@ const Drivers = () => {
                                 </p>
                               </div>
                             </div>
-                            <button onClick={() => handleUnassignTruck(driver)} className="text-red-500 hover:text-red-700" title="Unassign truck">
+                            <button
+                              onClick={() => handleUnassignTruck(driver)}
+                              className="text-orange-500 hover:text-orange-700"
+                              title="Unassign truck"
+                            >
                               <XCircleIcon className="h-4 w-4" />
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => openAssignTruckModal(driver)} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                          <button
+                            onClick={() => openAssignTruckModal(driver)}
+                            className="text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1"
+                          >
                             <TruckIcon className="h-4 w-4" />
                             Assign Truck
                           </button>
                         )}
                       </td>
+
+                      {/* Status select */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <StatusSelect
                           status={driver.status}
@@ -642,33 +635,47 @@ const Drivers = () => {
                           isUpdating={updatingStatusId === driver._id}
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm flex items-center gap-3">
-                        <button onClick={() => handleEdit(driver)} className="text-blue-600 hover:text-blue-900" title="Edit">
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                        <Link to={`/dashboard/driver-history/${driver._id}`} className="text-indigo-600 hover:text-indigo-900" title="View history">
-                          <DocumentTextIcon className="h-5 w-5" />
-                        </Link>
-                        {/* Show Archive or Restore based on current filter */}
-                        {filters.archived === true ? (
-                          <button onClick={() => handleUnarchive(driver._id)} className="text-green-600 hover:text-green-800" title="Restore">
-                            <ArrowUturnLeftIcon className="h-5 w-5" />
+
+                      {/* Action buttons */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleEdit(driver)}
+                            className="text-teal-600 hover:text-teal-900"
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-5 w-5" />
                           </button>
-                        ) : (
-                          <button onClick={() => handleArchive(driver._id)} className="text-orange-600 hover:text-orange-800" title="Archive">
-                            <ArchiveBoxArrowDownIcon className="h-5 w-5" />
-                          </button>
-                        )}
-                       </td>
-                     </tr>
+
+                          <Link
+                            to={`${basePath}/driver-history/${driver._id}`}
+                            className="text-blue-500 hover:text-blue-700"
+                            title="View history"
+                          >
+                            <DocumentTextIcon className="h-5 w-5" />
+                          </Link>
+
+                          {filters.archived === true ? (
+                            <button
+                              onClick={() => handleUnarchive(driver._id)}
+                              className="text-teal-600 hover:text-teal-800"
+                              title="Restore"
+                            >
+                              <ArrowUturnLeftIcon className="h-5 w-5" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleArchive(driver._id)}
+                              className="text-orange-500 hover:text-orange-700"
+                              title="Archive"
+                            >
+                              <ArchiveBoxArrowDownIcon className="h-5 w-5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   ))}
-                  {drivers.length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                        No drivers found. Click "Add New Driver" to get started.
-                       </td>
-                     </tr>
-                  )}
                 </tbody>
               </table>
             </div>
@@ -692,10 +699,9 @@ const Drivers = () => {
         </>
       )}
 
-      {/* Add/Edit Driver Modal (unchanged) */}
+      {/* Add/Edit Driver Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingDriver ? 'Edit Driver' : 'Add New Driver'} size="lg">
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Profile photo section */}
           <div className="border rounded-lg p-4 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 mb-3">Profile Photo</p>
             <PhotoPicker
@@ -714,24 +720,24 @@ const Drivers = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">CIN (National ID) *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={formData.cin}
                 onChange={(e) => setFormData({ ...formData, cin: e.target.value.replace(/\D/g, '') })}
                 placeholder="12345678"
                 maxLength="8"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
-                required 
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
-                required 
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+                required
               />
             </div>
           </div>
@@ -739,12 +745,12 @@ const Drivers = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">License Number *</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={formData.licenseNumber}
                 onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value.toUpperCase() })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
-                required 
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+                required
               />
             </div>
             <PhoneInputField
@@ -762,28 +768,28 @@ const Drivers = () => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <EnvelopeIcon className="h-5 w-5 text-gray-400" />
                 </div>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="driver@fleet.com"
-                  className="w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
+                  className="w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={formData.hireDate}
                 onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" 
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
               />
             </div>
           </div>
 
           {!editingDriver && photoFile && (
-            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+            <div className="flex items-start gap-2 bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-800">
               <PhotoIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>Driver will be created first, then the photo will be uploaded automatically.</span>
             </div>
@@ -793,7 +799,7 @@ const Drivers = () => {
             <button type="button" onClick={closeModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
               Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+            <button type="submit" disabled={isSaving} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2">
               {isSaving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
               {isSaving ? (photoUploading ? 'Uploading photo…' : 'Saving…') : (editingDriver ? 'Update Driver' : 'Create Driver')}
             </button>
@@ -801,7 +807,7 @@ const Drivers = () => {
         </form>
       </Modal>
 
-      {/* Assign Truck Modal (unchanged) */}
+      {/* Assign Truck Modal */}
       <Modal
         isOpen={showAssignTruckModal}
         onClose={() => {
@@ -817,7 +823,7 @@ const Drivers = () => {
             <select
               value={selectedTruckId}
               onChange={(e) => setSelectedTruckId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="">Choose a truck...</option>
               {availableTrucks.map(truck => (
@@ -827,7 +833,7 @@ const Drivers = () => {
               ))}
             </select>
             {availableTrucks.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-yellow-600 mt-1">
                 No available trucks. All available trucks already have drivers assigned.
               </p>
             )}
@@ -847,7 +853,7 @@ const Drivers = () => {
             <button
               onClick={handleAssignTruck}
               disabled={!selectedTruckId || assignTruckMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50"
             >
               {assignTruckMutation.isPending ? 'Assigning...' : 'Assign Truck'}
             </button>

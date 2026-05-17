@@ -23,7 +23,7 @@ import {
   ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline';
 
-// Status select component
+// Status select component — brand device status colors
 const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
   const handleChange = (e) => {
     const newStatus = e.target.value;
@@ -32,12 +32,13 @@ const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
     }
   };
 
+  // active → teal, inactive → gray, maintenance → orange
   const getStatusStyle = (value) => {
     switch (value) {
-      case 'active': return 'bg-green-100 text-green-700';
-      case 'inactive': return 'bg-gray-100 text-gray-700';
-      case 'maintenance': return 'bg-yellow-100 text-yellow-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'active':      return 'bg-teal-100 text-teal-700';
+      case 'inactive':    return 'bg-gray-100 text-gray-600';
+      case 'maintenance': return 'bg-orange-100 text-orange-700';
+      default:            return 'bg-gray-100 text-gray-600';
     }
   };
 
@@ -47,14 +48,14 @@ const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
         value={status}
         onChange={handleChange}
         disabled={isUpdating}
-        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-400 ${getStatusStyle(status)}`}
+        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-400 ${getStatusStyle(status)}`}
       >
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
         <option value="maintenance">Maintenance</option>
       </select>
       {isUpdating && (
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500"></div>
       )}
     </div>
   );
@@ -78,7 +79,7 @@ const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
       <select
         value={selectedTruckId}
         onChange={(e) => setSelectedTruckId(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
       >
         <option value="">— Select a truck —</option>
         {trucks.map((truck) => (
@@ -89,7 +90,7 @@ const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
       </select>
       <div className="flex justify-end gap-3 pt-2">
         <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
-        <button onClick={handleSubmit} disabled={!selectedTruckId} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">Assign</button>
+        <button onClick={handleSubmit} disabled={!selectedTruckId} className="px-4 py-2 bg-teal-600 text-white rounded-lg disabled:opacity-50 hover:bg-teal-700">Assign</button>
       </div>
     </div>
   );
@@ -102,12 +103,11 @@ const Devices = () => {
   const [assigningDevice, setAssigningDevice] = useState(null);
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
-  const [filters, setFilters] = useState({ status: '', search: '', archived: false });  
+  const [filters, setFilters] = useState({ status: '', search: '', archived: false });
   const [searchInput, setSearchInput] = useState('');
 
   const queryClient = useQueryClient();
 
-  // Query with archive filter
   const {
     data: devicesData,
     isLoading,
@@ -131,7 +131,6 @@ const Devices = () => {
     staleTime: 5000,
   });
 
-  // Fetch all active trucks for assignment
   const { data: allTrucksData } = useQuery({
     queryKey: ['trucks-all'],
     queryFn: () => truckService.getAll({ limit: 1000, archived: false }),
@@ -142,13 +141,13 @@ const Devices = () => {
   const allTrucks = allTrucksData?.data || [];
 
   // Stats
-  const totalDevices = pagination.total || 0;
-  const activeDevices = devices.filter(d => d.status === 'active').length;
-  const assignedDevices = devices.filter(d => d.truck).length;
-  const avgBattery = devices.length > 0
+  const totalDevices    = pagination.total || 0;
+  const activeDevices   = devices.filter(d => d.status === 'active').length;
+  const avgBattery      = devices.length > 0
     ? Math.round(devices.reduce((sum, d) => sum + (d.batteryLevel || 0), 0) / devices.length)
     : 0;
   const lowBatteryDevices = devices.filter(d => (d.batteryLevel || 0) < 30).length;
+
 
   // Search handlers
   const handleSearch = () => {
@@ -174,7 +173,7 @@ const Devices = () => {
     setPage(1);
   };
 
-  // Mutations (no delete mutation)
+  // Mutations
   const registerMutation = useMutation({
     mutationFn: (data) => deviceService.register(data),
     onSuccess: () => {
@@ -239,7 +238,6 @@ const Devices = () => {
     mutationFn: ({ id, status }) => deviceService.update(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
-      toast.success('Status updated');
       setUpdatingStatusId(null);
     },
     onError: (error) => {
@@ -270,16 +268,17 @@ const Devices = () => {
     if (window.confirm('Restore this device?')) unarchiveMutation.mutate(id);
   };
 
+  // Battery color: teal → good, yellow → medium, orange → low
   const getBatteryColor = (level) => {
-    if (level >= 70) return 'text-green-600';
+    if (level >= 70) return 'text-teal-600';
     if (level >= 30) return 'text-yellow-600';
-    return 'text-red-600';
+    return 'text-orange-500';
   };
 
   if (isLoading && !devicesData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
           <DevicePhoneMobileIcon className="h-8 w-8 text-white" />
         </div>
         <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Devices...</p>
@@ -289,9 +288,9 @@ const Devices = () => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-        <p className="text-red-600">Error loading devices: {error.message}</p>
-        <button onClick={() => window.location.reload()} className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg">Retry</button>
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+        <p className="text-orange-600">Error loading devices: {error.message}</p>
+        <button onClick={() => window.location.reload()} className="mt-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">Retry</button>
       </div>
     );
   }
@@ -306,7 +305,7 @@ const Devices = () => {
         </div>
         <button
           onClick={() => { setEditingDevice(null); setIsModalOpen(true); }}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700"
+          className="w-full sm:w-auto bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-teal-700"
         >
           <PlusIcon className="h-5 w-5" />
           <span>Register Device</span>
@@ -314,14 +313,12 @@ const Devices = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <StatCard title="Total Devices" value={totalDevices} icon={DevicePhoneMobileIcon} color="purple" subtitle="Registered devices" />
-        <StatCard title="Active" value={activeDevices} icon={CheckCircleIcon} color="green" subtitle="Online & working" />
-        <StatCard title="Assigned to Trucks" value={assignedDevices} icon={TruckIcon} color="blue" subtitle="Connected to vehicles" />
-        <StatCard title="Avg Battery" value={`${avgBattery}%`} icon={BoltIcon} color="yellow" subtitle="Average charge" />
-        <StatCard title="Low Battery" value={lowBatteryDevices} icon={ExclamationTriangleIcon} color="red" subtitle="Below 30%" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard title="Total Devices" value={totalDevices}      icon={DevicePhoneMobileIcon}   color="blue"   subtitle="Registered devices" />
+        <StatCard title="Active"        value={activeDevices}     icon={CheckCircleIcon}         color="teal"   subtitle="Online & working" />
+        <StatCard title="Avg Battery"   value={`${avgBattery}%`}  icon={BoltIcon}                color="gold"   subtitle="Average charge" />
+        <StatCard title="Low Battery"   value={lowBatteryDevices} icon={ExclamationTriangleIcon} color="orange" subtitle="Below 30%" />
       </div>
-
       {/* Search & Filter Bar */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow">
         <div className="flex gap-4 flex-wrap">
@@ -329,20 +326,24 @@ const Devices = () => {
             <input
               type="text"
               placeholder="Search by Device ID..."
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyPress={handleKeyPress}
             />
           </div>
-          <select className="px-4 py-2 border rounded-lg" value={filters.status} onChange={(e) => handleStatusChange(e.target.value)}>
+          <select
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+            value={filters.status}
+            onChange={(e) => handleStatusChange(e.target.value)}
+          >
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="maintenance">Maintenance</option>
           </select>
           <select
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
             value={filters.archived === undefined ? 'all' : filters.archived === true ? 'archived' : 'current'}
             onChange={(e) => handleArchiveFilter(e.target.value)}
           >
@@ -350,7 +351,10 @@ const Devices = () => {
             <option value="current">Current Devices</option>
             <option value="archived">Archived Devices</option>
           </select>
-          <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button
+            onClick={handleSearch}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          >
             <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
           {(filters.status || filters.search || filters.archived !== false) && (
@@ -363,7 +367,7 @@ const Devices = () => {
       {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
             <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
           </div>
         </div>
@@ -376,7 +380,7 @@ const Devices = () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Battery</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmware</th>
+                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmware</th> */}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned Truck</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Seen</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -388,8 +392,8 @@ const Devices = () => {
                     <tr key={device._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center">
-                            <DevicePhoneMobileIcon className="h-5 w-5 text-blue-500" />
+                          <div className="flex-shrink-0 h-10 w-10 bg-teal-50 rounded-full flex items-center justify-center">
+                            <DevicePhoneMobileIcon className="h-5 w-5 text-teal-500" />
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{device.deviceId}</div>
@@ -402,9 +406,9 @@ const Devices = () => {
                           <span className="text-sm text-gray-900">{device.batteryLevel || 0}%</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         v{device.firmwareVersion || '1.0.0'}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         {device.truck ? (
                           <div className="flex items-center justify-between gap-2">
@@ -415,12 +419,12 @@ const Devices = () => {
                                 {device.truck.model && <p className="text-xs text-gray-500">{device.truck.model}</p>}
                               </div>
                             </div>
-                            <button onClick={() => handleUnassignTruck(device)} className="text-red-600 hover:text-red-800" title="Unassign truck">
+                            <button onClick={() => handleUnassignTruck(device)} className="text-orange-500 hover:text-orange-700" title="Unassign truck">
                               <XCircleIcon className="h-4 w-4" />
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => setAssigningDevice(device)} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                          <button onClick={() => setAssigningDevice(device)} className="text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1">
                             <TruckIcon className="h-4 w-4" /> Assign Truck
                           </button>
                         )}
@@ -428,22 +432,33 @@ const Devices = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1">
                           <ClockIcon className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-500">{device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}</span>
+                          <span className="text-sm text-gray-500">
+                            {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusSelect status={device.status} deviceId={device._id} onStatusChange={handleStatusUpdate} isUpdating={updatingStatusId === device._id} />
+                        <StatusSelect
+                          status={device.status}
+                          deviceId={device._id}
+                          onStatusChange={handleStatusUpdate}
+                          isUpdating={updatingStatusId === device._id}
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button onClick={() => { setEditingDevice(device); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-900 mr-3" title="Edit">
+                        <button
+                          onClick={() => { setEditingDevice(device); setIsModalOpen(true); }}
+                          className="text-teal-600 hover:text-teal-900 mr-3"
+                          title="Edit"
+                        >
                           <PencilIcon className="h-5 w-5" />
                         </button>
                         {filters.archived === true ? (
-                          <button onClick={() => handleUnarchive(device._id)} className="text-green-600 hover:text-green-800" title="Restore">
+                          <button onClick={() => handleUnarchive(device._id)} className="text-teal-600 hover:text-teal-800" title="Restore">
                             <ArrowUturnLeftIcon className="h-5 w-5" />
                           </button>
                         ) : (
-                          <button onClick={() => handleArchive(device._id)} className="text-orange-600 hover:text-orange-800" title="Archive">
+                          <button onClick={() => handleArchive(device._id)} className="text-orange-500 hover:text-orange-700" title="Archive">
                             <ArchiveBoxArrowDownIcon className="h-5 w-5" />
                           </button>
                         )}
@@ -452,7 +467,9 @@ const Devices = () => {
                   ))}
                   {devices.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="px-6 py-8 text-center text-gray-500">No devices found. Click "Register Device" to add one.</td>
+                      <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                        No devices found. Click "Register Device" to add one.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -479,12 +496,24 @@ const Devices = () => {
       )}
 
       {/* Modals */}
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingDevice(null); }} title={editingDevice ? 'Edit Device' : 'Register New Device'} size="lg">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingDevice(null); }}
+        title={editingDevice ? 'Edit Device' : 'Register New Device'}
+        size="lg"
+      >
         <DeviceForm onSubmit={handleSubmit} initialData={editingDevice} onCancel={() => setIsModalOpen(false)} />
       </Modal>
 
       <Modal isOpen={!!assigningDevice} onClose={() => setAssigningDevice(null)} title="Assign Device to Truck" size="sm">
-        {assigningDevice && <AssignTruckModal device={assigningDevice} trucks={allTrucks} onAssign={handleAssignTruck} onClose={() => setAssigningDevice(null)} />}
+        {assigningDevice && (
+          <AssignTruckModal
+            device={assigningDevice}
+            trucks={allTrucks}
+            onAssign={handleAssignTruck}
+            onClose={() => setAssigningDevice(null)}
+          />
+        )}
       </Modal>
     </div>
   );

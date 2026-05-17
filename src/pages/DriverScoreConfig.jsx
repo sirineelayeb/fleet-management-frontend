@@ -158,20 +158,20 @@ const DriverScoreConfig = () => {
         <p className="text-gray-600 mt-1">Monitor and adjust driver performance scores</p>
       </div>
 
-      {/* Stats Cards - Using StatCard component */}
+      {/* Stats Cards - Following devices.jsx color palette */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Total Drivers"
           value={stats.total}
           icon={UserGroupIcon}
-          color="purple"
+          color="blue"
           subtitle="Active drivers"
         />
         <StatCard
           title="Average Score"
           value={stats.averageScore}
           icon={ChartBarIcon}
-          color="blue"
+          color="teal"
           subtitle="Overall performance"
         />
         <StatCard
@@ -185,8 +185,8 @@ const DriverScoreConfig = () => {
           title="Needs Improvement"
           value={stats.lowScore}
           icon={ExclamationTriangleIcon}
-          color="red"
-          subtitle="Score &lt; 60"
+          color="orange"
+          subtitle="Score < 60"
         />
       </div>
 
@@ -223,14 +223,14 @@ const DriverScoreConfig = () => {
             <input
               type="text"
               placeholder="Search by name, CIN, license, or phone..."
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyPress={handleKeyPress}
             />
           </div>
           <select
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
             value={filters.status}
             onChange={(e) => handleStatusChange(e.target.value)}
           >
@@ -239,7 +239,7 @@ const DriverScoreConfig = () => {
             <option value="busy">Busy</option>
             <option value="off_duty">Off Duty</option>
           </select>
-          <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button onClick={handleSearch} className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
             <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
           {(filters.status || filters.search) && (
@@ -251,84 +251,84 @@ const DriverScoreConfig = () => {
       </div>
 
       {/* Drivers Table */}
-       {isFetching ? (
+      {isFetching ? (
         <div className="bg-white rounded-lg shadow flex items-center justify-center" style={{ minHeight: 320 }}>
           <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-            <p className="text-sm text-gray-400 font-medium">Loading devices...</p>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+            <p className="text-sm text-gray-400 font-medium">Loading drivers...</p>
           </div>
         </div>
       ) : (
         <>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">Drivers & Scores</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CIN</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {drivers.map((driver) => (
-                <tr key={driver._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{driver.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{driver.cin || '—'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{driver.phone}</td>
-                  <td className="px-6 py-4">
-                    <ScoreBadge score={driver.score || 100} />
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 capitalize">{driver.status}</td>
-                  <td className="px-6 py-4 text-sm space-x-2">
-                    <button onClick={() => fetchLogs(driver._id)} className="text-blue-600 hover:text-blue-800" title="View logs">
-                      <ClockIcon className="h-5 w-5 inline" />
-                    </button>
-                    <button onClick={() => {
-                      setSelectedDriver(driver);
-                      setAdjustPoints(0);
-                      setAdjustRemark('');
-                      setShowAdjustModal(true);
-                    }} className="text-purple-600 hover:text-purple-800" title="Adjust score">
-                      <PencilIcon className="h-5 w-5 inline" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {drivers.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
-                    No drivers found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-800">Drivers & Scores</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CIN</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {drivers.map((driver) => (
+                    <tr key={driver._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{driver.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{driver.cin || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{driver.phone}</td>
+                      <td className="px-6 py-4">
+                        <ScoreBadge score={driver.score || 100} />
+                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 capitalize">{driver.status}</td>
+                      <td className="px-6 py-4 text-sm space-x-2">
+                        <button onClick={() => fetchLogs(driver._id)} className="text-teal-600 hover:text-teal-800" title="View logs">
+                          <ClockIcon className="h-5 w-5 inline" />
+                        </button>
+                        <button onClick={() => {
+                          setSelectedDriver(driver);
+                          setAdjustPoints(0);
+                          setAdjustRemark('');
+                          setShowAdjustModal(true);
+                        }} className="text-teal-600 hover:text-teal-800" title="Adjust score">
+                          <PencilIcon className="h-5 w-5 inline" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {drivers.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
+                        No drivers found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      {/* Pagination */}
-      <div className="mt-6">
-        <PaginationComponent
-          currentPage={pagination.page || 1}
-          totalPages={pagination.pages || 1}
-          onPageChange={setPage}
-          onPageSizeChange={handleLimitChange}
-          pageSize={limit}
-          totalItems={pagination.total || 0}
-          showFirstLast={true}
-          siblingCount={1}
-          showPageSizeSelector={true}
-          pageSizeOptions={[5, 10, 25, 50, 100]}
-        />
-      </div>
-       </>
+          {/* Pagination */}
+          <div className="mt-6">
+            <PaginationComponent
+              currentPage={pagination.page || 1}
+              totalPages={pagination.pages || 1}
+              onPageChange={setPage}
+              onPageSizeChange={handleLimitChange}
+              pageSize={limit}
+              totalItems={pagination.total || 0}
+              showFirstLast={true}
+              siblingCount={1}
+              showPageSizeSelector={true}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
+            />
+          </div>
+        </>
       )}
 
       {/* Adjust Score Modal */}
@@ -344,7 +344,7 @@ const DriverScoreConfig = () => {
               type="number"
               value={adjustPoints}
               onChange={(e) => setAdjustPoints(parseInt(e.target.value) || 0)}
-              className="mt-1 w-full px-3 py-2 border rounded-lg"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
               placeholder="e.g., +5 or -3"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -357,13 +357,13 @@ const DriverScoreConfig = () => {
               value={adjustRemark}
               onChange={(e) => setAdjustRemark(e.target.value)}
               rows="3"
-              className="mt-1 w-full px-3 py-2 border rounded-lg"
+              className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
               placeholder="Reason for score adjustment..."
             />
           </div>
           <div className="flex justify-end gap-3">
             <button onClick={() => setShowAdjustModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-            <button onClick={handleAdjustSubmit} disabled={adjustScoreMutation.isPending} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+            <button onClick={handleAdjustSubmit} disabled={adjustScoreMutation.isPending} className="px-4 py-2 bg-teal-600 text-white rounded-lg">
               {adjustScoreMutation.isPending ? 'Saving...' : 'Adjust Score'}
             </button>
           </div>
@@ -403,7 +403,7 @@ const DriverScoreConfig = () => {
                 {logsLoading ? (
                   <tr>
                     <td colSpan="4" className="px-4 py-8 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
                       <p className="mt-2 text-gray-500">Loading history...</p>
                     </td>
                   </tr>
@@ -454,7 +454,7 @@ const ConfigField = ({ label, value, onChange, help, step = "1" }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       step={step}
-      className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+      className="mt-1 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
     />
     <p className="text-xs text-gray-500 mt-1">{help}</p>
   </div>
