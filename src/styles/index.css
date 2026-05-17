@@ -4,25 +4,39 @@
 
 @layer base {
   body {
-    @apply bg-gray-50;
+    @apply bg-gray-50 dark:bg-gray-950;
   }
-}
 
-@layer components {
-  .btn-primary {
-    @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors;
+  /* Cards and white surfaces */
+  .dark .bg-white {
+    background-color: #1f2937;
   }
-  
-  .btn-secondary {
-    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors;
+
+  /* Light gray surfaces */
+  .dark .bg-gray-50 {
+    background-color: #111827;
   }
-  
-  .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+
+  .dark .bg-gray-100 {
+    background-color: #1f2937;
   }
-  
-  .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+
+  /* Text */
+  .dark .text-gray-900 { color: #f9fafb; }
+  .dark .text-gray-800 { color: #f3f4f6; }
+  .dark .text-gray-700 { color: #e5e7eb; }
+  .dark .text-gray-600 { color: #d1d5db; }
+  .dark .text-gray-500 { color: #9ca3af; }
+
+  /* Borders */
+  .dark .border-gray-200 { border-color: #374151; }
+  .dark .border-gray-100 { border-color: #1f2937; }
+
+  /* Inputs */
+  .dark input, .dark select, .dark textarea {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
   }
 }
 
@@ -80,6 +94,16 @@ html, body, #root {
   background-color: white !important;
   color: #374151 !important;
   border: 1px solid #e5e7eb !important;
+}
+
+html.dark .leaflet-control-zoom a {
+  background-color: #1f2937 !important;
+  color: #d1d5db !important;
+  border: 1px solid #374151 !important;
+}
+
+html.dark .leaflet-control-zoom a:hover {
+  background-color: #374151 !important;
 }
 
 .leaflet-control-zoom a:hover {

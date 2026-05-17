@@ -34,6 +34,8 @@ export const AuthProvider = ({ children }) => {
         name: userData.name,
         email: userData.email,
         role: userData.role,
+        createdAt: userData.createdAt, 
+        updatedAt: userData.updatedAt, 
       };
 
       if (!normalizedUser._id) {
@@ -61,6 +63,8 @@ export const AuthProvider = ({ children }) => {
         name: result.user.name,
         email: result.user.email,
         role: result.user.role,
+        createdAt: result.user.createdAt,
+        updatedAt: result.user.updatedAt, 
       };
       
       localStorage.setItem('user', JSON.stringify(normalizedUser));

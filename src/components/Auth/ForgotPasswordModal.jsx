@@ -1,4 +1,3 @@
-// frontend/src/components/Auth/ForgotPasswordModal.jsx
 import React, { useState } from 'react';
 import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
@@ -60,7 +59,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@fleet.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
               required
               autoFocus
             />
@@ -80,7 +79,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -99,7 +98,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
       ) : (
         <div className="text-center py-4">
           <div className="mb-4">
-            <svg className="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="mx-auto h-12 w-12 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -112,7 +111,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
           </p>
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
           >
             Close
           </button>

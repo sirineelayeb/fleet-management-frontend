@@ -1,17 +1,22 @@
+// frontend/src/pages/ResetPassword.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
+import { EyeIcon, EyeSlashIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 
 const ResetPassword = () => {
-  const navigate = useNavigate();
   const { token } = useParams();
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [validToken, setValidToken] = useState(null);
   const [verifying, setVerifying] = useState(true);
+  const [validToken, setValidToken] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
+  // Verify token on page load
   useEffect(() => {
     const verifyToken = async () => {
       if (!token) {
@@ -26,16 +31,16 @@ const ResetPassword = () => {
           setValidToken(true);
         } else {
           setValidToken(false);
-          toast.error(result.message || 'Invalid or expired reset link');
+          toast.error('Invalid or expired reset link');
         }
       } catch (error) {
         setValidToken(false);
-        toast.error('Failed to verify reset link');
+        toast.error('Invalid or expired reset link');
       } finally {
         setVerifying(false);
       }
     };
-    
+
     verifyToken();
   }, [token]);
 
@@ -56,10 +61,8 @@ const ResetPassword = () => {
     try {
       const result = await authService.resetPassword(token, password);
       if (result.success) {
-        toast.success('Password reset successful! Please login with your new password.');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        toast.success('Password reset successfully! Please login with your new password.');
+        navigate('/login');
       } else {
         toast.error(result.message || 'Failed to reset password');
       }
@@ -70,31 +73,33 @@ const ResetPassword = () => {
     }
   };
 
+  // Show loading state while verifying token
   if (verifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verifying reset link...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying reset link...</p>
         </div>
       </div>
     );
   }
 
+  // Show error if token is invalid
   if (!validToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <svg className="mx-auto h-12 w-12 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Invalid or Expired Link</h2>
-          <p className="text-gray-600 mb-6">
-            This password reset link is invalid or has expired. Please request a new one.
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="mb-4">
+            <svg className="mx-auto h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Invalid Reset Link</h2>
+          <p className="text-gray-600 mb-6">This password reset link is invalid or has expired.</p>
           <button
             onClick={() => navigate('/login')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
           >
             Back to Login
           </button>
@@ -104,68 +109,92 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-200 mb-4">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
-            <p className="text-gray-600 mt-2">Enter your new password</p>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password
-              </label>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">Reset Password</h2>
+          <p className="text-sm text-gray-600 mt-2">Enter your new password below</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <LockClosedIcon className="h-5 w-5 text-gray-400" />
+              </div>
               <input
-                type="password"
+                type={passwordVisible ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="••••••••"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
                 required
-                autoFocus
               />
-              <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
+              <button
+                type="button"
+                onClick={() => setPasswordVisible(!passwordVisible)}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                {passwordVisible ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+              </button>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
-              </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <LockClosedIcon className="h-5 w-5 text-gray-400" />
+              </div>
               <input
-                type="password"
+                type={confirmVisible ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="••••••••"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setConfirmVisible(!confirmVisible)}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                {confirmVisible ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+              </button>
             </div>
-            
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors"
-            >
-              {loading ? 'Resetting...' : 'Reset Password'}
-            </button>
-          </form>
-          
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => navigate('/login')}
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              Back to Sign In
-            </button>
           </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-teal-600 text-white py-2 rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Resetting...
+              </span>
+            ) : (
+              'Reset Password'
+            )}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => navigate('/login')}
+            className="text-sm text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            Back to Login
+          </button>
         </div>
       </div>
     </div>

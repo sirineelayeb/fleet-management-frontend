@@ -77,6 +77,18 @@ export const authService = {
       };
     }
   },
+
+  verifyResetToken: async (token) => {
+    try {
+      const response = await api.get(`/auth/verify-reset-token/${token}`);
+      return response.data;
+    } catch (error) {
+      return error.response?.data || { 
+        success: false, 
+        message: 'Invalid or expired token' 
+      };
+    }
+  },
   
   updateMe: async (data) => {
     try {

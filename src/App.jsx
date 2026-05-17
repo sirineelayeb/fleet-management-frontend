@@ -83,7 +83,7 @@ function App() {
               <Route path="drivers" element={<Drivers />} />
               <Route path="driver-history" element={<DriverHistory />} />       
               <Route path="driver-history/:driverId" element={<DriverHistory />} />
-              <Route path="driver-profile/:driverId" element={<DriverProfile />} />  {/* ✅ ADDED */}
+              <Route path="driver-profile/:driverId" element={<DriverProfile />} /> 
               <Route path="devices" element={<Devices />} />
               <Route path="driver-scores" element={<DriverScoreConfig />} />
 
@@ -128,7 +128,7 @@ function App() {
               <Route path="lpr-events" element={<LprEvents />} />
 
               <Route path="drivers/:driverId" element={<DriverProfile />} />
-              <Route path="driver-profile/:driverId" element={<DriverProfile />} />  {/* ✅ ADDED */}
+              <Route path="driver-profile/:driverId" element={<DriverProfile />} />
               <Route path="truck-history/:truckId" element={<TruckHistory />} />
             </Route>
 

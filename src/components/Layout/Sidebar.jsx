@@ -38,6 +38,9 @@ import {
 } from '@heroicons/react/24/solid';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
+// ─── Brand colors ─────────────────────────────────────────────────────────────
+// navy: #1E1E2C  teal: #34B1AA  blue: #3B8FF3  orange: #F29F67  gold: #E0B50F
+
 // ─── Scrollbar hide ───────────────────────────────────────────────────────────
 const SCROLLBAR_STYLE = `
   .sidebar-nav { scrollbar-width: none; -ms-overflow-style: none; }
@@ -120,7 +123,7 @@ const SHIPMENT_MANAGER_MENU = [
   },
 ];
 
-// ─── Sub-menu (for expanded view) ────────────────────────────────────────────
+// ─── Sub-menu ────────────────────────────────────────────────────────────────
 const SubMenu = ({ item, isOpenSidebar, location, onExpand }) => {
   const [open, setOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -130,40 +133,29 @@ const SubMenu = ({ item, isOpenSidebar, location, onExpand }) => {
     if (item.children?.some(child => location.pathname.startsWith(child.path))) setOpen(true);
   }, [location.pathname, item.children]);
 
-  // For collapsed mode - show dropdown on click
-   const handleCollapsedClick = () => {
-    onExpand();       
-    setOpen(true);    
+  const handleCollapsedClick = () => {
+    onExpand();
+    setOpen(true);
     setShowDropdown(false);
   };
 
-  // Clear timeout on unmount
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
-  // When sidebar is collapsed, show as clickable icon with dropdown
   if (!isOpenSidebar) {
     return (
       <div className="relative w-full my-1">
         <button
           onClick={handleCollapsedClick}
-          className="w-full flex justify-center py-3 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-all"
+          className="w-full flex justify-center py-3 rounded-xl text-gray-400 hover:bg-white/10 hover:text-white transition-all"
         >
-          <item.icon className="h-5 w-5 text-gray-400 hover:text-gray-200" />
+          <item.icon className="h-5 w-5" />
         </button>
-        
-        {/* Dropdown menu for collapsed mode */}
         {showDropdown && (
           <>
-            {/* Backdrop to close dropdown when clicking outside */}
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={() => setShowDropdown(false)}
-            />
-            <div className="absolute left-full top-0 ml-2 min-w-[180px] bg-gray-800 border border-white/10 rounded-lg shadow-xl z-50 py-1">
+            <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
+            <div className="absolute left-full top-0 ml-2 min-w-[180px] bg-[#1E1E2C] border border-white/10 rounded-lg shadow-xl z-50 py-1">
               <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-white/10">
                 {item.label}
               </div>
@@ -174,8 +166,8 @@ const SubMenu = ({ item, isOpenSidebar, location, onExpand }) => {
                   onClick={() => setShowDropdown(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-2 text-sm transition ${
-                      isActive 
-                        ? 'bg-blue-500/20 text-blue-400' 
+                      isActive
+                        ? 'bg-[#34B1AA]/20 text-[#34B1AA]'
                         : 'text-gray-300 hover:bg-white/10 hover:text-white'
                     }`
                   }
@@ -191,7 +183,6 @@ const SubMenu = ({ item, isOpenSidebar, location, onExpand }) => {
     );
   }
 
-  // Expanded view
   return (
     <div className="mb-1">
       <button
@@ -205,14 +196,16 @@ const SubMenu = ({ item, isOpenSidebar, location, onExpand }) => {
         <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="ml-6 mt-1 space-y-1">
+        <div className="ml-6 mt-1 space-y-0.5">
           {item.children.map(child => (
             <NavLink
               key={child.path}
               to={child.path}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                  isActive ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  isActive
+                    ? 'bg-[#34B1AA]/20 text-[#34B1AA]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`
               }
             >
@@ -226,7 +219,7 @@ const SubMenu = ({ item, isOpenSidebar, location, onExpand }) => {
   );
 };
 
-// ─── Nav item (for items without children) ────────────────────────────────────
+// ─── Nav item ─────────────────────────────────────────────────────────────────
 const NavItem = ({ item, isOpen, searchQuery, onExpand }) => {
   const highlight = (text) => {
     if (!searchQuery) return text;
@@ -235,7 +228,7 @@ const NavItem = ({ item, isOpen, searchQuery, onExpand }) => {
     return (
       <>
         {text.slice(0, idx)}
-        <mark className="bg-blue-500/30 text-blue-200 rounded-sm px-0.5">
+        <mark className="bg-[#34B1AA]/30 text-[#34B1AA] rounded-sm px-0.5">
           {text.slice(idx, idx + searchQuery.length)}
         </mark>
         {text.slice(idx + searchQuery.length)}
@@ -250,19 +243,16 @@ const NavItem = ({ item, isOpen, searchQuery, onExpand }) => {
       end={item.path === '/dashboard' || item.path === '/shipment_manager' || item.path === '/dashboard/profile'}
       className={({ isActive }) => {
         let classes = 'group relative flex items-center transition-all duration-200 rounded-xl';
-        
         if (isOpen) {
           classes += ' px-3 py-2.5';
         } else {
           classes += ' w-full justify-center py-3';
         }
-        
         if (isActive) {
-          classes += ' bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white';
+          classes += ' bg-[#34B1AA]/15 text-white';
         } else {
           classes += ' text-gray-300 hover:bg-white/10 hover:text-white';
         }
-        
         return classes;
       }}
     >
@@ -270,13 +260,15 @@ const NavItem = ({ item, isOpen, searchQuery, onExpand }) => {
         const Icon = isActive && item.solidIcon ? item.solidIcon : item.icon;
         return (
           <>
-            {isActive && <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-r-full" />}
+            {isActive && (
+              <div className="absolute left-0 w-1 h-8 bg-[#34B1AA] rounded-r-full" />
+            )}
             <Icon className={[
               'h-5 w-5 flex-shrink-0 transition-colors',
               isOpen ? 'mr-3' : '',
-              isActive ? 'text-blue-400' : 'text-gray-400 group-hover:text-gray-200'
+              isActive ? 'text-[#34B1AA]' : 'text-gray-400 group-hover:text-gray-200',
             ].join(' ')} />
-            
+
             {isOpen && (
               <div className="flex-1 min-w-0">
                 <span className="block text-sm font-medium leading-tight">{highlight(item.label)}</span>
@@ -285,10 +277,9 @@ const NavItem = ({ item, isOpen, searchQuery, onExpand }) => {
                 )}
               </div>
             )}
-            
-            {/* Tooltip for collapsed mode */}
+
             {!isOpen && (
-              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-gray-800 border border-white/10 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl">
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-[#1E1E2C] border border-white/10 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl">
                 {item.label}
               </div>
             )}
@@ -315,7 +306,7 @@ const SearchInput = ({ value, onChange, onClear, inputRef }) => (
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Search…"
-      className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-7 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 transition-all"
+      className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-7 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#34B1AA]/60 transition-all"
     />
     {value && (
       <button onClick={onClear} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
@@ -330,14 +321,11 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  // Desktop: collapsed/expanded
   const [isOpen, setIsOpen] = useState(true);
-  // Mobile: overlay open/closed
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
 
-  // Inject scrollbar styles once
   useEffect(() => {
     const id = 'sidebar-scrollbar-style';
     if (!document.getElementById(id)) {
@@ -348,19 +336,16 @@ const Sidebar = () => {
     }
   }, []);
 
-  // Close mobile overlay + reset search on route change
   useEffect(() => {
     setIsMobileOpen(false);
     setSearchQuery('');
   }, [location.pathname]);
 
-  // Body scroll lock while mobile overlay is open
   useEffect(() => {
     document.body.style.overflow = isMobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isMobileOpen]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e) => {
       if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) && document.activeElement?.tagName !== 'INPUT') {
@@ -378,7 +363,6 @@ const Sidebar = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, isMobileOpen]);
 
-  // Clear search when sidebar collapses
   useEffect(() => { if (!isOpen) setSearchQuery(''); }, [isOpen]);
 
   const handleLogout = () => { logout(); window.location.href = '/login'; };
@@ -390,7 +374,14 @@ const Sidebar = () => {
 
   const filteredGroups = searchQuery.trim()
     ? menuGroups
-        .map(g => ({ ...g, items: g.items.filter(item => !item.children && (item.label.toLowerCase().includes(searchQuery.toLowerCase()) || (item.description || '').toLowerCase().includes(searchQuery.toLowerCase()))) }))
+        .map(g => ({
+          ...g,
+          items: g.items.filter(item =>
+            !item.children &&
+            (item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (item.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+          ),
+        }))
         .filter(g => g.items.length > 0)
     : menuGroups;
 
@@ -403,7 +394,7 @@ const Sidebar = () => {
       <button
         onClick={() => setIsMobileOpen(true)}
         aria-label="Open navigation"
-        className="lg:hidden fixed top-4 left-4 z-[160] p-2.5 bg-gray-900 text-white rounded-xl shadow-lg hover:bg-gray-800 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-[160] p-2.5 bg-[#1E1E2C] text-white rounded-xl shadow-lg hover:bg-[#2a2a3c] transition-colors"
       >
         <Bars3Icon className="h-5 w-5" />
       </button>
@@ -422,7 +413,7 @@ const Sidebar = () => {
           'lg:sticky lg:top-0 lg:h-screen',
           'fixed top-0 left-0 h-full',
           'z-[210]',
-          'bg-gradient-to-b from-gray-900 to-gray-800 text-white',
+          'bg-[#1E1E2C] text-white',
           'flex flex-col shadow-2xl',
           'transition-all duration-300 ease-in-out',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
@@ -430,14 +421,15 @@ const Sidebar = () => {
           'w-[80vw] max-w-[320px]',
         ].join(' ')}
       >
-        {/* Top accent bar */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-blue-500 to-purple-500" />
+        {/* Top accent bar — brand teal */}
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#34B1AA]" />
 
         {/* Header */}
         <div className={['flex items-center pt-5 pb-4 px-4', !isOpen ? 'lg:justify-center' : 'justify-between'].join(' ')}>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-base font-bold">FM</span>
+            {/* Logo mark — teal square */}
+            <div className="w-10 h-10 flex-shrink-0 bg-[#34B1AA] rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-base font-bold text-[#1E1E2C]">FM</span>
             </div>
             {isOpen && (
               <div className="min-w-0">
@@ -463,10 +455,11 @@ const Sidebar = () => {
         </div>
 
         {/* User profile pill */}
-        <div className={['mx-3 mb-3 p-3 bg-white/5 rounded-xl', !isOpen && 'lg:mx-2'].join(' ')}>
+        <div className={['mx-3 mb-3 p-3 bg-white/5 rounded-xl border border-white/5', !isOpen && 'lg:mx-2'].join(' ')}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-              <span className="text-sm font-semibold">{userInitial}</span>
+            {/* Avatar — teal */}
+            <div className="w-9 h-9 flex-shrink-0 bg-[#34B1AA] rounded-full flex items-center justify-center">
+              <span className="text-sm font-semibold text-[#1E1E2C]">{userInitial}</span>
             </div>
             {isOpen && (
               <div className="flex-1 min-w-0">
@@ -515,9 +508,21 @@ const Sidebar = () => {
                 <div className="space-y-0.5">
                   {group.items.map((item, index) =>
                     item.children ? (
-                      <SubMenu key={index} item={item} isOpenSidebar={isOpen} location={location}onExpand={() => setIsOpen(true)}  />
+                      <SubMenu
+                        key={index}
+                        item={item}
+                        isOpenSidebar={isOpen}
+                        location={location}
+                        onExpand={() => setIsOpen(true)}
+                      />
                     ) : (
-                      <NavItem key={item.path} item={item} isOpen={isOpen} searchQuery={searchQuery} onExpand={() => setIsOpen(true)} />
+                      <NavItem
+                        key={item.path}
+                        item={item}
+                        isOpen={isOpen}
+                        searchQuery={searchQuery}
+                        onExpand={() => setIsOpen(true)}
+                      />
                     )
                   )}
                 </div>
@@ -542,13 +547,16 @@ const Sidebar = () => {
           <div className="p-3">
             <button
               onClick={handleLogout}
-              className={['group w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 text-gray-400 hover:text-red-400 hover:bg-red-500/10', !isOpen && 'lg:justify-center'].join(' ')}
+              className={[
+                'group w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 text-gray-400 hover:text-[#F29F67] hover:bg-[#F29F67]/10',
+                !isOpen && 'lg:justify-center',
+              ].join(' ')}
               title={!isOpen ? 'Logout' : ''}
             >
               <ArrowRightOnRectangleIcon className={['h-5 w-5 flex-shrink-0', isOpen && 'mr-3'].join(' ')} />
               {isOpen && <span className="text-sm font-medium">Logout</span>}
               {!isOpen && (
-                <div className="absolute left-full ml-3 px-3 py-1.5 bg-gray-800 border border-white/10 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl">
+                <div className="absolute left-full ml-3 px-3 py-1.5 bg-[#1E1E2C] border border-white/10 text-white text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl">
                   Logout
                 </div>
               )}

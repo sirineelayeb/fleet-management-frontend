@@ -303,17 +303,6 @@ const DriverHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Fixed back button – only for admin */}
-      {isAdmin && (
-        <button
-          onClick={() => navigate('/dashboard/drivers')}
-          className="fixed top-4 left-4 z-50 flex items-center gap-2 px-3 py-2 bg-white rounded-full shadow-md border border-gray-200 hover:bg-gray-100 transition-all duration-200"
-        >
-          <ArrowLeftIcon className="h-4 w-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">Back to Drivers</span>
-        </button>
-      )}
-
       {/* Conditional padding-top: only when admin has fixed button */}
       <div className={isAdmin ? 'pt-16' : ''}>
         {/* Inline header bar – only for admin */}

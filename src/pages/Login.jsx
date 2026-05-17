@@ -1,4 +1,3 @@
-// frontend/src/pages/Login.jsx
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -36,7 +35,7 @@ const Field = ({ label, id, error, icon: Icon, children }) => (
       )}
       {children}
     </div>
-    {error && <p className="text-xs text-red-500">  {error}</p>}
+    {error && <p className="text-xs text-red-500">{error}</p>}
   </div>
 );
 
@@ -50,8 +49,8 @@ const Input = ({ id, type, value, onChange, onBlur, placeholder, error, autoComp
     placeholder={placeholder}
     autoComplete={autoComplete}
     className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm transition-all duration-200
-      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-      ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-white'}`}
+      focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent
+      ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
     required
   />
 );
@@ -72,8 +71,8 @@ const PasswordInput = ({ id, value, onChange, onBlur, error, autoComplete }) => 
         placeholder="••••••••"
         autoComplete={autoComplete}
         className={`w-full pl-10 pr-12 py-2.5 border rounded-xl text-sm transition-all duration-200
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-          ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50 hover:bg-white'}`}
+          focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent
+          ${error ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
         required
       />
       <button
@@ -92,10 +91,10 @@ const SubmitButton = ({ loading, label, loadingLabel }) => (
   <button
     type="submit"
     disabled={loading}
-    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 rounded-xl
-               font-semibold text-sm hover:from-blue-700 hover:to-indigo-700 
+    className="w-full bg-teal-600 text-white py-2.5 rounded-xl
+               font-semibold text-sm hover:bg-teal-700 
                active:scale-[0.98] transition-all duration-200
-               disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-200"
+               disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-teal-200"
   >
     {loading ? (
       <span className="flex items-center justify-center gap-2">
@@ -114,8 +113,8 @@ const TabButton = ({ active, onClick, label }) => (
     onClick={onClick}
     className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 ${
       active
-        ? 'bg-white text-blue-600 shadow-sm'
-        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+        ? 'bg-teal-600 text-white shadow-sm'
+        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
     }`}
   >
     {label}
@@ -190,7 +189,6 @@ const Login = () => {
     try {
       const result = await login(loginData.email, loginData.password);
       if (result?.success) {
-        // toast.success(`Welcome back, ${result.user?.name || 'User'}!`);
         navigate(getRoleRoute(result.user?.role));
       } else {
         toast.error(result?.message || 'Incorrect email or password.');
@@ -243,7 +241,7 @@ const Login = () => {
         {/* Left side: Image – hidden on mobile, shown on desktop */}
         <div className="hidden lg:flex lg:w-2/5 relative bg-gray-900 min-h-screen">
           <img src={fleetImage} alt="Fleet management" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/70 via-indigo-900/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-teal-900/70 to-white-800/50 to-transparent" />
           <div className="relative z-10 flex flex-col justify-end p-12 text-white">
             <h2 className="text-3xl font-bold mb-4">Fleet Manager</h2>
             <p className="text-lg text-gray-200 max-w-md">
@@ -252,8 +250,7 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Right side: Form – wider on desktop */}
-        <div className="w-full lg:w-3/5 bg-white flex flex-col">
+        <div className="w-full lg:w-3/5 bg-white-500 flex flex-col">
           <div className="flex-1 flex flex-col">
             <div className="flex-1 overflow-y-auto">
               <div className="px-8 py-12 sm:px-14 sm:py-16 h-full flex flex-col">
@@ -268,7 +265,7 @@ const Login = () => {
                   </p>
                 </div>
 
-                <div className="flex bg-gray-100 rounded-xl p-1 mb-8">
+                <div className="flex bg-gray-200 rounded-xl p-1 mb-8">
                   <TabButton active={tab === 'login'} onClick={() => switchTab('login')} label="Sign in" />
                   <TabButton active={tab === 'register'} onClick={() => switchTab('register')} label="Create account" />
                 </div>
@@ -301,7 +298,7 @@ const Login = () => {
                         <button
                           type="button"
                           onClick={() => setShowForgotPassword(true)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                          className="text-xs text-teal-600 hover:text-teal-700 font-medium transition-colors"
                         >
                           Forgot password?
                         </button>
@@ -366,7 +363,7 @@ const Login = () => {
                   </form>
                 )}
 
-                <p className="text-center text-xs text-gray-400 mt-6 pt-2 border-t border-gray-100">
+                <p className="text-center text-xs text-gray-400 mt-6 pt-2 border-t border-gray-200">
                   © {new Date().getFullYear()} Fleet Manager. All rights reserved.
                 </p>
               </div>

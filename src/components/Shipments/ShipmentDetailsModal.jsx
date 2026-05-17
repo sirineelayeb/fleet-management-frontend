@@ -36,7 +36,7 @@ const ShipmentDetailsModal = ({
 
   if (!shipment) return null;
 
-  const statusBadgeClass = getStatusBadge(shipment?.status, 'shipment', 'md');
+  const statusBadgeClass = getStatusBadge(shipment?.status, 'shipment', 'sm');
   const statusText = getStatusText(shipment?.status);
 
   const formatDate = (date) => date ? new Date(date).toLocaleString() : '—';
@@ -143,192 +143,188 @@ const ShipmentDetailsModal = ({
     if (onCancel) onCancel(shipment._id);
   };
 
+  // Compact Section component
   const Section = ({ icon: Icon, title, children, actionButton }) => (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-gray-500" />
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{title}</h3>
+    <div className="rounded-lg border border-gray-100 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+        <div className="flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5 text-gray-400" />
+          <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{title}</h3>
         </div>
         {actionButton}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-3">{children}</div>
     </div>
   );
 
+  // Compact InfoRow component
   const InfoRow = ({ icon: Icon, label, value, subValue }) => (
-    <div className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
+    <div className="flex items-start gap-2 py-1.5 border-b border-gray-50 last:border-0">
       <div className="flex-shrink-0 mt-0.5">
-        <Icon className="h-4 w-4 text-gray-400" />
+        <Icon className="h-3.5 w-3.5 text-gray-400" />
       </div>
       <div className="flex-1">
-        <p className="text-xs text-gray-500 uppercase tracking-wide">{label}</p>
-        <p className="text-sm font-medium text-gray-800">{value || '—'}</p>
-        {subValue && <p className="text-xs text-gray-400 mt-0.5">{subValue}</p>}
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium text-gray-700">{value || '—'}</p>
+        {subValue && <p className="text-[10px] text-gray-400 mt-0.5">{subValue}</p>}
       </div>
     </div>
   );
 
   const modalTitle = (
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-        <TruckIcon className="h-5 w-5 text-gray-700" />
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+        <TruckIcon className="h-4 w-4 text-gray-600" />
       </div>
       <div>
-        <p className="text-lg font-bold text-gray-900">Shipment Details</p>
-        <p className="text-xs text-gray-400 font-mono">{shipment?.shipmentId || shipment?._id?.slice(-8)}</p>
+        <p className="text-base font-bold text-gray-900">Shipment Details</p>
+        <p className="text-[10px] text-gray-400 font-mono">{shipment?.shipmentId || shipment?._id?.slice(-8)}</p>
       </div>
-      <span className={statusBadgeClass}>{statusText}</span>
+      <span className={`ml-2 ${statusBadgeClass}`}>{statusText}</span>
     </div>
   );
 
   return (
-    <Modal isOpen={!!shipment} onClose={onClose} title={modalTitle} size="xl">
-      <div className="space-y-5 max-h-[calc(100vh-200px)] overflow-y-auto px-1">
-        {/* Status badges – clean text only */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md px-3 py-2 text-sm font-medium text-center bg-gray-50 text-gray-700 border border-gray-200">
-            {shipment.isPriority ? 'Priority Shipment' : 'Standard Shipment'}
+    <Modal isOpen={!!shipment} onClose={onClose} title={modalTitle} size="lg">
+      <div className="space-y-3 max-h-[calc(100vh-160px)] overflow-y-auto px-0.5">
+        {/* Status badges – compact */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-md px-2 py-1 text-xs font-medium text-center bg-gray-50 text-gray-600 border border-gray-100">
+            {shipment.isPriority ? 'Priority' : 'Standard'}
           </div>
-          <div className="rounded-md px-3 py-2 text-sm font-medium text-center bg-gray-50 text-gray-700 border border-gray-200 capitalize">
+          <div className="rounded-md px-2 py-1 text-xs font-medium text-center bg-gray-50 text-gray-600 border border-gray-100 capitalize">
             {shipment.shipmentType === 'refrigerated' && 'Refrigerated'}
             {shipment.shipmentType === 'fragile' && 'Fragile'}
-            {(!shipment.shipmentType || shipment.shipmentType === 'normal') && 'Standard Cargo'}
+            {(!shipment.shipmentType || shipment.shipmentType === 'normal') && 'Standard'}
           </div>
         </div>
 
-        {/* Cargo Info */}
-        <Section icon={CubeIcon} title="Cargo Information">
-          <div className="space-y-1">
-            {shipment.description && <InfoRow icon={ClipboardDocumentListIcon} label="Description" value={shipment.description} />}
-            {shipment.goods && <InfoRow icon={CubeIcon} label="Goods Type" value={shipment.goods} />}
-            {shipment.weightKg && <InfoRow icon={ScaleIcon} label="Weight" value={`${shipment.weightKg} kg`} />}
-          </div>
-        </Section>
+        {/* Cargo Info - compact */}
+        {(shipment.description || shipment.goods || shipment.weightKg) && (
+          <Section icon={CubeIcon} title="Cargo">
+            <div className="space-y-0.5">
+              {shipment.description && <InfoRow icon={ClipboardDocumentListIcon} label="Description" value={shipment.description} />}
+              {shipment.goods && <InfoRow icon={CubeIcon} label="Goods" value={shipment.goods} />}
+              {shipment.weightKg && <InfoRow icon={ScaleIcon} label="Weight" value={`${shipment.weightKg} kg`} />}
+            </div>
+          </Section>
+        )}
 
-        {/* Route & Schedule */}
+        {/* Route & Schedule - compact grid */}
         <Section icon={MapPinIcon} title="Route & Schedule">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <InfoRow icon={MapPinIcon} label="Origin" value={shipment.origin} subValue={shipment.originCoordinates?.lat ? `${shipment.originCoordinates.lat}, ${shipment.originCoordinates.lng}` : null} />
-              <InfoRow icon={CalendarIcon} label="Planned Departure" value={formatDate(shipment.plannedDepartureDate)} />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-0.5">
+              <InfoRow icon={MapPinIcon} label="Origin" value={shipment.origin} />
+              <InfoRow icon={CalendarIcon} label="Departure" value={formatDate(shipment.plannedDepartureDate)} />
             </div>
-            <div className="space-y-2">
-              <InfoRow icon={MapPinIcon} label="Destination" value={shipment.destination} subValue={shipment.destinationCoordinates?.lat ? `${shipment.destinationCoordinates.lat}, ${shipment.destinationCoordinates.lng}` : null} />
-              <InfoRow icon={CalendarIcon} label="Planned Delivery" value={formatDate(shipment.plannedDeliveryDate)} />
+            <div className="space-y-0.5">
+              <InfoRow icon={MapPinIcon} label="Destination" value={shipment.destination} />
+              <InfoRow icon={CalendarIcon} label="Delivery" value={formatDate(shipment.plannedDeliveryDate)} />
             </div>
           </div>
         </Section>
 
-        {/* Loading Timeline */}
+        {/* Loading Timeline - compact */}
         {(shipment.loadingStartedAt || shipment.loadingCompletedAt) && (
-          <Section icon={ClockIcon} title="Loading Timeline">
-            <div className="space-y-1">
+          <Section icon={ClockIcon} title="Loading">
+            <div className="space-y-0.5">
               {shipment.loadingStartedAt && (
-                <InfoRow icon={ClockIcon} label="Loading Started" value={formatDate(shipment.loadingStartedAt)} subValue={formatRelativeTime(shipment.loadingStartedAt)} />
+                <InfoRow icon={ClockIcon} label="Started" value={formatDate(shipment.loadingStartedAt)} subValue={formatRelativeTime(shipment.loadingStartedAt)} />
               )}
               {shipment.loadingCompletedAt && (
-                <InfoRow icon={CheckIcon} label="Loading Completed" value={formatDate(shipment.loadingCompletedAt)} subValue={formatRelativeTime(shipment.loadingCompletedAt)} />
+                <InfoRow icon={CheckIcon} label="Completed" value={formatDate(shipment.loadingCompletedAt)} subValue={formatRelativeTime(shipment.loadingCompletedAt)} />
               )}
               {shipment.actualLoadingDurationMinutes != null && (
-                <InfoRow icon={ClockIcon} label="Total Duration" value={formatDuration(shipment.actualLoadingDurationMinutes)} />
-              )}
-              {shipment.loadingStartedAt && !shipment.loadingCompletedAt && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-md text-sm text-gray-600 border border-gray-200">
-                  Loading in progress...
-                </div>
+                <InfoRow icon={ClockIcon} label="Duration" value={formatDuration(shipment.actualLoadingDurationMinutes)} />
               )}
             </div>
           </Section>
         )}
 
-        {/* Assignment */}
+        {/* Assignment - compact */}
         <Section icon={TruckIcon} title="Assignment">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-md p-3 bg-white">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Truck</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="border border-gray-100 rounded-md p-2 bg-white">
+              <p className="text-[10px] text-gray-400 uppercase mb-0.5">Truck</p>
               {shipment.truck ? (
                 <>
-                  <p className="font-semibold text-gray-800">{shipment.truck.licensePlate}</p>
-                  <p className="text-xs text-gray-500">{shipment.truck.brand} {shipment.truck.model}</p>
+                  <p className="text-xs font-semibold text-gray-800">{shipment.truck.licensePlate}</p>
+                  <p className="text-[10px] text-gray-400">{shipment.truck.brand}</p>
                 </>
               ) : (
-                <p className="text-gray-400 italic text-sm">Not assigned</p>
+                <p className="text-xs text-gray-400 italic">—</p>
               )}
             </div>
-            <div className="border border-gray-200 rounded-md p-3 bg-white">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Driver</p>
+            <div className="border border-gray-100 rounded-md p-2 bg-white">
+              <p className="text-[10px] text-gray-400 uppercase mb-0.5">Driver</p>
               {shipment.driver ? (
                 <>
-                  <p className="font-semibold text-gray-800">{shipment.driver.name}</p>
-                  {shipment.driver.phone && <p className="text-xs text-gray-500">{shipment.driver.phone}</p>}
+                  <p className="text-xs font-semibold text-gray-800">{shipment.driver.name}</p>
+                  {shipment.driver.phone && <p className="text-[10px] text-gray-400">{shipment.driver.phone}</p>}
                 </>
               ) : (
-                <p className="text-gray-400 italic text-sm">Not assigned</p>
+                <p className="text-xs text-gray-400 italic">—</p>
               )}
             </div>
           </div>
         </Section>
 
-        {/* Loading Zone & Customer */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {shipment.loadingZone && (
-            <Section icon={BuildingOfficeIcon} title="Loading Zone">
-              <div className="border border-gray-200 rounded-md p-3 bg-white">
-                <p className="font-semibold text-gray-800">{shipment.loadingZone.name}</p>
-                {shipment.loadingZone.description && <p className="text-xs text-gray-500 mt-1">{shipment.loadingZone.description}</p>}
-              </div>
-            </Section>
-          )}
-          {shipment.customer && (
-            <Section icon={BuildingOfficeIcon} title="Customer">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">
-                  {shipment.customer.name?.charAt(0).toUpperCase() || 'C'}
+        {/* Loading Zone & Customer - compact */}
+        {(shipment.loadingZone || shipment.customer) && (
+          <div className="grid grid-cols-2 gap-2">
+            {shipment.loadingZone && (
+              <Section icon={BuildingOfficeIcon} title="Zone">
+                <div className="border border-gray-100 rounded-md p-2 bg-white">
+                  <p className="text-xs font-semibold text-gray-800">{shipment.loadingZone.name}</p>
+                  {shipment.loadingZone.description && <p className="text-[10px] text-gray-400 mt-0.5">{shipment.loadingZone.description}</p>}
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-800">{shipment.customer.name}</p>
-                  {shipment.customer.phone && (
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                      <PhoneIcon className="h-3 w-3" /> {shipment.customer.phone}
-                    </p>
-                  )}
-                  {shipment.customer.email && <p className="text-xs text-gray-500">{shipment.customer.email}</p>}
+              </Section>
+            )}
+            {shipment.customer && (
+              <Section icon={BuildingOfficeIcon} title="Customer">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
+                    {shipment.customer.name?.charAt(0).toUpperCase() || 'C'}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800">{shipment.customer.name}</p>
+                    {shipment.customer.phone && <p className="text-[10px] text-gray-400">{shipment.customer.phone}</p>}
+                  </div>
                 </div>
-              </div>
-            </Section>
-          )}
-        </div>
+              </Section>
+            )}
+          </div>
+        )}
 
-        {/* Assigned Manager */}
+        {/* Assigned Manager - compact */}
         {shipment.assignedTo && (
-          <Section icon={UserGroupIcon} title="Assigned Manager">
-            <div className="flex items-center gap-3 border border-gray-200 rounded-md p-3 bg-white">
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">
+          <Section icon={UserGroupIcon} title="Manager">
+            <div className="flex items-center gap-2 border border-gray-100 rounded-md p-2 bg-white">
+              <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
                 {(typeof shipment.assignedTo === 'object' ? shipment.assignedTo.name : '?')?.charAt(0).toUpperCase() || 'M'}
               </div>
               <div>
-                <p className="font-semibold text-gray-800">
+                <p className="text-xs font-semibold text-gray-800">
                   {typeof shipment.assignedTo === 'object' ? shipment.assignedTo.name : shipment.assignedTo}
                 </p>
                 {typeof shipment.assignedTo === 'object' && shipment.assignedTo.email && (
-                  <p className="text-xs text-gray-500">{shipment.assignedTo.email}</p>
+                  <p className="text-[10px] text-gray-400">{shipment.assignedTo.email}</p>
                 )}
               </div>
             </div>
           </Section>
         )}
 
-        {/* Notes Section */}
-        <div className="rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <DocumentTextIcon className="h-4 w-4 text-gray-500" />
-              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Notes</h3>
-              <span className="text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full">{notes.length}</span>
+        {/* Notes Section - compact */}
+        <div className="rounded-lg border border-gray-100 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+            <div className="flex items-center gap-1.5">
+              <DocumentTextIcon className="h-3.5 w-3.5 text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Notes</h3>
+              <span className="text-[10px] bg-gray-200 text-gray-600 px-1 py-0.5 rounded-full">{notes.length}</span>
             </div>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-3 space-y-3">
             <div className="flex gap-2">
               <textarea
                 value={newNote}
@@ -339,53 +335,52 @@ const ShipmentDetailsModal = ({
                     handleAddNote();
                   }
                 }}
-                placeholder="Write a note… (Enter to submit, Shift+Enter for new line)"
+                placeholder="Write a note…"
                 rows="2"
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-teal-400 focus:border-teal-400 resize-none bg-white"
+                className="flex-1 px-2 py-1.5 border border-gray-200 rounded-md text-xs focus:ring-1 focus:ring-teal-400 focus:border-teal-400 resize-none bg-white"
               />
               <button
                 type="button"
                 onClick={handleAddNote}
                 disabled={addingNote || !newNote.trim()}
-                className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-40 transition-colors flex items-center gap-1.5 self-start text-sm font-medium"
+                className="px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-40 transition-colors flex items-center gap-1 self-start text-xs font-medium"
               >
                 {addingNote ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
                 ) : (
-                  <PlusIcon className="h-4 w-4" />
+                  <PlusIcon className="h-3 w-3" />
                 )}
                 Add
               </button>
             </div>
 
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {loadingNotes ? (
-                <div className="flex flex-col items-center py-8 gap-2">
-                  <div className="animate-spin h-6 w-6 border-2 border-teal-600 border-t-transparent rounded-full" />
-                  <p className="text-sm text-gray-400">Loading notes…</p>
+                <div className="flex flex-col items-center py-4 gap-1">
+                  <div className="animate-spin h-4 w-4 border-2 border-teal-600 border-t-transparent rounded-full" />
+                  <p className="text-[10px] text-gray-400">Loading…</p>
                 </div>
               ) : notes.length === 0 ? (
-                <div className="text-center py-8">
-                  <DocumentTextIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">No notes yet</p>
-                  <p className="text-xs text-gray-400">Add the first note above</p>
+                <div className="text-center py-4">
+                  <DocumentTextIcon className="h-6 w-6 text-gray-300 mx-auto mb-1" />
+                  <p className="text-xs text-gray-400">No notes yet</p>
                 </div>
               ) : (
-                notes.map((note, idx) => (
-                  <div key={note._id} className="border border-gray-200 rounded-md p-3 bg-white">
+                notes.map((note) => (
+                  <div key={note._id} className="border border-gray-100 rounded-md p-2 bg-white">
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-700">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-600">
                             {(note.createdByName || note.createdBy?.name || 'U').charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm font-medium text-gray-800">
+                          <span className="text-xs font-medium text-gray-700">
                             {note.createdByName || note.createdBy?.name || 'Unknown'}
                           </span>
                           {isAdminNote(note) && (
-                            <span className="text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full">Admin</span>
+                            <span className="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">Admin</span>
                           )}
-                          <span className="text-xs text-gray-400" title={formatDate(note.createdAt)}>
+                          <span className="text-[9px] text-gray-400" title={formatDate(note.createdAt)}>
                             {formatRelativeTime(note.createdAt)}
                           </span>
                         </div>
@@ -394,33 +389,33 @@ const ShipmentDetailsModal = ({
                             <textarea
                               value={editingNoteContent}
                               onChange={(e) => setEditingNoteContent(e.target.value)}
-                              rows="3"
-                              className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-teal-400 resize-none"
+                              rows="2"
+                              className="w-full px-2 py-1 border border-gray-200 rounded-md text-xs focus:ring-1 focus:ring-teal-400 resize-none"
                               autoFocus
                             />
-                            <div className="flex gap-2 mt-2">
-                              <button onClick={() => handleSaveEdit(note._id)} className="px-3 py-1 bg-teal-600 text-white rounded-md text-sm hover:bg-teal-700 flex items-center gap-1">
-                                <CheckIcon className="h-3 w-3" /> Save
+                            <div className="flex gap-2 mt-1">
+                              <button onClick={() => handleSaveEdit(note._id)} className="px-2 py-0.5 bg-teal-600 text-white rounded text-[10px] hover:bg-teal-700 flex items-center gap-0.5">
+                                <CheckIcon className="h-2.5 w-2.5" /> Save
                               </button>
-                              <button onClick={() => setEditingNoteId(null)} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">
+                              <button onClick={() => setEditingNoteId(null)} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] hover:bg-gray-200">
                                 Cancel
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
+                          <p className="text-xs text-gray-600 whitespace-pre-wrap">{note.content}</p>
                         )}
                       </div>
                       {!editingNoteId && (canEditNote(note) || canDeleteNote(note)) && (
                         <div className="flex items-center gap-0.5 flex-shrink-0">
                           {canEditNote(note) && (
-                            <button onClick={() => handleEditNote(note)} className="p-1 text-gray-400 hover:text-teal-600 rounded">
-                              <PencilIcon className="h-3.5 w-3.5" />
+                            <button onClick={() => handleEditNote(note)} className="p-0.5 text-gray-400 hover:text-teal-600 rounded">
+                              <PencilIcon className="h-3 w-3" />
                             </button>
                           )}
                           {canDeleteNote(note) && (
-                            <button onClick={() => handleDeleteNote(note._id)} className="p-1 text-gray-400 hover:text-rose-600 rounded">
-                              <TrashIcon className="h-3.5 w-3.5" />
+                            <button onClick={() => handleDeleteNote(note._id)} className="p-0.5 text-gray-400 hover:text-rose-600 rounded">
+                              <TrashIcon className="h-3 w-3" />
                             </button>
                           )}
                         </div>
@@ -434,45 +429,30 @@ const ShipmentDetailsModal = ({
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-200">
-          <button onClick={handleViewFullHistory} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-sm font-medium">
-            <EyeIcon className="h-4 w-4" />
-            View Full History
+        {/* Actions - compact */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+          <button onClick={handleViewFullHistory} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors text-xs font-medium">
+            <EyeIcon className="h-3.5 w-3.5" />
+            History
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {onEdit && (
-              <button onClick={() => { onEdit(shipment); onClose(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-                <PencilIcon className="h-4 w-4" />
+              <button onClick={() => { onEdit(shipment); onClose(); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-xs font-medium">
+                <PencilIcon className="h-3.5 w-3.5" />
                 Edit
               </button>
             )}
             {onAssign && shipment.status === 'pending' && (
-              <button onClick={() => { onAssign(shipment); onClose(); }} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 text-sm font-medium">
-                <UserIcon className="h-4 w-4" />
+              <button onClick={() => { onAssign(shipment); onClose(); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 text-xs font-medium">
+                <UserIcon className="h-3.5 w-3.5" />
                 Assign
               </button>
             )}
             {onCancel && !['completed', 'cancelled'].includes(shipment.status) && (
-              <button onClick={handleCancelClick} className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium">
-                <ExclamationTriangleIcon className="h-4 w-4" />
+              <button onClick={handleCancelClick} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-xs font-medium">
+                <ExclamationTriangleIcon className="h-3.5 w-3.5" />
                 Cancel
               </button>
-            )}
-            {!shipment.isArchived ? (
-              onArchive && ['completed', 'cancelled'].includes(shipment.status) && (
-                <button onClick={() => { onArchive(shipment._id); onClose(); }} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-                  <ArchiveBoxArrowDownIcon className="h-4 w-4" />
-                  Archive
-                </button>
-              )
-            ) : (
-              onUnarchive && (
-                <button onClick={() => { onUnarchive(shipment._id); onClose(); }} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 text-sm font-medium">
-                  <ArrowUturnLeftIcon className="h-4 w-4" />
-                  Restore
-                </button>
-              )
             )}
           </div>
         </div>
