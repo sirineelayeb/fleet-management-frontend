@@ -243,7 +243,7 @@ const Login = () => {
           <img src={fleetImage} alt="Fleet management" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-tr from-teal-900/70 to-white-800/50 to-transparent" />
           <div className="relative z-10 flex flex-col justify-end p-12 text-white">
-            <h2 className="text-3xl font-bold mb-4">Fleet Manager</h2>
+            <h2 className="text-3xl font-bold mb-4">HaulTrack</h2>
             <p className="text-lg text-gray-200 max-w-md">
               Streamline your logistics, track shipments, and manage your entire fleet from one platform.
             </p>
@@ -261,7 +261,7 @@ const Login = () => {
                   <p className="text-sm text-gray-500 mt-1">
                     {tab === 'login'
                       ? 'Sign in to manage your fleet'
-                      : 'Join Fleet Manager to get started'}
+                      : 'Join HaulTrack to get started'}
                   </p>
                 </div>
 
@@ -364,7 +364,7 @@ const Login = () => {
                 )}
 
                 <p className="text-center text-xs text-gray-400 mt-6 pt-2 border-t border-gray-200">
-                  © {new Date().getFullYear()} Fleet Manager. All rights reserved.
+                  © {new Date().getFullYear()} HaulTrack. All rights reserved.
                 </p>
               </div>
             </div>

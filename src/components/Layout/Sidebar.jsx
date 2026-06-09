@@ -59,7 +59,7 @@ const ADMIN_MENU = [
     section: 'Fleet',
     items: [
       {
-        label: 'Fleet Management', icon: TruckIcon,
+        label: 'HaulTrack', icon: TruckIcon,
         children: [
           { path: '/dashboard/trucks',   label: 'Trucks',   icon: TruckIcon },
           { path: '/dashboard/drivers',  label: 'Drivers',  icon: UserIcon },
@@ -112,7 +112,7 @@ const SHIPMENT_MANAGER_MENU = [
       { path: '/shipment_manager/shipments',        icon: CubeIcon,                  solidIcon: CubeSolidIcon,  label: 'Shipments',       description: 'Manage deliveries' },
       { path: '/shipment_manager/shipments/create', icon: ArrowUpTrayIcon,           solidIcon: ArrowUpTrayIcon, label: 'Create Shipment', description: 'Add new delivery' },
       { path: '/shipment_manager/trips',            icon: ClipboardDocumentListIcon, solidIcon: ClipboardDocumentListIcon, label: 'Trip History', description: 'View all trip logs' },
-      { path: '/shipment_manager/lpr-events',       icon: CameraIcon,                solidIcon: CameraSolidIcon, label: 'LPR Events',     description: 'Gate entry & exit logs' },
+      // { path: '/shipment_manager/lpr-events',       icon: CameraIcon,                solidIcon: CameraSolidIcon, label: 'LPR Events',     description: 'Gate entry & exit logs' },
     ],
   },
   {
@@ -429,11 +429,11 @@ const Sidebar = () => {
           <div className="flex items-center gap-3 min-w-0">
             {/* Logo mark — teal square */}
             <div className="w-10 h-10 flex-shrink-0 bg-[#34B1AA] rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-base font-bold text-[#1E1E2C]">FM</span>
+              <span className="text-base font-bold text-[#1E1E2C]">HT</span>
             </div>
             {isOpen && (
               <div className="min-w-0">
-                <h1 className="text-base font-bold leading-tight truncate">Fleet Manager</h1>
+                <h1 className="text-base font-bold leading-tight truncate">HaulTrack</h1>
                 <p className="text-xs text-gray-400 mt-0.5 truncate">{roleLabel}</p>
               </div>
             )}
@@ -564,7 +564,7 @@ const Sidebar = () => {
           </div>
           <div className={['pb-4 text-center', !isOpen && 'px-0'].join(' ')}>
             {isOpen
-              ? <p className="text-[10px] text-gray-600">Fleet Manager v2.0.0</p>
+              ? <p className="text-[10px] text-gray-600">HaulTrack v2.0.0</p>
               : <div className="flex justify-center"><span className="text-[10px] text-gray-600 bg-white/5 rounded-md px-1.5 py-0.5">v2</span></div>
             }
           </div>

@@ -131,7 +131,7 @@ const Navbar = ({ isDark, onToggleDark }) => {
       <div className="flex items-center justify-between px-4 py-3 lg:px-6">
 
         <h2 className="truncate pl-12 text-base font-semibold text-gray-800 dark:text-white lg:pl-0 lg:text-xl">
-          Fleet Management System
+          HaulTrack System
         </h2>
 
         <div className="flex items-center space-x-1 lg:space-x-3">

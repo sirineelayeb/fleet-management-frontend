@@ -313,8 +313,8 @@ const DriverHistory = () => {
                 onClick={() => navigate('/dashboard/drivers')}
                 className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
               >
-                <ArrowLeftIcon className="h-4 w-4" />
-                <span>Back to Drivers</span>
+                {/* <ArrowLeftIcon className="h-4 w-4" /> */}
+                {/* <span>Back to Drivers</span> */}
               </button>
             </div>
           </div>

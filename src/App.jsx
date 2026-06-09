@@ -125,7 +125,7 @@ function App() {
               <Route path="customers" element={<Customers />} />
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<Notifications />} />
-              <Route path="lpr-events" element={<LprEvents />} />
+              {/* <Route path="lpr-events" element={<LprEvents />} /> */}
 
               <Route path="drivers/:driverId" element={<DriverProfile />} />
               <Route path="driver-profile/:driverId" element={<DriverProfile />} />
