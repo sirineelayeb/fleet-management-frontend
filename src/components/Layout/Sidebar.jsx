@@ -59,7 +59,7 @@ const ADMIN_MENU = [
     section: 'Fleet',
     items: [
       {
-        label: 'HaulTrack', icon: TruckIcon,
+        label: 'Fleet Management', icon: TruckIcon,
         children: [
           { path: '/dashboard/trucks',   label: 'Trucks',   icon: TruckIcon },
           { path: '/dashboard/drivers',  label: 'Drivers',  icon: UserIcon },
