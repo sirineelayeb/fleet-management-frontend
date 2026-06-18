@@ -1,11 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { truckService } from '../../services/truckService';
-import { TruckIcon, QrCodeIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { TruckIcon, QrCodeIcon, XMarkIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
 import { Html5Qrcode } from 'html5-qrcode';
 
+const LiveStatusBadge = ({ status }) => {
+  const config = {
+    active:      { label: 'Online',  dot: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
+    inactive:    { label: 'Offline', dot: 'bg-gray-500',  badge: 'bg-gray-100 text-gray-700' },
+    maintenance: { label: 'Maintenance', dot: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' }
+  };
+  const current = config[status] || config.inactive;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${current.badge}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${current.dot}`} />
+      {current.label}
+    </span>
+  );
+};
+
 const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
-  const [formData, setFormData] = useState({ deviceId: '', truckId: '' });
+  const [formData, setFormData] = useState({
+    deviceId: '',
+    truckId: '',
+    maintenanceMode: false
+  });
+
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState('');
   const [scanSuccess, setScanSuccess] = useState('');
@@ -17,11 +37,13 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
     retry: 1
   });
 
+  // Load edit data
   useEffect(() => {
     if (initialData) {
       setFormData({
         deviceId: initialData.deviceId || '',
-        truckId: initialData.truck?._id || initialData.truckId || ''
+        truckId: initialData.truck?._id || initialData.truckId || '',
+        maintenanceMode: initialData.status === 'maintenance'
       });
     }
   }, [initialData]);
@@ -65,20 +87,27 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
   };
 
   useEffect(() => {
-    return () => { stopScan(); };
+    return () => stopScan();
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    // active/inactive is derived automatically from GPS data on the backend.
+    // The only thing an admin can set manually is maintenance mode.
+    onSubmit({
+      deviceId: formData.deviceId,
+      truckId: formData.truckId,
+      status: formData.maintenanceMode ? 'maintenance' : 'auto'
+    });
   };
 
   const trucks = allTrucksData?.data || [];
+  const isMaintenance = formData.maintenanceMode;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,41 +124,31 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
             name="deviceId"
             value={formData.deviceId}
             onChange={handleChange}
-            placeholder="Scan QR or enter manually (e.g., A4CF1234ABCD)"
+            placeholder="Scan QR or enter manually"
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
             required
           />
+
           <button
             type="button"
             onClick={scanning ? stopScan : startScan}
             className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               scanning
-                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
+                ? 'bg-red-100 text-red-700'
+                : 'bg-teal-50 text-teal-700 border border-teal-200'
             }`}
           >
             {scanning ? (
               <><XMarkIcon className="h-4 w-4" /> Stop</>
             ) : (
-              <><QrCodeIcon className="h-4 w-4" /> Scan QR</>
+              <><QrCodeIcon className="h-4 w-4" /> Scan</>
             )}
           </button>
         </div>
-
-        <p className="text-xs text-gray-500 mt-1">
-          Scan the QR sticker on the device, or type the ID printed on it
-        </p>
       </div>
 
       {/* Scanner */}
-      {scanning && (
-        <div className="rounded-lg overflow-hidden border border-gray-200 bg-black">
-          <div id="qr-reader" className="w-full" />
-          <p className="text-center text-white text-xs py-2">
-            Point camera at the QR sticker on the device
-          </p>
-        </div>
-      )}
+      {scanning && <div id="qr-reader" className="w-full bg-black rounded-lg" />}
 
       {scanSuccess && (
         <p className="text-sm text-teal-600 bg-teal-50 px-3 py-2 rounded-lg">
@@ -143,39 +162,85 @@ const DeviceForm = ({ onSubmit, initialData, onCancel }) => {
         </p>
       )}
 
-      {/* Truck assignment */}
+      {/* Truck */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-          <TruckIcon className="h-4 w-4 text-gray-500" />
-          Assign to Truck (Optional)
+          <TruckIcon className="h-4 w-4" />
+          Assign Truck
         </label>
+
         <select
           name="truckId"
           value={formData.truckId}
           onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         >
           <option value="">— Unassigned —</option>
           {trucks.map((truck) => (
             <option key={truck._id} value={truck._id}>
-              {truck.licensePlate} {truck.model ? `· ${truck.model}` : ''}
+              {truck.licensePlate}
             </option>
           ))}
         </select>
       </div>
 
+      {/* Live status — read only, only meaningful once the device exists */}
+      {initialData && (
+        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Live Status</p>
+            <p className="text-xs text-gray-500">
+              {initialData.status === 'maintenance'
+                ? 'Manually set by admin'
+                : 'Auto-detected from GPS data'}
+            </p>
+          </div>
+          <LiveStatusBadge status={initialData.status} />
+        </div>
+      )}
+
+      {/* Maintenance toggle — the only manual control */}
+      <div>
+        <label className="flex items-center justify-between gap-3 px-3 py-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+          <div className="flex items-center gap-2">
+            <WrenchScrewdriverIcon className="h-5 w-5 text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-700">Maintenance Mode</p>
+              <p className="text-xs text-gray-500">
+                Pulls this device out of automatic online/offline tracking
+              </p>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={isMaintenance}
+            onChange={(e) =>
+              setFormData(prev => ({ ...prev, maintenanceMode: e.target.checked }))
+            }
+            className="h-5 w-5 rounded text-teal-600 focus:ring-teal-500"
+          />
+        </label>
+
+        {isMaintenance && (
+          <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+            🟠 Will be marked as Maintenance
+          </span>
+        )}
+      </div>
+
       {/* Actions */}
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end gap-3 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+          className="px-4 py-2 bg-gray-200 rounded-lg"
         >
           Cancel
         </button>
+
         <button
           type="submit"
-          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg"
         >
           {initialData ? 'Update' : 'Register'} Device
         </button>

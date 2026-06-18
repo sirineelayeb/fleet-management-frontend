@@ -26,6 +26,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+const DATA_FRESHNESS_MS = 2 * 60 * 1000; // 2 minutes
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const getTruckId = (truck) => (truck?._id || truck?.id)?.toString();
@@ -55,6 +58,30 @@ const getSpeedFromTruck = (truck) =>
 const getLastUpdateFromTruck = (truck) =>
   truck?.lastUpdate || truck?.lastTelemetryAt || truck?.updatedAt || new Date().toISOString();
 
+// ---- Freshness-aware helpers ----
+const hasLiveSignal = (truck) => {
+  const loc = getLocationFromTruck(truck);
+  if (!loc) return false;
+  const lastUpdate = new Date(getLastUpdateFromTruck(truck));
+  return (Date.now() - lastUpdate.getTime()) < DATA_FRESHNESS_MS;
+};
+
+const getEffectiveSpeed = (truck) => {
+  if (!hasLiveSignal(truck)) return null;
+  return getSpeedFromTruck(truck);
+};
+
+const isTruckMoving = (truck) => {
+  const speed = getEffectiveSpeed(truck);
+  return speed !== null && speed > 0;
+};
+// -------------------------------------------------
+// ─── Route offset helper ─────────────────────────────────────────────────────
+
+// Shifts a route by a fixed amount in latitude/longitude (degrees)
+const offsetRoute = (points, latOffset, lngOffset) => {
+  return points.map(([lat, lng]) => [lat + latOffset, lng + lngOffset]);
+};
 const formatDate = (date) => {
   if (!date) return '—';
   const d = new Date(date);
@@ -103,16 +130,19 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// ─── Truck icon ──────────────────────────────────────────────────────────────
+// ─── Truck icons ─────────────────────────────────────────────────────────────
 
 const STATUS_COLORS = {
   in_mission: '#3B8FF3',   // BRAND.blue
   available: '#9CA3AF',    // BRAND.gray
   maintenance: '#E0B50F',  // BRAND.gold
 };
+
 const createTruckIcon = (truck, isSelected = false) => {
   const color = STATUS_COLORS[truck?.status] || '#6B7280';
-  const speed = getSpeedFromTruck(truck);
+  const speed = getEffectiveSpeed(truck); // stale → null
+  const speedDisplay = speed !== null ? `${speed} km/h` : '—';
+  const isMoving = speed !== null && speed > 0;
   const size = isSelected ? 48 : 40;
   const ring = isSelected ? 56 : 48;
 
@@ -142,7 +172,7 @@ const createTruckIcon = (truck, isSelected = false) => {
         <div style="
           position:absolute;
           bottom:-8px;
-          background:${speed > 0 ? color : '#9CA3AF'};
+          background:${isMoving ? color : '#9CA3AF'};
           color:white;
           font-size:9px;
           font-weight:700;
@@ -151,7 +181,7 @@ const createTruckIcon = (truck, isSelected = false) => {
           box-shadow:0 1px 4px rgba(0,0,0,0.25);
           white-space:nowrap;
           letter-spacing:0.3px;
-        ">${speed} km/h</div>
+        ">${speedDisplay}</div>
       </div>
       <style>
         @keyframes lm-pulse {
@@ -166,18 +196,148 @@ const createTruckIcon = (truck, isSelected = false) => {
   });
 };
 
-// ─── Route lines ─────────────────────────────────────────────────────────────
+// Single shared icon for "last known position" ghosts
+const OFFLINE_TRUCK_ICON = L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width:34px;height:34px;
+      background:#9CA3AF;
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      border:2px dashed #ffffff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
+      font-size:15px;
+    ">🚛</div>
+  `,
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+  popupAnchor: [0, -20],
+});
 
+// ─── Memoized truck marker ──────────────────────────────────────────────────
+
+const TruckMarker = React.memo(function TruckMarker({ truck, isSelected, onSelect, markerRefs }) {
+  const loc = getLocationFromTruck(truck);
+  if (!hasCoords(loc)) return null;
+  const truckId = getTruckId(truck);
+  const speed = getEffectiveSpeed(truck);
+  const speedDisplay = speed !== null ? `${speed} km/h` : '—';
+  const speedColor = speed !== null ? getSpeedColor(speed) : 'text-gray-400';
+
+  return (
+    <Marker
+      position={[loc.lat, loc.lng]}
+      icon={createTruckIcon(truck, isSelected)}
+      ref={(ref) => { if (ref && truckId) markerRefs.current[truckId] = ref; }}
+      zIndexOffset={isSelected ? 1000 : 0}
+      eventHandlers={{ click: () => onSelect(truck) }}
+    >
+      <Popup>
+        <div className="space-y-1 text-sm min-w-[160px]">
+          <div className="font-bold text-gray-800">🚛 {truck.licensePlate || 'Unknown'}</div>
+          <div className="text-gray-500 text-xs">{truck.brand} {truck.model}</div>
+          <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
+            <span className="text-gray-400">Speed</span>
+            <span className={`font-semibold ${speedColor}`}>{speedDisplay}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-400">Status</span>
+            <span className="font-semibold">{getStatusText(truck.status)}</span>
+          </div>
+          {truck.driver && (
+            <div className="text-xs pt-1 border-t border-gray-100 text-gray-500">
+              👤 {truck.driver.name || 'No driver'}
+            </div>
+          )}
+          <div className="text-xs text-gray-400 font-mono">
+            {loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}, (prev, next) => {
+  const prevLoc = getLocationFromTruck(prev.truck);
+  const nextLoc = getLocationFromTruck(next.truck);
+  return (
+    prevLoc?.lat === nextLoc?.lat &&
+    prevLoc?.lng === nextLoc?.lng &&
+    getEffectiveSpeed(prev.truck) === getEffectiveSpeed(next.truck) &&
+    prev.truck.status === next.truck.status &&
+    prev.isSelected === next.isSelected
+  );
+});
+
+// ─── Last known position (offline ghost markers) ────────────────────────────
+
+const LastKnownPositionMarkers = ({ trucks, routes }) => (
+  <>
+    {trucks.map((truck) => {
+      // Show ghost only if no live signal (stale or no loc)
+      if (hasLiveSignal(truck)) return null;
+
+      const truckId = getTruckId(truck);
+      // Use the last known point from route history
+      const points = routes[truckId];
+      if (!points || points.length === 0) return null;
+
+      const lastPoint = points[points.length - 1];
+      const lastSeen = getLastUpdateFromTruck(truck);
+
+      return (
+        <Marker
+          key={`last-known-${truckId}`}
+          position={lastPoint}
+          icon={OFFLINE_TRUCK_ICON}
+          opacity={0.6}
+        >
+          <Popup>
+            <div className="text-xs space-y-1 min-w-[140px]">
+              <p className="font-semibold text-gray-700">🚛 {truck.licensePlate || 'Unknown'}</p>
+              <p className="text-gray-500">Last seen: {formatDate(lastSeen)} – No live signal</p>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    })}
+  </>
+);
+
+const hashString = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+};
+
+// ─── Route lines with stable offset ────────────────────────────────────────
 const RouteLines = ({ routes, mapStyle }) => {
   const routeColors = getRouteColor(mapStyle);
+  const OFFSET_STEP = 0.0005; // ~55 meters – adjust to taste
+
+  const truckIds = Object.keys(routes);
+
   return (
     <>
-      {Object.entries(routes).map(([truckId, points]) => {
+      {truckIds.map((truckId) => {
+        const points = routes[truckId];
         if (!points || points.length < 2) return null;
+
+        // Generate a stable offset factor (between -3 and +3) from the truckId
+        const hash = hashString(truckId);
+        const offsetFactor = (hash % 7) - 3; // -3 .. +3
+        const latOffset = offsetFactor * OFFSET_STEP;
+        const lngOffset = offsetFactor * OFFSET_STEP; // diagonal shift
+
+        const offsetPoints = points.map(([lat, lng]) => [lat + latOffset, lng + lngOffset]);
+
         return (
           <Polyline
             key={`${truckId}-${mapStyle}`}
-            positions={points}
+            positions={offsetPoints}
             color={routeColors.route}
             weight={4}
             opacity={0.75}
@@ -266,6 +426,8 @@ const FitBounds = ({ markers, done }) => {
 const PanToTruck = ({ truck }) => {
   const map = useMap();
   const prevTruckId = useRef();
+  const ZOOM_LEVEL = 14; // adjust to taste (14–16 works well for trucks)
+
   useEffect(() => {
     if (!truck) return;
     const location = getLocationFromTruck(truck);
@@ -273,7 +435,12 @@ const PanToTruck = ({ truck }) => {
     const truckId = getTruckId(truck);
     if (prevTruckId.current === truckId) return;
     prevTruckId.current = truckId;
-    map.flyTo([location.lat, location.lng], map.getZoom(), { animate: true, duration: 0.8 });
+
+    // Fly to the truck with a fixed zoom level
+    map.flyTo([location.lat, location.lng], ZOOM_LEVEL, {
+      animate: true,
+      duration: 0.8,
+    });
   }, [truck, map]);
   return null;
 };
@@ -293,6 +460,38 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
+// Shows the backend status, UNLESS telemetry disagrees with it (status says
+// "inactive" but speed says otherwise) — in which case it trusts the live
+// signal over the (possibly stale) backend value. This is a cosmetic
+// safety net only; it doesn't fix the underlying lag between a device
+// going active and the backend status catching up.
+const EffectiveStatusBadge = ({ truck }) => {
+  // If data is stale, show "No Signal" and never show "Moving"
+  if (!hasLiveSignal(truck)) {
+    return (
+      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-300 text-gray-600">
+        No Signal
+      </span>
+    );
+  }
+
+  // Now we know data is recent, we can trust the speed value
+  const speed = getSpeedFromTruck(truck);
+
+  // Override backend status if the truck is actually moving (>5 km/h)
+  if (speed > 5) {
+    return (
+      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700 flex items-center gap-1 w-fit">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+        Moving
+      </span>
+    );
+  }
+
+  // Otherwise, fall back to the original status badge
+  return <StatusBadge status={truck.status} />;
+};
+
 const getSpeedColor = (speed) => {
   if (!speed || speed === 0) return 'text-gray-400';
     if (speed < 60) return 'text-teal-600';
@@ -304,7 +503,7 @@ const getSpeedColor = (speed) => {
 
 const LiveLocationCard = ({ truck }) => {
   const location = getLocationFromTruck(truck);
-  const speed = getSpeedFromTruck(truck);
+  const speed = getEffectiveSpeed(truck);
   const lastUpdate = getLastUpdateFromTruck(truck);
   const [locationName, setLocationName] = useState('Locating…');
   const prevLocRef = useRef(null);
@@ -318,21 +517,22 @@ const LiveLocationCard = ({ truck }) => {
     getLocationName(location.lat, location.lng).then(setLocationName);
   }, [location]);
 
-  const isMoving = speed > 0;
+  const isMoving = speed !== null && speed > 0;
+  const hasSignal = hasLiveSignal(truck);
 
   return (
     <div className="mx-3 mb-3 rounded-xl overflow-hidden border border-teal-200 shadow-sm">
       <div className="bg-gradient-to-r from-blue-500 to-teal-500 px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isMoving ? 'bg-green-300 animate-pulse' : 'bg-gray-300'}`} />
+          <div className={`w-2 h-2 rounded-full ${hasSignal && isMoving ? 'bg-green-300 animate-pulse' : 'bg-gray-300'}`} />
           <span className="text-white text-xs font-semibold tracking-wide">
-            {isMoving ? 'LIVE · MOVING' : 'LIVE · STOPPED'}
+            {hasSignal ? (isMoving ? 'LIVE · MOVING' : 'LIVE · STOPPED') : 'NO SIGNAL'}
           </span>
         </div>
         <span className="text-blue-100 text-xs">{formatDate(lastUpdate)}</span>
       </div>
       <div className="bg-white px-3 py-2 space-y-2">
-        {location ? (
+        {location && hasSignal ? (
           <>
             <div className="flex items-start gap-2">
               <MapPinIcon className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
@@ -350,16 +550,20 @@ const LiveLocationCard = ({ truck }) => {
             </div>
             <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
-                <BoltIcon className={`h-4 w-4 ${getSpeedColor(speed)}`} />
+                <BoltIcon className={`h-4 w-4 ${speed !== null ? getSpeedColor(speed) : 'text-gray-400'}`} />
                 <span className="text-xs text-gray-500">Speed</span>
               </div>
-              <span className={`text-sm font-bold ${getSpeedColor(speed)}`}>{speed} km/h</span>
+              <span className={`text-sm font-bold ${speed !== null ? getSpeedColor(speed) : 'text-gray-400'}`}>
+                {speed !== null ? `${speed} km/h` : '—'}
+              </span>
             </div>
           </>
         ) : (
-          <div className="flex items-center gap-2 py-2 text-gray-400">
-            <SignalIcon className="h-4 w-4" />
-            <span className="text-xs">No GPS signal</span>
+          <div className="flex items-center gap-2 py-3 text-gray-400">
+            <SignalIcon className="h-4 w-4 shrink-0" />
+            <span className="text-xs">
+              No GPS signal{lastUpdate ? ` since ${formatDate(lastUpdate)}` : ''}
+            </span>
           </div>
         )}
       </div>
@@ -385,7 +589,7 @@ const TruckDetailsPanel = ({ truck, onClose, showRoutePoints, onToggleRoutePoint
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full" style={{ background: STATUS_COLORS[truck.status] || '#9CA3AF' }} />
           <span className="text-sm font-bold text-gray-800">{truck.licensePlate}</span>
-          <StatusBadge status={truck.status} />
+          <EffectiveStatusBadge truck={truck} />
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -418,13 +622,15 @@ const TruckDetailsPanel = ({ truck, onClose, showRoutePoints, onToggleRoutePoint
             <Row label="Email" value={driver.email || '—'} />
           </div>
         )}
-        {truck.shipment && (
+        {truck.shipment ? (
           <div className="bg-blue-50 rounded-xl p-3 space-y-1 border border-blue-100">
             <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Active Shipment</p>
             <Row label="Origin" value={truck.shipment.origin || '—'} />
             <Row label="Destination" value={truck.shipment.destination || '—'} />
             <Row label="Status" value={truck.shipment.status || '—'} />
           </div>
+        ) : (
+          <p className="text-xs text-gray-400 px-1">No active shipment</p>
         )}
       </div>
     </div>
@@ -446,9 +652,9 @@ const FleetSummaryCard = ({ trucks, onSelectTruck }) => {
     <div className="divide-y divide-gray-100">
       {trucks.map(truck => {
         const id = getTruckId(truck);
-        const speed = getSpeedFromTruck(truck);
-        const location = getLocationFromTruck(truck);
-        const isMoving = speed > 0;
+        const speed = getEffectiveSpeed(truck);
+        const isMoving = isTruckMoving(truck);
+        const hasSignal = hasLiveSignal(truck);
         const color = STATUS_COLORS[truck.status] || '#9CA3AF';
         return (
           <div
@@ -460,16 +666,30 @@ const FleetSummaryCard = ({ trucks, onSelectTruck }) => {
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                 <span className="font-semibold text-sm text-gray-800">{truck.licensePlate || id}</span>
-                <StatusBadge status={truck.status} />
+                <EffectiveStatusBadge truck={truck} />
               </div>
-              <span className={`text-xs font-bold ${getSpeedColor(speed)}`}>{speed} km/h</span>
+              <span className={`text-xs font-bold ${speed !== null ? getSpeedColor(speed) : 'text-gray-400'}`}>
+                {speed !== null ? `${speed} km/h` : '—'}
+              </span>
             </div>
+
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">{truck.brand} {truck.model}</span>
-              <span className={`text-xs flex items-center gap-1 ${location ? 'text-teal-600' : 'text-gray-400'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full inline-block ${location && isMoving ? 'bg-teal-500 animate-pulse' : location ? 'bg-teal-400' : 'bg-gray-300'}`} />
-                {location ? (isMoving ? 'Moving' : 'GPS Active') : 'No GPS yet'}
+              <span className={`text-xs flex items-center gap-1 ${isMoving ? 'text-teal-600' : 'text-gray-400 italic'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full inline-block ${isMoving ? 'bg-teal-500 animate-pulse' : hasSignal ? 'bg-teal-400' : 'bg-gray-300'}`} />
+                {isMoving ? 'Moving' : (hasSignal ? 'GPS Active' : 'No Signal')}
               </span>
+            </div>
+
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-gray-400">
+                Seen: {formatDate(getLastUpdateFromTruck(truck))}
+              </span>
+              {truck.shipment ? (
+                <span className="text-xs text-blue-600 flex items-center gap-1">📦 Shipment</span>
+              ) : (
+                <span className="text-xs text-gray-400">No active shipment</span>
+              )}
             </div>
           </div>
         );
@@ -526,7 +746,7 @@ const MobileBottomSheet = ({
             <span className="text-sm font-semibold text-gray-800">
               {selectedTruck ? selectedTruck.licensePlate : `${trucks.length} Trucks`}
             </span>
-            {selectedTruck && <StatusBadge status={selectedTruck.status} />}
+            {selectedTruck && <EffectiveStatusBadge truck={selectedTruck} />}
           </div>
           <div className="flex items-center gap-2">
             {updateCount > 0 && (
@@ -570,71 +790,83 @@ const MobileBottomSheet = ({
 const DesktopSidebar = ({
   trucks, selectedTruck, onSelectTruck, onCloseSelectedTruck,
   updateCount, lastUpdateTime, showRoutePoints, onToggleRoutePoints,
-  sidebarOpen, setSidebarOpen,
-}) => (
-  <div className={`
-    bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 flex-shrink-0
-    transition-all duration-300
-    ${sidebarOpen ? 'w-96' : 'w-12'}
-  `}>
-    {sidebarOpen ? (
-      <>
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-3 py-3 z-10 flex justify-between items-center">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Fleet Status</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {trucks.length} trucks ·{' '}
-              {trucks.filter(t => getLocationFromTruck(t)).length} with GPS ·{' '}
-              {trucks.filter(t => getSpeedFromTruck(t) > 0).length} moving
-            </p>
-            {updateCount > 0 && (
-              <p className="text-xs text-teal-600 mt-1">
-                Updates: {updateCount} | Last: {lastUpdateTime}
+  sidebarOpen, setSidebarOpen, hideOffline, onToggleHideOffline,
+}) => {
+  const movingCount = trucks.filter(isTruckMoving).length;
+  const withGps = trucks.filter(hasLiveSignal).length;
+
+  return (
+    <div className={`
+      bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 flex-shrink-0
+      transition-all duration-300
+      ${sidebarOpen ? 'w-96' : 'w-12'}
+    `}>
+      {sidebarOpen ? (
+        <>
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-3 py-3 z-10 flex justify-between items-start">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Fleet Status</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {trucks.length} trucks · {withGps} with GPS · {movingCount} moving
               </p>
+              {updateCount > 0 && (
+                <p className="text-xs text-teal-600 mt-1">
+                  Updates: {updateCount} | Last: {lastUpdateTime}
+                </p>
+              )}
+              <button
+                onClick={onToggleHideOffline}
+                className={`mt-2 text-xs px-2 py-1 rounded-full border transition-colors ${
+                  hideOffline
+                    ? 'bg-teal-50 text-teal-700 border-teal-200'
+                    : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}
+                title="Toggle visibility of trucks with no live GPS signal"
+              >
+                {hideOffline ? 'Hiding offline / no GPS' : 'Showing all trucks'}
+              </button>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-full hover:bg-gray-100 transition-colors shrink-0"
+            >
+              <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
+            {selectedTruck ? (
+              <TruckDetailsPanel
+                truck={selectedTruck}
+                onClose={onCloseSelectedTruck}
+                showRoutePoints={showRoutePoints}
+                onToggleRoutePoints={onToggleRoutePoints}
+              />
+            ) : (
+              <FleetSummaryCard trucks={trucks} onSelectTruck={onSelectTruck} />
             )}
           </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center py-4 gap-4">
           <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+            <ChevronRightIcon className="h-5 w-5 text-gray-500 rotate-180" />
           </button>
-        </div>
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          {selectedTruck ? (
-            <TruckDetailsPanel
-              truck={selectedTruck}
-              onClose={onCloseSelectedTruck}
-              showRoutePoints={showRoutePoints}
-              onToggleRoutePoints={onToggleRoutePoints}
-            />
-          ) : (
-            <FleetSummaryCard trucks={trucks} onSelectTruck={onSelectTruck} />
-          )}
-        </div>
-      </>
-    ) : (
-      <div className="flex flex-col items-center py-4 gap-4">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ChevronRightIcon className="h-5 w-5 text-gray-500 rotate-180" />
-        </button>
-        <div className="text-center">
-          <div className="text-xs font-bold text-gray-700">{trucks.length}</div>
-          <div className="text-xs text-gray-400">Trucks</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xs font-bold text-green-600">
-            {trucks.filter(t => getSpeedFromTruck(t) > 0).length}
+          <div className="text-center">
+            <div className="text-xs font-bold text-gray-700">{trucks.length}</div>
+            <div className="text-xs text-gray-400">Trucks</div>
           </div>
-          <div className="text-xs text-gray-400">Moving</div>
+          <div className="text-center">
+            <div className="text-xs font-bold text-green-600">{movingCount}</div>
+            <div className="text-xs text-gray-400">Moving</div>
+          </div>
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
@@ -642,7 +874,8 @@ const LiveMap = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
-  const [trucks, setTrucks] = useState([]);
+  // Trucks are stored as a Map keyed by truckId instead of an array.
+  const [trucksMap, setTrucksMap] = useState(() => new Map());
   const [allowedTruckIds, setAllowedTruckIds] = useState(null);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -652,8 +885,8 @@ const LiveMap = () => {
   const [mapKey, setMapKey] = useState(0);
   const [updateCount, setUpdateCount] = useState(0);
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
-  const [markerUpdateTrigger, setMarkerUpdateTrigger] = useState(0);
   const [showRoutePoints, setShowRoutePoints] = useState(false);
+  const [hideOffline, setHideOffline] = useState(false);
 
   const wsInitialized = useRef(false);
   const fitBoundsDone = useRef(false);
@@ -662,7 +895,29 @@ const LiveMap = () => {
 
   useEffect(() => { setMapKey(p => p + 1); }, [currentMapStyle]);
 
-  // ✅ FIXED: fetch allowed trucks using the dedicated manager endpoint
+  const trucks = useMemo(() => Array.from(trucksMap.values()), [trucksMap]);
+
+  // Filter out trucks without live signal if hideOffline is true
+  const visibleTrucks = useMemo(
+    () => (hideOffline ? trucks.filter(hasLiveSignal) : trucks),
+    [trucks, hideOffline]
+  );
+
+  const visibleTruckIds = useMemo(
+    () => new Set(visibleTrucks.map(getTruckId)),
+    [visibleTrucks]
+  );
+
+  const visibleRoutes = useMemo(() => {
+    if (!hideOffline) return routes;
+    const filtered = {};
+    Object.entries(routes).forEach(([id, pts]) => {
+      if (visibleTruckIds.has(id)) filtered[id] = pts;
+    });
+    return filtered;
+  }, [routes, hideOffline, visibleTruckIds]);
+
+  //  fetch allowed trucks using the dedicated manager endpoint
   const fetchAllowedTruckIds = useCallback(async () => {
     try {
       const res = await shipmentService.getMyAssignedShipments();
@@ -672,15 +927,13 @@ const LiveMap = () => {
         shipments
           .filter(s => s.truck)
           .map(s => {
-            // If truck is populated, extract _id; else it's a string ID
             const truckId = s.truck._id ? s.truck._id.toString() : s.truck.toString();
             return truckId;
           })
       )];
-      console.log('✅ Allowed truck IDs for manager:', truckIds);
       return truckIds;
     } catch (err) {
-      console.error('❌ Failed to fetch manager shipments:', err);
+      console.error('Failed to fetch manager shipments:', err);
       return [];
     }
   }, []);
@@ -717,7 +970,6 @@ const LiveMap = () => {
         }
 
         const allowedTrucks = filterTrucksByRole(uniqueTrucks, allowedIds);
-        console.log(`📊 Filtered trucks: ${allowedTrucks.length} / ${uniqueTrucks.length}`);
 
         const routeMap = {};
         await Promise.all(allowedTrucks.map(async (truck) => {
@@ -726,7 +978,10 @@ const LiveMap = () => {
           if (points.length > 0) routeMap[id] = points;
         }));
 
-        setTrucks(allowedTrucks);
+        const initialMap = new Map();
+        allowedTrucks.forEach(t => initialMap.set(getTruckId(t), t));
+
+        setTrucksMap(initialMap);
         setRoutes(routeMap);
       } catch (err) {
         console.error('Failed to load live trucks:', err);
@@ -738,40 +993,31 @@ const LiveMap = () => {
     if (user) fetchData();
   }, [user, fetchAllowedTruckIds, filterTrucksByRole]);
 
-  // WebSocket handler – respects allowed trucks
+  // WebSocket handler – respects allowed trucks, updates only the affected entry
   const handleTruckLocation = useCallback((data) => {
-    console.log('📡 WS RAW DATA RECEIVED:', data);
     const incomingId = data.truckId?.toString();
-    if (!incomingId || !hasCoords(data.location)) {
-      console.warn('⚠️ Invalid WS payload:', data);
-      return;
-    }
+    if (!incomingId || !hasCoords(data.location)) return;
 
-    // For manager: only process if the truck is in the allowed set
     if (user?.role === 'shipment_manager') {
-      if (!allowedTruckIds || !allowedTruckIds.includes(incomingId)) {
-        return;
-      }
+      if (!allowedTruckIds || !allowedTruckIds.includes(incomingId)) return;
     }
 
     setUpdateCount(prev => prev + 1);
     setLastUpdateTime(new Date().toLocaleTimeString());
-    setMarkerUpdateTrigger(prev => prev + 1);
 
-    setTrucks(prevTrucks => {
-      const truckExists = prevTrucks.some(truck => getTruckId(truck) === incomingId);
-      if (!truckExists) return prevTrucks;
-      return prevTrucks.map(truck => {
-        if (getTruckId(truck) !== incomingId) return truck;
-        return {
-          ...truck,
-          currentLocation: { lat: Number(data.location.lat), lng: Number(data.location.lng) },
-          currentSpeed: Number(data.speed ?? 0),
-          status: data.status ?? truck.status,
-          lastUpdate: data.timestamp,
-          lastTelemetryAt: data.timestamp,
-        };
+    setTrucksMap(prev => {
+      const existing = prev.get(incomingId);
+      if (!existing) return prev; // unknown truck — don't grow the map unexpectedly
+      const next = new Map(prev);
+      next.set(incomingId, {
+        ...existing,
+        currentLocation: { lat: Number(data.location.lat), lng: Number(data.location.lng) },
+        currentSpeed: Number(data.speed ?? 0),
+        status: data.status ?? existing.status,
+        lastUpdate: data.timestamp,
+        lastTelemetryAt: data.timestamp,
       });
+      return next;
     });
 
     setRoutes(prevRoutes => {
@@ -782,16 +1028,17 @@ const LiveMap = () => {
       return { ...prevRoutes, [incomingId]: [...existing, newPoint].slice(-500) };
     });
 
-    if (selectedTruck && getTruckId(selectedTruck) === incomingId) {
-      setSelectedTruck(prev => prev ? {
+    setSelectedTruck(prev => {
+      if (!prev || getTruckId(prev) !== incomingId) return prev;
+      return {
         ...prev,
         currentLocation: { lat: Number(data.location.lat), lng: Number(data.location.lng) },
         currentSpeed: Number(data.speed ?? 0),
         status: data.status ?? prev.status,
         lastUpdate: data.timestamp,
-      } : prev);
-    }
-  }, [user, allowedTruckIds, selectedTruck]);
+      };
+    });
+  }, [user, allowedTruckIds]);
 
   // WebSocket connection
   useEffect(() => {
@@ -823,21 +1070,21 @@ const LiveMap = () => {
   const currentStyle = MAP_STYLES[currentMapStyle] || MAP_STYLES.light;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-white-500 flex items-center justify-center shadow-lg animate-pulse">
-          <MapIcon className="h-8 w-8 text-gray" />
-        </div>
-        <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Map</p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col items-center justify-center gap-4">
+      <div className="w-16 h-16 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg shadow-teal-200 animate-pulse">
+        <MapIcon className="h-8 w-8 text-white" />
       </div>
-    );
-  }
+      <p className="text-gray-500 text-sm font-medium animate-pulse">Loading Map...</p>
+    </div>
+  );
+}
 
   return (
     <div className="flex h-full w-full overflow-hidden flex-col md:flex-row relative z-0">
       {!isMobile && (
         <DesktopSidebar
-          trucks={trucks}
+          trucks={visibleTrucks}
           selectedTruck={selectedTruck}
           onSelectTruck={handleSelectTruck}
           onCloseSelectedTruck={() => setSelectedTruck(null)}
@@ -847,6 +1094,8 @@ const LiveMap = () => {
           onToggleRoutePoints={() => setShowRoutePoints(v => !v)}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
+          hideOffline={hideOffline}
+          onToggleHideOffline={() => setHideOffline(v => !v)}
         />
       )}
 
@@ -872,53 +1121,24 @@ const LiveMap = () => {
           />
 
           <PanToTruck truck={selectedTruck} />
-          <RouteLines routes={routes} mapStyle={currentMapStyle} />
-          <RoutePointsMarkers routes={routes} visible={showRoutePoints} />
+          <RouteLines routes={visibleRoutes} mapStyle={currentMapStyle} />
+          <RoutePointsMarkers routes={visibleRoutes} visible={showRoutePoints} />
 
-          {trucks.map(truck => {
-            const loc = getLocationFromTruck(truck);
-            const isSelected = getTruckId(truck) === getTruckId(selectedTruck);
-            if (!hasCoords(loc)) return null;
+          {visibleTrucks.map(truck => {
             const truckId = getTruckId(truck);
-            const markerKey = `${truckId}-${loc.lat.toFixed(8)}-${loc.lng.toFixed(8)}-${markerUpdateTrigger}`;
             return (
-              <Marker
-                key={markerKey}
-                position={[loc.lat, loc.lng]}
-                icon={createTruckIcon(truck, isSelected)}
-                ref={(ref) => { if (ref && truckId) markerRefs.current[truckId] = ref; }}
-                zIndexOffset={isSelected ? 1000 : 0}
-                eventHandlers={{ click: () => { handleSelectTruck(truck); userInteracted.current = false; } }}
-              >
-                <Popup>
-                  <div className="space-y-1 text-sm min-w-[160px]">
-                    <div className="font-bold text-gray-800">🚛 {truck.licensePlate || 'Unknown'}</div>
-                    <div className="text-gray-500 text-xs">{truck.brand} {truck.model}</div>
-                    <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
-                      <span className="text-gray-400">Speed</span>
-                      <span className={`font-semibold ${getSpeedColor(getSpeedFromTruck(truck))}`}>
-                        {getSpeedFromTruck(truck)} km/h
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Status</span>
-                      <span className="font-semibold">{getStatusText(truck.status)}</span>
-                    </div>
-                    {truck.driver && (
-                      <div className="text-xs pt-1 border-t border-gray-100 text-gray-500">
-                        👤 {truck.driver.name || 'No driver'}
-                      </div>
-                    )}
-                    <div className="text-xs text-gray-400 font-mono">
-                      {loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
+              <TruckMarker
+                key={truckId}
+                truck={truck}
+                isSelected={truckId === getTruckId(selectedTruck)}
+                onSelect={handleSelectTruck}
+                markerRefs={markerRefs}
+              />
             );
           })}
 
-          <ShipmentMarkers trucks={trucks} />
+          <LastKnownPositionMarkers trucks={visibleTrucks} routes={visibleRoutes} />
+          <ShipmentMarkers trucks={visibleTrucks} />
           <FitBounds markers={initialMarkers} done={fitBoundsDone} />
         </MapContainer>
       </div>

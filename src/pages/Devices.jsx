@@ -23,44 +23,36 @@ import {
   ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline';
 
-// Status select component — brand device status colors
-const StatusSelect = ({ status, onStatusChange, deviceId, isUpdating }) => {
-  const handleChange = (e) => {
-    const newStatus = e.target.value;
-    if (newStatus !== status) {
-      onStatusChange(deviceId, newStatus);
+const StatusBadge = ({ status }) => {
+  const config = {
+    active: {
+      label: 'Online',
+      dot: 'bg-green-500',
+      badge: 'bg-green-100 text-green-700'
+    },
+    inactive: {
+      label: 'Offline',
+      dot: 'bg-gray-500',
+      badge: 'bg-gray-100 text-gray-700'
+    },
+    maintenance: {
+      label: 'Maintenance',
+      dot: 'bg-orange-500',
+      badge: 'bg-orange-100 text-orange-700'
     }
   };
 
-  // active → teal, inactive → gray, maintenance → orange
-  const getStatusStyle = (value) => {
-    switch (value) {
-      case 'active':      return 'bg-teal-100 text-teal-700';
-      case 'inactive':    return 'bg-gray-100 text-gray-600';
-      case 'maintenance': return 'bg-orange-100 text-orange-700';
-      default:            return 'bg-gray-100 text-gray-600';
-    }
-  };
+  const current = config[status] || config.inactive;
 
   return (
-    <div className="flex items-center gap-1">
-      <select
-        value={status}
-        onChange={handleChange}
-        disabled={isUpdating}
-        className={`text-xs font-medium rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-400 ${getStatusStyle(status)}`}
-      >
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-        <option value="maintenance">Maintenance</option>
-      </select>
-      {isUpdating && (
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500"></div>
-      )}
-    </div>
+    <span
+      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${current.badge}`}
+    >
+      <span className={`w-2 h-2 rounded-full ${current.dot}`}></span>
+      {current.label}
+    </span>
   );
 };
-
 // Assign Truck Modal
 const AssignTruckModal = ({ device, trucks, onAssign, onClose }) => {
   const [selectedTruckId, setSelectedTruckId] = useState('');
@@ -101,7 +93,6 @@ const Devices = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
   const [assigningDevice, setAssigningDevice] = useState(null);
-  const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const { page, limit, handleLimitChange, setPage } = usePagination(1, 10);
   const [filters, setFilters] = useState({ status: '', search: '', archived: false });
   const [searchInput, setSearchInput] = useState('');
@@ -234,17 +225,7 @@ const Devices = () => {
     onError: (error) => toast.error(error.response?.data?.message || 'Failed to unassign device')
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }) => deviceService.update(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-      setUpdatingStatusId(null);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update status');
-      setUpdatingStatusId(null);
-    }
-  });
+
 
   // Handlers
   const handleAssignTruck = (deviceId, truckId) => assignMutation.mutate({ deviceId, truckId });
@@ -252,10 +233,6 @@ const Devices = () => {
     if (window.confirm(`Unassign truck from device "${device.deviceId}"?`)) {
       unassignMutation.mutate(device._id);
     }
-  };
-  const handleStatusUpdate = (deviceId, newStatus) => {
-    setUpdatingStatusId(deviceId);
-    updateStatusMutation.mutate({ id: deviceId, status: newStatus });
   };
   const handleSubmit = (data) => {
     if (editingDevice) updateMutation.mutate({ id: editingDevice._id, data });
@@ -382,7 +359,7 @@ const Devices = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Battery</th>
                     {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Firmware</th> */}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned Truck</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Seen</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Ping</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
@@ -401,10 +378,14 @@ const Devices = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <BoltIcon className={`h-5 w-5 ${getBatteryColor(device.batteryLevel || 0)}`} />
-                          <span className="text-sm text-gray-900">{device.batteryLevel || 0}%</span>
-                        </div>
+  {device.status === 'inactive' ? (
+    <span className="text-sm text-gray-400">_</span>
+  ) : (
+    <div className="flex items-center gap-2">
+                            <BoltIcon className={`h-5 w-5 ${getBatteryColor(device.batteryLevel || 0)}`} />
+                            <span className="text-sm text-gray-900">{device.batteryLevel || 0}%</span>
+                          </div>
+                        )}
                       </td>
                       {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         v{device.firmwareVersion || '1.0.0'}
@@ -438,12 +419,7 @@ const Devices = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusSelect
-                          status={device.status}
-                          deviceId={device._id}
-                          onStatusChange={handleStatusUpdate}
-                          isUpdating={updatingStatusId === device._id}
-                        />
+                        <StatusBadge status={device.status} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <button
