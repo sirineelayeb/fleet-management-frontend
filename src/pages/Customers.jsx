@@ -287,14 +287,16 @@ console.log('statsData:', statsData); // add this
                           >
                             <EyeIcon className="h-5 w-5" />
                           </button>
-                          {/* Edit allowed for both admin and manager (optional) */}
-                          <button
-                            onClick={() => { setEditingCustomer(customer); setShowForm(true); }}
-                            className="text-teal-600 hover:text-teal-800 transition-colors"
-                            title="Edit"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
+                          {/* Edit – only for admins */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => { setEditingCustomer(customer); setShowForm(true); }}
+                              className="text-teal-600 hover:text-teal-800 transition-colors"
+                              title="Edit"
+                            >
+                              <PencilIcon className="h-5 w-5" />
+                            </button>
+                          )}
 
                           {/* Archive / Restore – only for admins */}
                           {isAdmin && (customer.isActive ? (

@@ -49,6 +49,10 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
       toast.error('Please enter a valid phone number');
       return;
     }
+    if (!formData.location.lat || !formData.location.lng) {
+      toast.error('Please provide valid latitude and longitude for the location');
+      return;
+    }
     mutation.mutate(formData);
   };
 
@@ -115,7 +119,7 @@ const CustomerFormModal = ({ customer, onClose, onSuccess }) => {
           <div className="border rounded-lg p-3 bg-gray-50">
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-700">
-                Customer Location (Optional)
+                Customer Location *
               </label>
               <button
                 type="button"

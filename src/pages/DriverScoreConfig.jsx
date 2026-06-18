@@ -371,7 +371,7 @@ const DriverScoreConfig = () => {
       </Modal>
 
       {/* Score History Modal */}
-      <Modal isOpen={showLogsModal} onClose={() => setShowLogsModal(false)} title={`Score History - ${logsDriver?.name || ''}`} size="xl">
+      <Modal isOpen={showLogsModal} onClose={() => setShowLogsModal(false)} title={`Score History - ${logsDriver?.name || ''}`} size="md">
         <div className="space-y-4">
           {/* Driver Summary */}
           {logsDriver && (

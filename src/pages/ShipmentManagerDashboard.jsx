@@ -204,7 +204,6 @@ const PerformanceBars = ({ onTimeRate, utilizationRate, completionRate }) => {
 
 const ShipmentManagerDashboard = () => {
   const queryClient = useQueryClient();
-  const [lastRefresh, setLastRefresh] = useState(new Date());
 
   // ── Queries ──────────────────────────────────────────────
   const { data: shipmentStats, refetch: refetchStats } = useQuery({
@@ -245,11 +244,9 @@ const ShipmentManagerDashboard = () => {
     const handleShipmentUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
       queryClient.invalidateQueries({ queryKey: ['shipmentStats'] });
-      setLastRefresh(new Date());
     };
     const handleTruckUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ['truckStats'] });
-      setLastRefresh(new Date());
     };
 
     webSocketService.on('shipment:updated', handleShipmentUpdated);
@@ -260,15 +257,7 @@ const ShipmentManagerDashboard = () => {
     };
   }, [queryClient]);
 
-  // ── Auto-refresh ─────────────────────────────────────────
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetchStats();
-      refetchShipments();
-      setLastRefresh(new Date());
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [refetchStats, refetchShipments]);
+
 
   // ── Derived stats ────────────────────────────────────────
   const stats = useMemo(() => ({
@@ -330,10 +319,7 @@ const ShipmentManagerDashboard = () => {
 
   const recentShipments = shipments.slice(0, 5);
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries();
-    setLastRefresh(new Date());
-  };
+
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -346,15 +332,7 @@ const ShipmentManagerDashboard = () => {
               Shipment Manager Dashboard
             </h1>
             <p className="text-gray-600 mt-1">Track shipments and monitor fleet performance</p>
-            <p className="text-xs text-gray-400 mt-2">Last updated: {lastRefresh.toLocaleTimeString()}</p>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg shadow-sm hover:bg-gray-50"
-          >
-            <ArrowPathIcon className="h-4 w-4" />
-            Refresh
-          </button>
         </div>
 
         {/* KPI Row 1 */}
@@ -477,11 +455,10 @@ const ShipmentManagerDashboard = () => {
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4" style={{ color: COLORS.navy }}>Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { to: '/shipment_manager/shipments', icon: CubeIcon,     color: COLORS.blue,   title: 'Manage Shipments', desc: 'View and manage all shipments' },
               { to: '/shipment_manager/map',       icon: MapIcon,       color: COLORS.teal,   title: 'Live Map',         desc: 'Real-time fleet tracking' },
-              { to: '/shipment_manager/reports',   icon: ChartBarIcon,  color: COLORS.orange, title: 'Reports',          desc: 'View detailed analytics' },
             ].map(({ to, icon: Icon, color, title, desc }) => (
               <Link
                 key={to}

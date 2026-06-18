@@ -34,6 +34,17 @@ const CustomerDetailsModal = ({ customer, onClose }) => {
           </div>
         </div>
 
+        {/* Location */}
+        {customer.location && (
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Location</h3>
+            <p className="text-sm">{customer.location.placeName}</p>
+            <p className="text-xs text-gray-500">
+              {customer.location.lat}, {customer.location.lng}
+            </p>
+          </div>
+        )}
+
         {/* Status */}
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
@@ -43,7 +54,7 @@ const CustomerDetailsModal = ({ customer, onClose }) => {
             {customer.isActive ? 'Active' : 'Archived'}
           </span>
         </div>
-
+      
         {/* Recent Shipments */}
         {customer.recentShipments && customer.recentShipments.length > 0 && (
           <div className="bg-gray-50 rounded-lg p-4">
