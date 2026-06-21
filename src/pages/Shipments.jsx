@@ -304,7 +304,7 @@ const Shipments = () => {
 
   const archiveMutation         = useMutation({ mutationFn: (id) => shipmentService.archive(id),   onSuccess: () => { invalidate(); toast.success('Shipment archived');  }, onError: (e) => toast.error(e.response?.data?.message || 'Archive failed')         });
   const unarchiveMutation       = useMutation({ mutationFn: (id) => shipmentService.unarchive(id), onSuccess: () => { invalidate(); toast.success('Shipment restored');  }, onError: (e) => toast.error(e.response?.data?.message || 'Restore failed')         });
-  const assignMutation          = useMutation({ mutationFn: ({ shipmentId, truckId, driverId }) => shipmentService.assign(shipmentId, truckId, driverId), onSuccess: () => { invalidate(); toast.success('Shipment assigned');   closeAssign();  }, onError: (e) => toast.error(e.response?.data?.message || 'Assign failed')          });
+  const assignMutation          = useMutation({ mutationFn: ({ shipmentId, truckId, driverId }) => shipmentService.assign(shipmentId, truckId, driverId), onSuccess: () => { invalidate(); toast.success('Shipment assigned');   closeAssign();  }    });
   const assignManagerMutation   = useMutation({ mutationFn: ({ shipmentId, managerId }) => shipmentService.assignToManager(shipmentId, managerId),        onSuccess: () => { invalidate(); toast.success('Manager assigned');   closeManager(); }, onError: (e) => toast.error(e.response?.data?.message || 'Assign manager failed')  });
   const unassignManagerMutation = useMutation({ mutationFn: (id) => shipmentService.unassignManager(id), onSuccess: () => { invalidate(); toast.success('Manager unassigned'); closeManager(); }, onError: (e) => toast.error(e.response?.data?.message || 'Unassign manager failed') });
   const cancelMutation          = useMutation({ mutationFn: ({ id }) => shipmentService.cancel(id),      onSuccess: () => { invalidate(); toast.success('Shipment cancelled'); setDetailShipment(null); }, onError: (e) => toast.error(e.response?.data?.message || 'Cancel failed')          });
@@ -316,20 +316,20 @@ const Shipments = () => {
   const openAssign   = (s) => { setSelectedShipment(s); setShowAssignModal(true);  };
   const openManager  = (s) => { setSelectedShipment(s); setShowManagerModal(true); };
 
-  const handleCancel    = async (id) => { if (!window.confirm('Cancel this shipment? This will free the truck and driver.')) return; await cancelMutation.mutateAsync({ id }); };
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this shipment? This will free the truck and driver.')) return;
+    await cancelMutation.mutateAsync({ id }).catch(() => {}); // onError handles the toast
+  };  
   const handleArchive   = (id) => { if (window.confirm('Archive this shipment?'))  archiveMutation.mutate(id); };
   const handleUnarchive = (id) => { if (window.confirm('Restore this shipment?'))  unarchiveMutation.mutate(id); };
   const handleEdit      = (shipment) => { setEditingShipment(shipment); setShowEditModal(true); };
 
   const handleReassign = async (shipmentId, truckId, driverId) => {
-    try {
-      await shipmentService.reassign(shipmentId, truckId, driverId);
-      toast.success('Shipment reassigned');
-      refetch();
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to reassign');
-    }
-  };
+  // No try/catch here — let the error bubble up to the modal
+  await shipmentService.reassign(shipmentId, truckId, driverId);
+  toast.success('Shipment reassigned');
+  refetch();
+};
 
   const actions = { handleViewDetails: setDetailShipment, handleCancel, handleArchive, handleUnarchive, handleEdit, openAssign, openManager };
 

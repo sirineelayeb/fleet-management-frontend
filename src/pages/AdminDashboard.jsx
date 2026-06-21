@@ -161,13 +161,14 @@ const useStats = (trucks, shipments, notifications, drivers, devices) =>
         utilization: pct(trucks.filter(t => t.status === 'in_mission').length, trucks.length),
       },
       shipments: {
-        total: shipments.length,
-        inProgress: shipments.filter(s => s.status === 'in_progress').length,
-        pending: shipments.filter(s => s.status === 'pending').length,
-        completed: shipments.filter(s => s.status === 'completed').length,
-        cancelled: shipments.filter(s => s.status === 'cancelled').length,
-        successRate: pct(shipments.filter(s => s.status === 'completed').length, shipments.length),
-      },
+      total: shipments.length,
+      assigned:   shipments.filter(s => s.status === 'assigned').length,   // ADD THIS
+      inProgress: shipments.filter(s => s.status === 'in_progress').length,
+      pending:    shipments.filter(s => s.status === 'pending').length,
+      completed:  shipments.filter(s => s.status === 'completed').length,
+      cancelled:  shipments.filter(s => s.status === 'cancelled').length,
+      successRate: pct(shipments.filter(s => s.status === 'completed').length, shipments.length),
+    },
       notifications: {
         total: unresolved.length,
         high: unresolved.filter(n => mapSeverity(n.severity) === 'high').length,
@@ -257,6 +258,7 @@ const FleetRadialChart = ({ stats }) => {
 };
 
 const DONUT_COLORS = {
+  'Assigned':    COLORS.navy,   
   'Completed':   COLORS.teal,
   'In Progress': COLORS.blue,
   'Pending':     COLORS.orange,
@@ -265,11 +267,12 @@ const DONUT_COLORS = {
 
 const ShipmentDonutChart = ({ stats }) => {
   const donutData = [
-    { name: 'Completed',   value: stats.shipments.completed  },
-    { name: 'In Progress', value: stats.shipments.inProgress },
-    { name: 'Pending',     value: stats.shipments.pending    },
-    { name: 'Cancelled',   value: stats.shipments.cancelled  },
-  ].filter(d => d.value > 0);
+  { name: 'Pending',     value: stats.shipments.pending     },
+  { name: 'Assigned',    value: stats.shipments.assigned    },
+  { name: 'In Progress', value: stats.shipments.inProgress  },
+  { name: 'Completed',   value: stats.shipments.completed   },
+  { name: 'Cancelled',   value: stats.shipments.cancelled   },
+].filter(d => d.value > 0);
 
   return (
     <ChartCard
